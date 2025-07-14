@@ -8,7 +8,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from .file_handler import HiveFileHandler
 
@@ -20,13 +20,17 @@ class MessageType(Enum):
     RESPONSE = "response"
     NOTIFICATION = "notification"
     ERROR = "error"
+    NECTAR_DISTRIBUTION = "nectar_distribution"
+    STATUS_REQUEST = "status_request"
+    ALERT = "alert"
+    URGENT_NOTIFICATION = "urgent_notification"
 
 
 class MessagePriority(Enum):
     """メッセージ優先度"""
 
     LOW = 1
-    NORMAL = 2
+    MEDIUM = 2
     HIGH = 3
     URGENT = 4
 
@@ -42,7 +46,7 @@ class Message:
     priority: MessagePriority
     content: dict[str, Any]
     timestamp: str
-    expires_at: Optional[str] = None
+    expires_at: str | None = None
     retry_count: int = 0
     max_retries: int = 3
 
@@ -53,7 +57,7 @@ class Message:
         to_worker: str,
         message_type: MessageType,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
         ttl_minutes: int = 60,
         max_retries: int = 3,
     ) -> "Message":
@@ -117,7 +121,7 @@ class MessageRouter:
 
     def __init__(
         self,
-        file_handler: Optional[HiveFileHandler] = None,
+        file_handler: HiveFileHandler | None = None,
         enable_markdown_logging: bool = True,
     ) -> None:
         """
@@ -240,7 +244,7 @@ class MessageRouter:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         レスポンスメッセージを送信
@@ -271,7 +275,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         通知メッセージを送信
@@ -300,7 +304,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         error_message: str,
-        error_details: Optional[dict[str, Any]] = None,
+        error_details: dict[str, Any] | None = None,
     ) -> bool:
         """
         エラーメッセージを送信

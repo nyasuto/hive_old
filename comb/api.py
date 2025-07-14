@@ -6,8 +6,9 @@ Worker間通信の統一インターフェースを提供
 
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 from .file_handler import HiveFileHandler
 from .message_router import Message, MessagePriority, MessageRouter, MessageType
@@ -21,10 +22,10 @@ class CombAPI:
     def __init__(
         self,
         worker_id: str,
-        file_handler: Optional[HiveFileHandler] = None,
-        message_router: Optional[MessageRouter] = None,
-        sync_manager: Optional[SyncManager] = None,
-        work_log_manager: Optional[WorkLogManager] = None,
+        file_handler: HiveFileHandler | None = None,
+        message_router: MessageRouter | None = None,
+        sync_manager: SyncManager | None = None,
+        work_log_manager: WorkLogManager | None = None,
         enable_markdown_logging: bool = True,
     ) -> None:
         """
@@ -54,7 +55,7 @@ class CombAPI:
 
         # ポーリング制御
         self._polling = False
-        self._polling_thread: Optional[threading.Thread] = None
+        self._polling_thread: threading.Thread | None = None
         self._polling_interval = 1.0  # seconds
 
     def send_message(
@@ -62,7 +63,7 @@ class CombAPI:
         to_worker: str,
         content: dict[str, Any],
         message_type: MessageType = MessageType.REQUEST,
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
         ttl_minutes: int = 60,
     ) -> bool:
         """
@@ -102,7 +103,7 @@ class CombAPI:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         レスポンス送信
@@ -123,7 +124,7 @@ class CombAPI:
         self,
         to_worker: str,
         content: dict[str, Any],
-        priority: Union[MessagePriority, str] = MessagePriority.NORMAL,
+        priority: MessagePriority | str = MessagePriority.MEDIUM,
     ) -> bool:
         """
         通知送信
@@ -140,11 +141,12 @@ class CombAPI:
         if isinstance(priority, str):
             priority_map = {
                 "low": MessagePriority.LOW,
-                "normal": MessagePriority.NORMAL,
+                "medium": MessagePriority.MEDIUM,
+                "normal": MessagePriority.MEDIUM,
                 "high": MessagePriority.HIGH,
                 "urgent": MessagePriority.URGENT,
             }
-            priority = priority_map.get(priority.lower(), MessagePriority.NORMAL)
+            priority = priority_map.get(priority.lower(), MessagePriority.MEDIUM)
 
         return self.message_router.send_notification(
             self.worker_id, to_worker, content, priority
@@ -154,7 +156,7 @@ class CombAPI:
         self,
         to_worker: str,
         error_message: str,
-        error_details: Optional[dict[str, Any]] = None,
+        error_details: dict[str, Any] | None = None,
     ) -> bool:
         """
         エラー通知送信
@@ -238,7 +240,7 @@ class CombAPI:
 
         return self.file_handler.write_json(nectar_file, nectar_data)
 
-    def receive_nectar(self) -> Optional[dict[str, Any]]:
+    def receive_nectar(self) -> dict[str, Any] | None:
         """
         Nectar（タスク）受信
 
@@ -432,8 +434,8 @@ class CombAPI:
         task_title: str,
         task_type: str = "feature",
         description: str = "",
-        issue_number: Optional[int] = None,
-        workers: Optional[list[str]] = None,
+        issue_number: int | None = None,
+        workers: list[str] | None = None,
     ) -> str:
         """
         タスクを開始
@@ -455,7 +457,7 @@ class CombAPI:
             task_title, task_type, description, issue_number, workers
         )
 
-    def add_progress(self, description: str, details: Optional[str] = None) -> bool:
+    def add_progress(self, description: str, details: str | None = None) -> bool:
         """
         進捗を追加
 
@@ -469,7 +471,7 @@ class CombAPI:
         return self.work_log_manager.add_progress(description, details)
 
     def add_technical_decision(
-        self, decision: str, reasoning: str, alternatives: Optional[list[str]] = None
+        self, decision: str, reasoning: str, alternatives: list[str] | None = None
     ) -> bool:
         """
         技術的決定を記録
@@ -486,7 +488,7 @@ class CombAPI:
             decision, reasoning, alternatives
         )
 
-    def add_challenge(self, challenge: str, solution: Optional[str] = None) -> bool:
+    def add_challenge(self, challenge: str, solution: str | None = None) -> bool:
         """
         課題と解決策を記録
 
@@ -523,7 +525,7 @@ class CombAPI:
         """
         return self.work_log_manager.complete_task(result)
 
-    def get_current_task(self) -> Optional[dict[str, Any]]:
+    def get_current_task(self) -> dict[str, Any] | None:
         """
         現在のタスク情報を取得
 

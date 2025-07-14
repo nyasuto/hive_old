@@ -1,0 +1,33 @@
+{
+  "nectar_id": "nectar-{timestamp}-{random}",
+  "title": "リファクタリング: {refactoring_title}",
+  "description": "コードリファクタリングタスクです。\n\n【リファクタリング目的】\n{refactoring_purpose}\n\n【対象範囲】\n{target_scope}\n\n【現在の問題点】\n- {issue1}\n- {issue2}\n- {issue3}\n\n【改善計画】\n{improvement_plan}\n\n【期待効果】\n- {expected_benefit1}\n- {expected_benefit2}\n- {expected_benefit3}",
+  "assigned_to": "developer",
+  "created_by": "queen",
+  "priority": "low",
+  "status": "pending",
+  "dependencies": [],
+  "expected_honey": [
+    "リファクタリングの実装",
+    "既存テストの維持",
+    "性能改善の確認",
+    "コード品質の向上"
+  ],
+  "estimated_time": 4,
+  "created_at": "{current_datetime}",
+  "deadline": "{deadline_datetime}",
+  "tags": [
+    "refactoring",
+    "code-quality",
+    "maintenance"
+  ],
+  "metadata": {
+    "issue_number": null,
+    "refactoring_type": "code_improvement",
+    "breaking_changes": false,
+    "performance_impact": "positive",
+    "test_requirements": true,
+    "documentation_required": false,
+    "review_required": true
+  }
+}

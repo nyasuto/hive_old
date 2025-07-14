@@ -7,7 +7,7 @@ Hive Comb Work Log Manager - 作業ログ管理システム
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .file_handler import HiveFileHandler
 
@@ -15,7 +15,7 @@ from .file_handler import HiveFileHandler
 class WorkLogManager:
     """作業ログ管理システム"""
 
-    def __init__(self, file_handler: Optional[HiveFileHandler] = None) -> None:
+    def __init__(self, file_handler: HiveFileHandler | None = None) -> None:
         """
         初期化
 
@@ -36,15 +36,15 @@ class WorkLogManager:
         self.projects_dir.mkdir(exist_ok=True)
 
         # 現在のタスク追跡
-        self.current_task: Optional[dict[str, Any]] = None
+        self.current_task: dict[str, Any] | None = None
 
     def start_task(
         self,
         task_title: str,
         task_type: str = "feature",
         description: str = "",
-        issue_number: Optional[int] = None,
-        workers: Optional[list[str]] = None,
+        issue_number: int | None = None,
+        workers: list[str] | None = None,
     ) -> str:
         """
         タスクを開始
@@ -93,7 +93,7 @@ class WorkLogManager:
 
         return task_id
 
-    def add_progress(self, description: str, details: Optional[str] = None) -> bool:
+    def add_progress(self, description: str, details: str | None = None) -> bool:
         """
         進捗を追加
 
@@ -124,7 +124,7 @@ class WorkLogManager:
         return True
 
     def add_technical_decision(
-        self, decision: str, reasoning: str, alternatives: Optional[list[str]] = None
+        self, decision: str, reasoning: str, alternatives: list[str] | None = None
     ) -> bool:
         """
         技術的決定を記録
@@ -157,7 +157,7 @@ class WorkLogManager:
 
         return True
 
-    def add_challenge(self, challenge: str, solution: Optional[str] = None) -> bool:
+    def add_challenge(self, challenge: str, solution: str | None = None) -> bool:
         """
         課題と解決策を記録
 
@@ -437,7 +437,7 @@ Daily activity log
 
         return "\n".join(lines)
 
-    def get_current_task(self) -> Optional[dict[str, Any]]:
+    def get_current_task(self) -> dict[str, Any] | None:
         """
         現在のタスク情報を取得
 
