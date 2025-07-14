@@ -265,6 +265,30 @@ print(f'Initial task created: {task_id}')
     fi
 }
 
+# Python環境のセットアップ
+setup_python_environment() {
+    # pyenv環境の設定（継承）
+    if [[ -n "${PYENV_ROOT:-}" ]]; then
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        if command -v pyenv &> /dev/null; then
+            eval "$(pyenv init -)"
+        fi
+    fi
+    
+    # Worker識別用のプロンプト設定
+    export PS1="[$WORKER_TYPE] \w\$ "
+    
+    if [[ "$QUIET_MODE" == "false" ]]; then
+        local python_version=""
+        if command -v python &> /dev/null; then
+            python_version=$(python --version 2>&1)
+        elif command -v python3 &> /dev/null; then
+            python_version=$(python3 --version 2>&1)
+        fi
+        log_info "Python environment: $python_version"
+    fi
+}
+
 # 対話モードの開始
 start_interactive_mode() {
     if [[ "$QUIET_MODE" == "false" ]]; then
@@ -301,8 +325,21 @@ start_interactive_mode() {
         echo
     fi
     
-    # 通常のbashセッション開始（Claude Codeは手動起動）
-    exec bash --login
+    # Python環境の設定
+    setup_python_environment
+    
+    # 利用可能なシェルの自動選択（zsh優先、fallbackでbash）
+    if command -v zsh &> /dev/null; then
+        if [[ "$QUIET_MODE" == "false" ]]; then
+            log_info "Starting zsh session (pyenv/Homebrew settings preserved)"
+        fi
+        exec zsh --login
+    else
+        if [[ "$QUIET_MODE" == "false" ]]; then
+            log_info "Starting bash session (zsh not available)"
+        fi
+        exec bash --login
+    fi
 }
 
 # ヘルスチェック
