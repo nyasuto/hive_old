@@ -115,15 +115,27 @@ class Message:
 class MessageRouter:
     """メッセージルーティング管理"""
 
-    def __init__(self, file_handler: Optional[HiveFileHandler] = None) -> None:
+    def __init__(
+        self,
+        file_handler: Optional[HiveFileHandler] = None,
+        enable_markdown_logging: bool = True,
+    ) -> None:
         """
         初期化
 
         Args:
             file_handler: ファイルハンドラー（デフォルト: default_handler）
+            enable_markdown_logging: Markdownログ機能を有効化
         """
         self.file_handler = file_handler or HiveFileHandler()
         self.file_handler.ensure_hive_structure()
+
+        # Markdownログ機能 (遅延インポート)
+        self.markdown_logger = None
+        if enable_markdown_logging:
+            from .markdown_logger import MarkdownLogger
+
+            self.markdown_logger = MarkdownLogger(self.file_handler)
 
         # メッセージディレクトリ
         self.messages_dir = self.file_handler.get_path("comb", "messages")
@@ -166,6 +178,10 @@ class MessageRouter:
                 # outboxからsentに移動
                 sent_file = self.sent_dir / f"{message.id}.json"
                 self.file_handler.move_file(outbox_file, sent_file)
+
+                # Markdownログに記録
+                if self.markdown_logger:
+                    self.markdown_logger.log_message(message)
 
                 return True
             return False
