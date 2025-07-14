@@ -6,12 +6,6 @@
 # デフォルトターゲット
 .DEFAULT_GOAL := help
 
-# カラー定義
-GREEN := \033[32m
-YELLOW := \033[33m
-BLUE := \033[34m
-RED := \033[31m
-RESET := \033[0m
 
 # Python実行環境
 PYTHON := python3
@@ -53,33 +47,33 @@ build: clean ## Build package
 
 test: ## Run tests
 	@echo "$(BLUE)Running tests...$(RESET)"
-	pytest tests/ -v
+	$(HOME)/.local/bin/uv tool run pytest tests/ -v
 
 test-cov: ## Run tests with coverage
 	@echo "$(BLUE)Running tests with coverage...$(RESET)"
-	pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
+	$(HOME)/.local/bin/uv run pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
 
 lint: ## Run linting
 	@echo "$(BLUE)Running linter...$(RESET)"
-	ruff check .
+	$(HOME)/.local/bin/uv tool run ruff check .
 
 format: ## Format code
 	@echo "$(BLUE)Formatting code...$(RESET)"
-	ruff format .
-	black .
+	$(HOME)/.local/bin/uv tool run ruff format .
+	$(HOME)/.local/bin/uv tool run black .
 
 type-check: ## Run type checking
 	@echo "$(BLUE)Running type checker...$(RESET)"
-	mypy .
+	$(HOME)/.local/bin/uv tool run mypy .
 
 quality: lint type-check ## Run all quality checks
 	@echo "$(GREEN)All quality checks completed!$(RESET)"
 
 quality-fix: ## Auto-fix issues where possible
 	@echo "$(BLUE)Auto-fixing code issues...$(RESET)"
-	ruff check . --fix
-	ruff format .
-	black .
+	$(HOME)/.local/bin/uv tool run ruff check . --fix
+	$(HOME)/.local/bin/uv tool run ruff format .
+	$(HOME)/.local/bin/uv tool run black .
 	@$(MAKE) quality
 
 pr-ready: quality test ## Ensure code is ready for PR submission
