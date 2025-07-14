@@ -7,11 +7,12 @@ Worker間通信の統一インターフェースを提供
 import threading
 import time
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 from .file_handler import HiveFileHandler
 from .message_router import Message, MessagePriority, MessageRouter, MessageType
 from .sync_manager import SyncManager
+from .work_log_manager import WorkLogManager
 
 
 class CombAPI:
@@ -23,6 +24,8 @@ class CombAPI:
         file_handler: Optional[HiveFileHandler] = None,
         message_router: Optional[MessageRouter] = None,
         sync_manager: Optional[SyncManager] = None,
+        work_log_manager: Optional[WorkLogManager] = None,
+        enable_markdown_logging: bool = True
     ) -> None:
         """
         API初期化
@@ -32,11 +35,16 @@ class CombAPI:
             file_handler: ファイルハンドラー
             message_router: メッセージルーター
             sync_manager: 同期マネージャー
+            work_log_manager: 作業ログマネージャー
+            enable_markdown_logging: Markdownログ機能を有効化
         """
         self.worker_id = worker_id
         self.file_handler = file_handler or HiveFileHandler()
-        self.message_router = message_router or MessageRouter(self.file_handler)
+        self.message_router = message_router or MessageRouter(
+            self.file_handler, enable_markdown_logging
+        )
         self.sync_manager = sync_manager or SyncManager(self.file_handler)
+        self.work_log_manager = work_log_manager or WorkLogManager(self.file_handler)
 
         # 初期化
         self.file_handler.ensure_hive_structure()
@@ -115,7 +123,7 @@ class CombAPI:
         self,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: Union[MessagePriority, str] = MessagePriority.NORMAL,
     ) -> bool:
         """
         通知送信
@@ -128,6 +136,16 @@ class CombAPI:
         Returns:
             送信成功時True
         """
+        # 文字列の場合は MessagePriority に変換
+        if isinstance(priority, str):
+            priority_map = {
+                "low": MessagePriority.LOW,
+                "normal": MessagePriority.NORMAL,
+                "high": MessagePriority.HIGH,
+                "urgent": MessagePriority.URGENT
+            }
+            priority = priority_map.get(priority.lower(), MessagePriority.NORMAL)
+
         return self.message_router.send_notification(
             self.worker_id, to_worker, content, priority
         )
@@ -396,13 +414,140 @@ class CombAPI:
         message_stats = self.message_router.get_message_stats()
         lock_stats = self.sync_manager.get_lock_stats()
 
+        work_log_stats = self.work_log_manager.get_work_log_stats()
+
         return {
             "worker_id": self.worker_id,
             "polling": self._polling,
             "messages": message_stats,
             "locks": lock_stats,
+            "work_logs": work_log_stats,
             "timestamp": datetime.now().isoformat(),
         }
+
+    # 作業ログ機能
+
+    def start_task(
+        self,
+        task_title: str,
+        task_type: str = "feature",
+        description: str = "",
+        issue_number: Optional[int] = None,
+        workers: Optional[list[str]] = None
+    ) -> str:
+        """
+        タスクを開始
+
+        Args:
+            task_title: タスクタイトル
+            task_type: タスクタイプ
+            description: タスク説明
+            issue_number: GitHub Issue番号
+            workers: 関与するWorkerリスト
+
+        Returns:
+            タスクID
+        """
+        if workers is None:
+            workers = [self.worker_id]
+
+        return self.work_log_manager.start_task(
+            task_title, task_type, description, issue_number, workers
+        )
+
+    def add_progress(self, description: str, details: Optional[str] = None) -> bool:
+        """
+        進捗を追加
+
+        Args:
+            description: 進捗説明
+            details: 詳細情報
+
+        Returns:
+            追加成功時True
+        """
+        return self.work_log_manager.add_progress(description, details)
+
+    def add_technical_decision(
+        self,
+        decision: str,
+        reasoning: str,
+        alternatives: Optional[list[str]] = None
+    ) -> bool:
+        """
+        技術的決定を記録
+
+        Args:
+            decision: 決定内容
+            reasoning: 決定理由
+            alternatives: 検討した代替案
+
+        Returns:
+            記録成功時True
+        """
+        return self.work_log_manager.add_technical_decision(
+            decision, reasoning, alternatives
+        )
+
+    def add_challenge(self, challenge: str, solution: Optional[str] = None) -> bool:
+        """
+        課題と解決策を記録
+
+        Args:
+            challenge: 課題内容
+            solution: 解決策
+
+        Returns:
+            記録成功時True
+        """
+        return self.work_log_manager.add_challenge(challenge, solution)
+
+    def add_metrics(self, metrics: dict[str, Any]) -> bool:
+        """
+        メトリクスを追加
+
+        Args:
+            metrics: メトリクスデータ
+
+        Returns:
+            追加成功時True
+        """
+        return self.work_log_manager.add_metrics(metrics)
+
+    def complete_task(self, result: str = "completed") -> bool:
+        """
+        タスクを完了
+
+        Args:
+            result: 完了結果
+
+        Returns:
+            完了処理成功時True
+        """
+        return self.work_log_manager.complete_task(result)
+
+    def get_current_task(self) -> Optional[dict[str, Any]]:
+        """
+        現在のタスク情報を取得
+
+        Returns:
+            現在のタスク情報
+        """
+        return self.work_log_manager.get_current_task()
+
+    def generate_daily_summary(self) -> bool:
+        """
+        日次サマリーを生成
+
+        Returns:
+            生成成功時True
+        """
+        # 通信ログとワークログの両方でサマリー生成
+        comm_success = True
+        if self.message_router.markdown_logger:
+            comm_success = self.message_router.markdown_logger.generate_daily_summary()
+
+        return comm_success
 
 
 def create_worker_api(worker_id: str) -> CombAPI:
