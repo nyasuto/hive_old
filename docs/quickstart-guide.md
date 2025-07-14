@@ -54,105 +54,59 @@ tmux list-sessions
 
 **👈 左pane（Queen Worker）での操作：**
 
-まず、Queen Workerとして基本的な通信テストを行います：
-
-```python
-# Queen WorkerでCombAPIを初期化
-from comb import CombAPI
-queen = CombAPI("queen")
-
-# Developer Workerにメッセージを送信
-queen.send_message(
-    to_worker="developer",
-    content={"task": "Hello from Queen!", "priority": "low"},
-    message_type="request"
-)
-print("✅ メッセージを送信しました")
+```bash
+python examples/quickstart/01_basic_communication.py queen
 ```
 
 **👉 右pane（Developer Worker）での操作：**
 
 `Ctrl+B` → 右矢印でDeveloper Workerのpaneに移動し：
 
-```python
-# Developer WorkerでCombAPIを初期化
-from comb import CombAPI
-dev = CombAPI("developer")
-
-# Queen Workerからのメッセージを受信
-messages = dev.receive_messages()
-print(f"📬 受信メッセージ: {len(messages)}件")
-
-# メッセージの内容を確認
-for msg in messages:
-    print(f"📝 内容: {msg.content}")
+```bash
+python examples/quickstart/01_basic_communication.py developer
 ```
 
-**🎯 期待する結果：** Developer Workerで「受信メッセージ: 1件」と表示され、Queen Workerからのメッセージ内容が表示されます。
+**🎯 期待する結果：** 
+- Queen Worker: "メッセージを送信しました" と表示
+- Developer Worker: "受信メッセージ: 1件" と表示され、メッセージ内容が確認できる
 
-### 2. 簡単なタスク実行
+### 2. タスク管理機能のテスト
 
 **👈 左pane（Queen Worker）での操作：**
 
-プロジェクトのタスク管理機能をテストします：
-
-```python
-# 新しいタスクを開始
-task_id = queen.start_task("テスト機能実装", task_type="feature")
-print(f"🚀 タスク開始: {task_id}")
-
-# タスクの進捗を記録
-queen.add_progress("通信テスト完了", "基本機能確認済み")
-print("📊 進捗を記録しました")
+```bash
+python examples/quickstart/02_task_management.py queen
 ```
 
 **👉 右pane（Developer Worker）での操作：**
 
-Developer Workerとしてタスクに取り組みます：
-
-```python
-# 作業進捗を報告
-dev.add_progress("環境確認完了", "実装準備中")
-print("📋 進捗を報告しました")
-
-# 技術的決定を記録
-dev.add_technical_decision(
-    "Pythonでの実装",
-    "既存のCombAPIを活用するため",
-    ["JavaScript", "Go", "Rust"]
-)
-print("🔧 技術決定を記録しました")
+```bash
+python examples/quickstart/02_task_management.py developer
 ```
 
-**🎯 期待する結果：** 両paneで進捗報告とタスク管理の動作が確認できます。
+**🎯 期待する結果：** 
+- Queen Worker: タスク作成、進捗記録、技術決定の記録が完了
+- Developer Worker: タスク受信、作業実施、完了報告が完了
 
 ### 3. 成果物の確認
 
 **🖥️ 新しいターミナルを開いて確認：**
 
-tmuxセッションの外で、作業の成果を確認します：
-
 ```bash
-# Hiveディレクトリに移動
+# Hiveディレクトリに移動（必要に応じて）
 cd /path/to/hive
 
-# Comb通信システムの状態確認
-./scripts/check-comb.sh --stats
-
-# 作業ログの確認
-ls -la .hive/work_logs/daily/
-ls -la .hive/work_logs/projects/
-
-# メッセージの統計確認
-ls -la .hive/comb/messages/sent/
+# 包括的な結果確認
+python examples/quickstart/03_check_results.py
 ```
 
 **🎯 期待する結果：** 
-- ヘルスチェックで全項目が✅表示
-- work_logsディレクトリに日次・プロジェクトログファイルが作成されている
-- sentディレクトリにメッセージファイルが保存されている
+- ✅ Combシステム正常動作確認
+- ✅ 作業ログファイルの生成確認
+- ✅ メッセージファイルの送受信確認
+- ✅ 通信ログ（Markdown）の生成確認
 
-**💡 ヒント：** これらのファイルには、Worker間のやり取りがMarkdown形式で記録されています！
+**💡 ヒント：** 生成されたファイルには、Worker間のやり取りが人間が読めるMarkdown形式で記録されています！
 
 ## 🔧 基本操作
 
@@ -245,34 +199,52 @@ tmux kill-session -t hive-small-colony
 ./scripts/start-small-hive.sh --force
 ```
 
-### 問題2: Worker間の通信ができない
+### 問題2: Python スクリプトでエラーが発生する
 ```bash
-# Combディレクトリの権限確認
-ls -la .hive/
-chmod -R 755 .hive/
+# Combモジュールが見つからない場合
+pip install -e .
 
-# ディレクトリ構造の再作成
+# プロジェクトディレクトリから実行することを確認
+pwd  # /path/to/hive になっているはず
+
+# 詳細なエラー確認
+python examples/quickstart/01_basic_communication.py queen
+```
+
+### 問題3: Worker間の通信ができない
+```bash
+# Combシステムの診断
+./scripts/check-comb.sh --verbose
+
+# ディレクトリ構造の確認・修復
+./scripts/check-comb.sh --fix
+
+# 強制再起動
 ./scripts/start-small-hive.sh --force
 ```
 
-### 問題3: Python モジュールが見つからない
+### 問題4: スクリプトの実行でヘルプが表示される
 ```bash
-# プロジェクトディレクトリから実行することを確認
-pwd  # /path/to/hive になっているはず
-export PYTHONPATH="$PWD:$PYTHONPATH"
+# 引数を正しく指定してください
+python examples/quickstart/01_basic_communication.py queen  # Queen Worker用
+python examples/quickstart/01_basic_communication.py developer  # Developer Worker用
+
+# 引数なしでヘルプを確認
+python examples/quickstart/01_basic_communication.py
 ```
 
 ## 📚 次のステップ
 
 ### 詳細を学ぶ
-- [セットアップガイド](docs/setup-guide.md) - 詳細な環境構築
-- [Comb API仕様](docs/comb-api.md) - 通信システムの詳細
-- [トラブルシューティング](docs/troubleshooting.md) - 問題解決
+- [セットアップガイド](setup-guide.md) - 詳細な環境構築
+- [Comb API仕様](comb-api.md) - 通信システムの詳細
+- [トラブルシューティング](troubleshooting.md) - 問題解決
+- [クイックスタートサンプル](../examples/quickstart/README.md) - スクリプトの詳細説明
 
 ### 実践してみる
-- [Web アプリ開発例](examples/web-app-hive/) - Flask/FastAPI
-- [API 開発例](examples/api-development-hive/) - REST API
-- [データ分析例](examples/data-analysis-hive/) - Pandas/Jupyter
+- [Web アプリ開発例](../examples/web-app-hive/) - Flask/FastAPI
+- [API 開発例](../examples/api-development-hive/) - REST API
+- [データ分析例](../examples/data-analysis-hive/) - Pandas/Jupyter
 
 ### システムを拡張する
 ```bash
