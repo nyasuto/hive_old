@@ -11,6 +11,13 @@ Hive Queen Module - 中央管理システム
 __version__ = "0.1.0"
 
 from .coordinator import CoordinationMode, LoadBalancingStrategy, QueenCoordinator
+from .honey_collector import (
+    HoneyArtifact,
+    HoneyCollector,
+    HoneyType,
+    QualityLevel,
+    QualityReport,
+)
 from .status_monitor import BottleneckAlert, StatusMonitor, WorkerState
 from .task_distributor import Nectar, Priority, TaskDistributor, TaskStatus
 
@@ -25,4 +32,9 @@ __all__ = [
     "QueenCoordinator",
     "CoordinationMode",
     "LoadBalancingStrategy",
+    "HoneyCollector",
+    "HoneyArtifact",
+    "HoneyType",
+    "QualityLevel",
+    "QualityReport",
 ]

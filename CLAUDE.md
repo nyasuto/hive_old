@@ -6,38 +6,6 @@
 
 ---
 
-## 🛠️ 開発ツール
-
-**Python + Shell スクリプト環境のため、以下のコマンドを使用：**
-
-### Essential 開発コマンド
-
-**Core Development Commands:**
-
-- **Quick start:** `make help` または `./scripts/start-hive.sh --help` - Show all available commands
-- **Code quality:** `make quality` - Run all quality checks (lint + format + type-check)
-- **Auto-fix:** `make quality-fix` - Auto-fix issues where possible
-- **Development:** `make dev` - Quick setup and run cycle
-- **PR preparation:** `make pr-ready` - Ensure code is ready for submission
-- **Git hooks:** `make git-hooks` - Setup pre-commit hooks
-
-### Individual Quality Targets
-
-- `make lint` または `ruff check .` - Run linting
-- `make format` または `ruff format .` - Format code  
-- `make type-check` または `mypy .` - Type checking
-- `make test` または `pytest` - Run tests
-- `make test-cov` または `pytest --cov` - Run tests with coverage
-
-### Development Lifecycle
-
-- `make install` または `pip install -r requirements.txt` - Install dependencies
-- `make build` - Build package
-- `make clean` - Clean artifacts
-- `make env-info` - Show environment information
-
----
-
 ## 🔄 Pull Request Creation Rule
 
 **CRITICAL: コード変更後は必ずPull Requestを作成する**
@@ -143,19 +111,6 @@ Use descriptive, consistent branch names:
 - Security: `security/X-description`
 - Dependencies: `deps/X-description`
 
-### Commit Message Format
-
-```
-<type>: <description>
-
-<optional body explaining what and why>
-
-<optional footer with issue references>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
 
 **Commit Types:** feat, fix, docs, style, refactor, test, chore, ci
 
@@ -176,18 +131,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 #### PR Title Format
 
-**PR タイトルは日本語で記述し、以下の形式に従う：**
-
-```
-<type>: <brief description in 日本語>
-```
-
-**Examples:**
-
-- `feat: Phase 2.0 アセンブリコード生成器実装`
-- `fix: GitHub Actions CI失敗の修正`
-- `docs: API仕様書の更新`
-- `refactor: パーサーモジュールのリファクタリング`
+** PR は日本語で記述する **
 
 
 ### Essential Quality Tools
@@ -210,7 +154,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Separate CI jobs for different check types (lint, test, type-check)
 - Coverage reporting and tracking
 - Security scanning where applicable
-
 
 
 ## GitHub Integration with MCP Tools
@@ -304,10 +247,3 @@ make test         # Run test suite
 ```
 
 ---
-
-# important-instruction-reminders
-
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
