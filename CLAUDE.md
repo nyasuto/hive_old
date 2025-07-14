@@ -38,6 +38,25 @@
 
 ---
 
+## 🔄 Pull Request Creation Rule
+
+**CRITICAL: コード変更後は必ずPull Requestを作成する**
+
+### 必須フロー
+1. コード変更完了
+2. 品質チェック実行 (`npm run quality`)
+3. 変更をコミット
+4. **Pull Request作成** (絶対に忘れてはいけない)
+5. ⚠️ **ユーザーによる承認・マージ待ち** (Claude Codeはマージしない)
+
+### PR作成チェックリスト
+- [ ] すべてのコード変更が完了している
+- [ ] 品質チェックが通っている
+- [ ] 適切なブランチ名になっている
+- [ ] PR説明が適切に記載されている
+- [ ] 関連するIssueが参照されている
+- [ ] ユーザーに承認・マージを依頼
+
 ## GitHub Issue Management Rules
 
 ### 🔴 CRITICAL: Issue Language Requirement
@@ -170,54 +189,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - `docs: API仕様書の更新`
 - `refactor: パーサーモジュールのリファクタリング`
 
-#### PR Description Template
-
-**すべての PR は以下のシンプルなテンプレートを使用する：**
-
-```markdown
-## 概要
-
-この PR の内容と目的を簡潔に説明
-
-## 変更内容
-
-- 主要な変更点
-- 技術的改善
-- バグ修正や新機能
-
-## テスト
-
-- テストカバレッジ情報
-- 動作確認方法
-
-Closes #[issue_number]
-```
-
-#### PR Content Requirements
-
-1. **Issue 連携**: 必ず `Closes #X` で Issue とリンク
-2. **明確な説明**: 何を変更し、なぜ変更したかを説明
-3. **テスト情報**: テストカバレッジと動作確認手順を含む
-4. **簡潔性**: 必要最小限の情報に集中
-
-### Pre-commit Hook Setup
-
-- Run `make git-hooks` to setup automatic quality checks
-- Prevents committing code that fails quality standards
-- Saves time by catching issues early
-
----
-
-## Code Quality Standards
-
-### Quality Check Integration
-
-Quality checks should be:
-
-- **Automated** through Makefile targets or shell scripts
-- **Consistent** across all development environments
-- **Enforceable** through pre-commit hooks and CI/CD
-- **Fast** to encourage frequent use
 
 ### Essential Quality Tools
 
@@ -240,135 +211,7 @@ Quality checks should be:
 - Coverage reporting and tracking
 - Security scanning where applicable
 
----
 
-## Testing Standards
-
-### Test Organization
-
-- Unit tests for individual components
-- Integration tests for system interactions
-- Mocking external dependencies to avoid platform issues
-- Clear test naming: `test_<function>_<scenario>_<expected_result>`
-
-### CI Test Environment
-
-- Mock platform-specific dependencies for cross-platform compatibility
-- Use consistent test databases/fixtures
-- Parallel test execution where possible
-- Clear error reporting and debugging information
-
----
-
-## Hive-Specific Development Guidelines
-
-### Worker Development
-
-- Each Worker should have clearly defined responsibilities
-- Worker prompts should be maintained in `workers/prompts/`
-- Test Worker interactions through the Comb communication system
-- Document Worker capabilities and limitations
-
-### Comb Communication System
-
-- Use structured JSON for all inter-Worker communication
-- Implement proper error handling for communication failures
-- Test message routing and delivery mechanisms
-- Monitor communication patterns for optimization
-
-### Script Development
-
-- All scripts should include proper error handling
-- Use consistent logging across all scripts
-- Test scripts in isolated tmux environments
-- Document script dependencies and requirements
-
-### tmux Integration
-
-- Test multi-pane layouts thoroughly
-- Handle tmux session management gracefully
-- Implement proper cleanup on script exit
-- Document tmux version requirements
-
----
-
-## Error Handling and Debugging
-
-### Logging Standards
-
-- Structured logging with appropriate levels
-- Context-rich error messages for debugging
-- Avoid logging sensitive information
-- Performance-conscious logging (lazy evaluation)
-
-### Error Recovery
-
-- Graceful degradation for non-critical failures
-- Clear error messages for users
-- Retry mechanisms with exponential backoff
-- Circuit breaker patterns for external services
-
----
-
-## Documentation Standards
-
-### Code Documentation
-
-- Clear docstrings for all Python functions and classes
-- Type hints for better IDE support
-- README with setup and usage instructions
-- CHANGELOG for version tracking
-
-### Process Documentation
-
-- This CLAUDE.md file for development standards
-- Contributing guidelines for external contributors
-- Architecture decision records (ADRs) for major decisions
-- Troubleshooting guides for common issues
-
----
-
-## Security Considerations
-
-### Secrets Management
-
-- Never commit secrets to version control
-- Use environment variables for configuration
-- Scan for accidentally committed secrets
-
-### Multi-Agent Security
-
-- Validate all inter-Worker communications
-- Implement proper access controls for shared resources
-- Monitor for unusual Worker behavior patterns
-- Secure temporary file handling in Comb system
-
-### Claude Code Security
-
-- Follow Anthropic's usage guidelines
-- Implement proper API rate limiting
-- Handle API failures gracefully
-- Monitor token usage across multiple instances
-
----
-
-## Performance Optimization
-
-### Resource Management
-
-- Monitor memory usage across multiple Claude instances
-- Implement proper cleanup of temporary files
-- Optimize file I/O in Comb communication system
-- Balance Worker workloads effectively
-
-### Scalability Considerations
-
-- Design for horizontal scaling of Workers
-- Implement efficient task distribution algorithms
-- Monitor system performance under load
-- Plan for graceful degradation strategies
-
----
 
 ## GitHub Integration with MCP Tools
 
