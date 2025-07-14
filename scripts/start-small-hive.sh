@@ -410,6 +410,13 @@ create_tmux_session() {
     # tmuxセッション作成
     tmux new-session -d -s "$HIVE_SESSION" -c "$HIVE_DIR"
     
+    # ユーザーフレンドリーなtmux設定
+    tmux set -g mouse on  # マウスモード有効化
+    tmux bind -n M-Left select-pane -L   # Alt+左矢印で左pane
+    tmux bind -n M-Right select-pane -R  # Alt+右矢印で右pane
+    tmux set -g status-left "[#S] "  # セッション名表示
+    tmux set -g status-right "#{?window_bigger,[#{window_width}x#{window_height}],} %H:%M %d-%b-%y"
+    
     # 水平分割でDeveloper Worker用のpaneを作成
     tmux split-window -h -t "$HIVE_SESSION"
     
@@ -474,25 +481,29 @@ show_usage_instructions() {
 
 📋 Next Steps:
 1. Attach to the session: tmux attach-session -t $HIVE_SESSION
-2. Check communication: ./scripts/check-comb.sh
-3. Monitor progress: ./scripts/collect-honey.sh
-4. Shutdown when done: ./scripts/shutdown-hive.sh
+2. Run quickstart guide: 
+   - Left pane: python examples/quickstart/01_basic_communication.py queen
+   - Right pane: python examples/quickstart/01_basic_communication.py developer
+3. Check communication: ./scripts/check-comb.sh
+4. Launch Claude Code when ready: claude (in any pane)
+5. Shutdown when done: ./scripts/shutdown-hive.sh
 
 🔧 tmux Controls:
-- Switch between panes: Ctrl+B then arrow keys
+- Switch between panes: Alt + ← / → (楽！) or Ctrl+B + ← / →
+- Click pane with mouse: マウスクリックでpane移動
 - Detach from session: Ctrl+B then d
 - Kill session: Ctrl+B then :kill-session
 
 📊 Workers:
-- Left pane (0): Queen Worker - Project management
-- Right pane (1): Developer Worker - Implementation
+- Left pane (0): Queen Worker - Project management (bash terminal)
+- Right pane (1): Developer Worker - Implementation (bash terminal)
 
 📁 Important Directories:
 - Logs: $LOG_DIR
 - Comb: $COMB_DIR
 - Prompts: $PROMPTS_DIR
 
-🚀 Happy coding with your Hive Small Colony!
+🚀 Start with the quickstart guide, then use Claude Code for actual development!
 
 EOF
 }
