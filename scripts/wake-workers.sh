@@ -272,37 +272,37 @@ start_interactive_mode() {
         echo
         echo "🐝 $WORKER_TYPE Worker is now active!"
         echo "💡 Available commands:"
-        echo "   - Type 'help' for assistance"
-        echo "   - Type 'status' to check Comb communication"
+        echo "   - Run quickstart scripts: python examples/quickstart/01_basic_communication.py $WORKER_TYPE"
+        echo "   - Check status: ./scripts/check-comb.sh"
+        echo "   - Launch Claude Code: claude"
         echo "   - Type 'exit' to shutdown worker"
-        echo "   - Use normal Claude Code interactions for development"
         echo
     fi
-    
-    # Claude Code起動コマンドの構築
-    local claude_cmd="claude"
     
     # プロンプトファイルがあれば読み込み
     if [[ -f "$PROMPTS_DIR/${WORKER_TYPE}_worker.md" ]]; then
         if [[ "$QUIET_MODE" == "false" ]]; then
-            echo "🔄 Loading worker-specific prompt..."
+            echo "🔄 Worker-specific prompt loaded (available for claude command)"
         fi
         
-        # プロンプトを環境変数に設定
+        # プロンプトを環境変数に設定（claude起動時に使用）
         export CLAUDE_WORKER_PROMPT="$(cat "$PROMPTS_DIR/${WORKER_TYPE}_worker.md")"
     fi
     
     # 初期メッセージの表示
     if [[ "$QUIET_MODE" == "false" ]]; then
-        echo "🚀 Launching Claude Code with $WORKER_TYPE worker configuration..."
+        echo "🚀 $WORKER_TYPE Worker ready!"
         echo "   Working directory: $HIVE_DIR"
         echo "   Worker ID: $WORKER_TYPE"
         echo "   Comb directory: $COMB_DIR"
         echo
+        echo "📋 Quick Start:"
+        echo "   python examples/quickstart/01_basic_communication.py $WORKER_TYPE"
+        echo
     fi
     
-    # Claude Code起動
-    exec claude
+    # 通常のbashセッション開始（Claude Codeは手動起動）
+    exec bash --login
 }
 
 # ヘルスチェック

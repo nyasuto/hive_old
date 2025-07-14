@@ -474,9 +474,12 @@ show_usage_instructions() {
 
 📋 Next Steps:
 1. Attach to the session: tmux attach-session -t $HIVE_SESSION
-2. Check communication: ./scripts/check-comb.sh
-3. Monitor progress: ./scripts/collect-honey.sh
-4. Shutdown when done: ./scripts/shutdown-hive.sh
+2. Run quickstart guide: 
+   - Left pane: python examples/quickstart/01_basic_communication.py queen
+   - Right pane: python examples/quickstart/01_basic_communication.py developer
+3. Check communication: ./scripts/check-comb.sh
+4. Launch Claude Code when ready: claude (in any pane)
+5. Shutdown when done: ./scripts/shutdown-hive.sh
 
 🔧 tmux Controls:
 - Switch between panes: Ctrl+B then arrow keys
@@ -484,15 +487,15 @@ show_usage_instructions() {
 - Kill session: Ctrl+B then :kill-session
 
 📊 Workers:
-- Left pane (0): Queen Worker - Project management
-- Right pane (1): Developer Worker - Implementation
+- Left pane (0): Queen Worker - Project management (bash terminal)
+- Right pane (1): Developer Worker - Implementation (bash terminal)
 
 📁 Important Directories:
 - Logs: $LOG_DIR
 - Comb: $COMB_DIR
 - Prompts: $PROMPTS_DIR
 
-🚀 Happy coding with your Hive Small Colony!
+🚀 Start with the quickstart guide, then use Claude Code for actual development!
 
 EOF
 }
