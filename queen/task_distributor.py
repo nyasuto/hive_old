@@ -20,6 +20,7 @@ from comb.message_router import MessagePriority, MessageType
 
 class Priority(Enum):
     """タスクの優先度"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -28,6 +29,7 @@ class Priority(Enum):
 
 class TaskStatus(Enum):
     """タスクの状態"""
+
     PENDING = "pending"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -42,6 +44,7 @@ class Nectar:
 
     Issue #4の要件に基づいたNectarフォーマット
     """
+
     nectar_id: str
     title: str
     description: str
@@ -67,22 +70,22 @@ class Nectar:
         """辞書形式に変換"""
         data = asdict(self)
         # Enumを文字列に変換
-        data['priority'] = self.priority.value
-        data['status'] = self.status.value
+        data["priority"] = self.priority.value
+        data["status"] = self.status.value
         # datetimeを文字列に変換
-        data['created_at'] = self.created_at.isoformat()
-        data['deadline'] = self.deadline.isoformat()
+        data["created_at"] = self.created_at.isoformat()
+        data["deadline"] = self.deadline.isoformat()
         return data
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> 'Nectar':
+    def from_dict(cls, data: dict[str, Any]) -> "Nectar":
         """辞書から作成"""
         # Enumに変換
-        data['priority'] = Priority(data['priority'])
-        data['status'] = TaskStatus(data['status'])
+        data["priority"] = Priority(data["priority"])
+        data["status"] = TaskStatus(data["status"])
         # datetimeに変換
-        data['created_at'] = datetime.fromisoformat(data['created_at'])
-        data['deadline'] = datetime.fromisoformat(data['deadline'])
+        data["created_at"] = datetime.fromisoformat(data["created_at"])
+        data["deadline"] = datetime.fromisoformat(data["deadline"])
         return cls(**data)
 
 
@@ -108,7 +111,12 @@ class TaskDistributor:
         self.completed_dir = self.nectar_dir / "completed"
         self.failed_dir = self.nectar_dir / "failed"
 
-        for dir_path in [self.pending_dir, self.active_dir, self.completed_dir, self.failed_dir]:
+        for dir_path in [
+            self.pending_dir,
+            self.active_dir,
+            self.completed_dir,
+            self.failed_dir,
+        ]:
             dir_path.mkdir(exist_ok=True)
 
     def create_nectar(
@@ -122,7 +130,7 @@ class TaskDistributor:
         dependencies: list[str] | None = None,
         expected_honey: list[str] | None = None,
         tags: list[str] | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> Nectar:
         """
         新しいNectarタスクを作成
@@ -172,7 +180,7 @@ class TaskDistributor:
             created_at=datetime.now(),
             deadline=datetime.now() + timedelta(hours=deadline_hours),
             tags=tags,
-            metadata=metadata
+            metadata=metadata,
         )
 
         # ファイルシステムに保存
@@ -194,7 +202,9 @@ class TaskDistributor:
         try:
             # 依存関係チェック
             if not self._check_dependencies(nectar):
-                self.logger.warning(f"Dependencies not satisfied for {nectar.nectar_id}")
+                self.logger.warning(
+                    f"Dependencies not satisfied for {nectar.nectar_id}"
+                )
                 return False
 
             # 担当Workerに配布メッセージ送信
@@ -208,7 +218,7 @@ class TaskDistributor:
                 "expected_honey": nectar.expected_honey,
                 "dependencies": nectar.dependencies,
                 "tags": nectar.tags,
-                "metadata": nectar.metadata
+                "metadata": nectar.metadata,
             }
 
             # Comb通信でNectar配布
@@ -216,14 +226,16 @@ class TaskDistributor:
                 to_worker=nectar.assigned_to,
                 content=message_content,
                 message_type=MessageType.NECTAR_DISTRIBUTION,
-                priority=self._convert_priority(nectar.priority)
+                priority=self._convert_priority(nectar.priority),
             )
 
             # ステータスをACTIVEに変更
             nectar.status = TaskStatus.ACTIVE
             self._move_nectar(nectar, self.pending_dir, self.active_dir)
 
-            self.logger.info(f"Distributed nectar {nectar.nectar_id} to {nectar.assigned_to}")
+            self.logger.info(
+                f"Distributed nectar {nectar.nectar_id} to {nectar.assigned_to}"
+            )
             return True
 
         except Exception as e:
@@ -250,11 +262,13 @@ class TaskDistributor:
         # 現在のアクティブタスク数チェック
         active_count = len(self.get_active_nectars(worker_id))
 
-        for nectar in available_nectars[:max_tasks - active_count]:
+        for nectar in available_nectars[: max_tasks - active_count]:
             if self.distribute_nectar(nectar):
                 distributed_nectars.append(nectar.nectar_id)
 
-        self.logger.info(f"Batch distributed {len(distributed_nectars)} nectars to {worker_id}")
+        self.logger.info(
+            f"Batch distributed {len(distributed_nectars)} nectars to {worker_id}"
+        )
         return distributed_nectars
 
     def get_pending_nectars(self, worker_id: str | None = None) -> list[Nectar]:
@@ -271,7 +285,12 @@ class TaskDistributor:
 
     def get_nectar_by_id(self, nectar_id: str) -> Nectar | None:
         """Nectar ID指定でNectar取得"""
-        for directory in [self.pending_dir, self.active_dir, self.completed_dir, self.failed_dir]:
+        for directory in [
+            self.pending_dir,
+            self.active_dir,
+            self.completed_dir,
+            self.failed_dir,
+        ]:
             nectar_file = directory / f"{nectar_id}.json"
             if nectar_file.exists():
                 return self._load_nectar(nectar_file)
@@ -295,7 +314,9 @@ class TaskDistributor:
         else:
             self._save_nectar(nectar)
 
-        self.logger.info(f"Updated nectar {nectar_id} status: {old_status.value} → {status.value}")
+        self.logger.info(
+            f"Updated nectar {nectar_id} status: {old_status.value} → {status.value}"
+        )
         return True
 
     def get_worker_workload(self, worker_id: str) -> dict[str, Any]:
@@ -303,15 +324,21 @@ class TaskDistributor:
         active_nectars = self.get_active_nectars(worker_id)
         pending_nectars = self.get_pending_nectars(worker_id)
 
-        total_estimated_time = sum(n.estimated_time for n in active_nectars + pending_nectars)
+        total_estimated_time = sum(
+            n.estimated_time for n in active_nectars + pending_nectars
+        )
 
         return {
             "worker_id": worker_id,
             "active_tasks": len(active_nectars),
             "pending_tasks": len(pending_nectars),
             "total_estimated_time": total_estimated_time,
-            "tasks_by_priority": self._get_priority_breakdown(active_nectars + pending_nectars),
-            "average_deadline": self._calculate_average_deadline(active_nectars + pending_nectars)
+            "tasks_by_priority": self._get_priority_breakdown(
+                active_nectars + pending_nectars
+            ),
+            "average_deadline": self._calculate_average_deadline(
+                active_nectars + pending_nectars
+            ),
         }
 
     def redistribute_failed_nectar(self, nectar_id: str, new_worker_id: str) -> bool:
@@ -335,16 +362,18 @@ class TaskDistributor:
         status_dir = self._get_status_dir(nectar.status)
         nectar_file = status_dir / f"{nectar.nectar_id}.json"
 
-        with open(nectar_file, 'w', encoding='utf-8') as f:
+        with open(nectar_file, "w", encoding="utf-8") as f:
             json.dump(nectar.to_dict(), f, ensure_ascii=False, indent=2)
 
     def _load_nectar(self, nectar_file: Path) -> Nectar:
         """ファイルからNectarロード"""
-        with open(nectar_file, encoding='utf-8') as f:
+        with open(nectar_file, encoding="utf-8") as f:
             data = json.load(f)
         return Nectar.from_dict(data)
 
-    def _load_nectars_from_dir(self, directory: Path, worker_id: str | None = None) -> list[Nectar]:
+    def _load_nectars_from_dir(
+        self, directory: Path, worker_id: str | None = None
+    ) -> list[Nectar]:
         """ディレクトリからNectar一覧ロード"""
         nectars = []
         for nectar_file in directory.glob("*.json"):
@@ -392,7 +421,7 @@ class TaskDistributor:
             Priority.LOW: MessagePriority.LOW,
             Priority.MEDIUM: MessagePriority.MEDIUM,
             Priority.HIGH: MessagePriority.HIGH,
-            Priority.CRITICAL: MessagePriority.HIGH
+            Priority.CRITICAL: MessagePriority.HIGH,
         }
         return mapping.get(priority, MessagePriority.MEDIUM)
 
@@ -408,7 +437,9 @@ class TaskDistributor:
         if not nectars:
             return None
 
-        total_seconds = sum((n.deadline - datetime.now()).total_seconds() for n in nectars)
+        total_seconds = sum(
+            (n.deadline - datetime.now()).total_seconds() for n in nectars
+        )
         average_seconds = total_seconds / len(nectars)
         average_deadline = datetime.now() + timedelta(seconds=average_seconds)
 

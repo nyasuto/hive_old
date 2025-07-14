@@ -24,5 +24,5 @@ __all__ = [
     "BottleneckAlert",
     "QueenCoordinator",
     "CoordinationMode",
-    "LoadBalancingStrategy"
+    "LoadBalancingStrategy",
 ]

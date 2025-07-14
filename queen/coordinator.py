@@ -22,6 +22,7 @@ from queen.task_distributor import Nectar, Priority, TaskDistributor, TaskStatus
 
 class CoordinationMode(Enum):
     """調整モード"""
+
     NORMAL = "normal"
     EMERGENCY = "emergency"
     MAINTENANCE = "maintenance"
@@ -30,6 +31,7 @@ class CoordinationMode(Enum):
 
 class LoadBalancingStrategy(Enum):
     """負荷分散戦略"""
+
     ROUND_ROBIN = "round_robin"
     LEAST_LOADED = "least_loaded"
     PRIORITY_BASED = "priority_based"
@@ -39,6 +41,7 @@ class LoadBalancingStrategy(Enum):
 @dataclass
 class CoordinationReport:
     """調整レポート"""
+
     timestamp: datetime
     mode: CoordinationMode
     total_nectars: int
@@ -51,8 +54,8 @@ class CoordinationReport:
     def to_dict(self) -> dict[str, Any]:
         """辞書形式に変換"""
         data = asdict(self)
-        data['timestamp'] = self.timestamp.isoformat()
-        data['mode'] = self.mode.value
+        data["timestamp"] = self.timestamp.isoformat()
+        data["mode"] = self.mode.value
         return data
 
 
@@ -101,7 +104,7 @@ class QueenCoordinator:
             "emergency_interventions": 0,
             "load_balancing_operations": 0,
             "redistributions": 0,
-            "bottlenecks_resolved": 0
+            "bottlenecks_resolved": 0,
         }
 
     def start_coordination(self) -> None:
@@ -137,7 +140,9 @@ class QueenCoordinator:
         # 調整モードの決定
         new_mode = self._determine_coordination_mode(situation)
         if new_mode != self.current_mode:
-            self.logger.info(f"Coordination mode changed: {self.current_mode.value} → {new_mode.value}")
+            self.logger.info(
+                f"Coordination mode changed: {self.current_mode.value} → {new_mode.value}"
+            )
             self.current_mode = new_mode
 
         # モード別の調整実行
@@ -184,24 +189,29 @@ class QueenCoordinator:
             "completion_rate": self._calculate_completion_rate(),
             "average_workload": self._calculate_average_workload(worker_workloads),
             "bottlenecks": self._identify_bottlenecks(dashboard),
-            "urgent_tasks": self._identify_urgent_tasks(active_nectars + pending_nectars)
+            "urgent_tasks": self._identify_urgent_tasks(
+                active_nectars + pending_nectars
+            ),
         }
 
-    def _determine_coordination_mode(self, situation: dict[str, Any]) -> CoordinationMode:
+    def _determine_coordination_mode(
+        self, situation: dict[str, Any]
+    ) -> CoordinationMode:
         """調整モードの決定"""
         avg_workload = situation["average_workload"]
         bottlenecks = situation["bottlenecks"]
         completion_rate = situation["completion_rate"]
 
         # 緊急事態の判定
-        if (avg_workload > self.config["emergency_threshold"] or
-            len(bottlenecks) > 3 or
-            completion_rate < 0.5):
+        if (
+            avg_workload > self.config["emergency_threshold"]
+            or len(bottlenecks) > 3
+            or completion_rate < 0.5
+        ):
             return CoordinationMode.EMERGENCY
 
         # 最適化モードの判定
-        if (avg_workload > self.config["load_balance_threshold"] or
-            len(bottlenecks) > 0):
+        if avg_workload > self.config["load_balance_threshold"] or len(bottlenecks) > 0:
             return CoordinationMode.OPTIMIZING
 
         return CoordinationMode.NORMAL
@@ -244,13 +254,15 @@ class QueenCoordinator:
 
         # 最も負荷の高いWorkerを特定
         overloaded_workers = [
-            worker_id for worker_id, workload in worker_workloads.items()
+            worker_id
+            for worker_id, workload in worker_workloads.items()
             if workload["total_estimated_time"] > 8  # 8時間以上
         ]
 
         # 負荷の少ないWorkerを特定
         underloaded_workers = [
-            worker_id for worker_id, workload in worker_workloads.items()
+            worker_id
+            for worker_id, workload in worker_workloads.items()
             if workload["total_estimated_time"] < 4  # 4時間未満
         ]
 
@@ -260,15 +272,22 @@ class QueenCoordinator:
 
             # 優先度の低いタスクを他のWorkerに移動
             for nectar in active_nectars:
-                if nectar.priority in [Priority.LOW, Priority.MEDIUM] and underloaded_workers:
+                if (
+                    nectar.priority in [Priority.LOW, Priority.MEDIUM]
+                    and underloaded_workers
+                ):
                     target_worker = underloaded_workers[0]
 
                     # ステータスをPENDINGに戻して再配布
-                    self.task_distributor.update_nectar_status(nectar.nectar_id, TaskStatus.PENDING)
+                    self.task_distributor.update_nectar_status(
+                        nectar.nectar_id, TaskStatus.PENDING
+                    )
                     nectar.assigned_to = target_worker
 
                     if self.task_distributor.distribute_nectar(nectar):
-                        self.logger.info(f"Emergency redistribution: {nectar.nectar_id} -> {target_worker}")
+                        self.logger.info(
+                            f"Emergency redistribution: {nectar.nectar_id} -> {target_worker}"
+                        )
                         self.coordination_stats["redistributions"] += 1
                         break
 
@@ -287,7 +306,9 @@ class QueenCoordinator:
                 nectar.assigned_to = target_worker
 
                 if self.task_distributor.distribute_nectar(nectar):
-                    self.logger.info(f"Load balancing: {nectar.nectar_id} -> {target_worker}")
+                    self.logger.info(
+                        f"Load balancing: {nectar.nectar_id} -> {target_worker}"
+                    )
 
     async def _resolve_bottlenecks(self, bottlenecks: list[str]) -> None:
         """ボトルネック解決"""
@@ -308,7 +329,9 @@ class QueenCoordinator:
             # 優先度をCRITICALに上げる
             if nectar.priority != Priority.CRITICAL:
                 nectar.priority = Priority.CRITICAL
-                self.task_distributor.update_nectar_status(nectar.nectar_id, nectar.status)
+                self.task_distributor.update_nectar_status(
+                    nectar.nectar_id, nectar.status
+                )
 
                 # 担当Workerに緊急通知
                 await self._send_urgent_notification(nectar)
@@ -321,13 +344,15 @@ class QueenCoordinator:
                 "nectar_id": nectar.nectar_id,
                 "urgent": True,
                 "message": f"Task {nectar.nectar_id} has been escalated to CRITICAL priority",
-                "deadline": nectar.deadline.isoformat()
+                "deadline": nectar.deadline.isoformat(),
             },
             message_type=MessageType.URGENT_NOTIFICATION,
-            priority=MessagePriority.HIGH
+            priority=MessagePriority.HIGH,
         )
 
-    def _select_target_worker(self, nectar: Nectar, worker_workloads: dict[str, dict]) -> str | None:
+    def _select_target_worker(
+        self, nectar: Nectar, worker_workloads: dict[str, dict]
+    ) -> str | None:
         """最適なWorkerを選択"""
         if self.load_balancing_strategy == LoadBalancingStrategy.LEAST_LOADED:
             return self._select_least_loaded_worker(worker_workloads)
@@ -336,12 +361,14 @@ class QueenCoordinator:
         else:
             return self._select_round_robin_worker(worker_workloads)
 
-    def _select_least_loaded_worker(self, worker_workloads: dict[str, dict]) -> str | None:
+    def _select_least_loaded_worker(
+        self, worker_workloads: dict[str, dict]
+    ) -> str | None:
         """最も負荷の少ないWorkerを選択"""
         if not worker_workloads:
             return None
 
-        min_workload = float('inf')
+        min_workload = float("inf")
         selected_worker = None
 
         for worker_id, workload in worker_workloads.items():
@@ -351,7 +378,9 @@ class QueenCoordinator:
 
         return selected_worker
 
-    def _select_skill_based_worker(self, nectar: Nectar, worker_workloads: dict[str, dict]) -> str | None:
+    def _select_skill_based_worker(
+        self, nectar: Nectar, worker_workloads: dict[str, dict]
+    ) -> str | None:
         """スキルベースWorker選択"""
         # 簡易実装: タグベースでの選択
         suitable_workers = []
@@ -370,7 +399,9 @@ class QueenCoordinator:
 
         return self._select_least_loaded_worker(worker_workloads)
 
-    def _select_round_robin_worker(self, worker_workloads: dict[str, dict]) -> str | None:
+    def _select_round_robin_worker(
+        self, worker_workloads: dict[str, dict]
+    ) -> str | None:
         """ラウンドロビン選択"""
         workers = list(worker_workloads.keys())
         if not workers:
@@ -381,9 +412,11 @@ class QueenCoordinator:
 
     def _update_known_workers(self) -> None:
         """既知のWorkerリストの更新"""
-        all_nectars = (self.task_distributor.get_active_nectars() +
-                      self.task_distributor.get_pending_nectars() +
-                      self.task_distributor.get_completed_nectars())
+        all_nectars = (
+            self.task_distributor.get_active_nectars()
+            + self.task_distributor.get_pending_nectars()
+            + self.task_distributor.get_completed_nectars()
+        )
 
         for nectar in all_nectars:
             self.known_workers.add(nectar.assigned_to)
@@ -391,9 +424,11 @@ class QueenCoordinator:
     def _calculate_completion_rate(self) -> float:
         """完了率計算"""
         completed = len(self.task_distributor.get_completed_nectars())
-        total = (len(self.task_distributor.get_active_nectars()) +
-                len(self.task_distributor.get_pending_nectars()) +
-                completed)
+        total = (
+            len(self.task_distributor.get_active_nectars())
+            + len(self.task_distributor.get_pending_nectars())
+            + completed
+        )
 
         return completed / total if total > 0 else 0.0
 
@@ -402,7 +437,9 @@ class QueenCoordinator:
         if not worker_workloads:
             return 0.0
 
-        total_workload = sum(w["total_estimated_time"] for w in worker_workloads.values())
+        total_workload = sum(
+            w["total_estimated_time"] for w in worker_workloads.values()
+        )
         return float(total_workload / len(worker_workloads))
 
     def _identify_bottlenecks(self, dashboard: dict[str, Any]) -> list[str]:
@@ -419,17 +456,30 @@ class QueenCoordinator:
         """緊急タスク特定"""
         urgent_threshold = datetime.now() + timedelta(hours=2)
 
-        return [nectar for nectar in nectars
-                if nectar.deadline < urgent_threshold and nectar.status != TaskStatus.COMPLETED]
+        return [
+            nectar
+            for nectar in nectars
+            if nectar.deadline < urgent_threshold
+            and nectar.status != TaskStatus.COMPLETED
+        ]
 
-    def _generate_coordination_report(self, situation: dict[str, Any]) -> CoordinationReport:
+    def _generate_coordination_report(
+        self, situation: dict[str, Any]
+    ) -> CoordinationReport:
         """調整レポート生成"""
-        total_nectars = (len(situation["active_nectars"]) +
-                        len(situation["pending_nectars"]) +
-                        len(situation["completed_nectars"]))
+        total_nectars = (
+            len(situation["active_nectars"])
+            + len(situation["pending_nectars"])
+            + len(situation["completed_nectars"])
+        )
 
-        active_workers = len([w for w in situation["worker_workloads"]
-                            if situation["worker_workloads"][w]["active_tasks"] > 0])
+        active_workers = len(
+            [
+                w
+                for w in situation["worker_workloads"]
+                if situation["worker_workloads"][w]["active_tasks"] > 0
+            ]
+        )
 
         recommendations = self._generate_recommendations(situation)
         next_actions = self._generate_next_actions(situation)
@@ -442,7 +492,7 @@ class QueenCoordinator:
             completion_rate=situation["completion_rate"],
             bottlenecks=situation["bottlenecks"],
             recommendations=recommendations,
-            next_actions=next_actions
+            next_actions=next_actions,
         )
 
     def _generate_recommendations(self, situation: dict[str, Any]) -> list[str]:
@@ -478,9 +528,12 @@ class QueenCoordinator:
     async def _save_coordination_report(self, report: CoordinationReport) -> None:
         """調整レポート保存"""
         try:
-            report_file = self.coordination_dir / f"coordination-{report.timestamp.strftime('%Y%m%d-%H%M%S')}.json"
+            report_file = (
+                self.coordination_dir
+                / f"coordination-{report.timestamp.strftime('%Y%m%d-%H%M%S')}.json"
+            )
 
-            with open(report_file, 'w', encoding='utf-8') as f:
+            with open(report_file, "w", encoding="utf-8") as f:
                 json.dump(report.to_dict(), f, ensure_ascii=False, indent=2)
         except Exception as e:
             self.logger.error(f"Failed to save coordination report: {e}")
@@ -503,7 +556,9 @@ class QueenCoordinator:
         for nectar in situation["urgent_tasks"]:
             if nectar.priority == Priority.LOW:
                 nectar.priority = Priority.MEDIUM
-                self.task_distributor.update_nectar_status(nectar.nectar_id, nectar.status)
+                self.task_distributor.update_nectar_status(
+                    nectar.nectar_id, nectar.status
+                )
 
     async def _resolve_overload_bottleneck(self, bottleneck: str) -> None:
         """過負荷ボトルネック解決"""
@@ -524,7 +579,7 @@ class QueenCoordinator:
         """緊急状態通知"""
         self.comb_api.add_progress(
             "Emergency Mode Activated",
-            "Queen coordinator has activated emergency mode due to system overload"
+            "Queen coordinator has activated emergency mode due to system overload",
         )
 
     def get_coordination_summary(self) -> dict[str, Any]:
@@ -535,7 +590,7 @@ class QueenCoordinator:
             "load_balancing_strategy": self.load_balancing_strategy.value,
             "known_workers": list(self.known_workers),
             "statistics": self.coordination_stats,
-            "config": self.config
+            "config": self.config,
         }
 
     def update_load_balancing_strategy(self, strategy: LoadBalancingStrategy) -> None:
@@ -543,7 +598,9 @@ class QueenCoordinator:
         self.load_balancing_strategy = strategy
         self.logger.info(f"Load balancing strategy updated to: {strategy.value}")
 
-    def update_worker_capabilities(self, worker_id: str, capabilities: list[str]) -> None:
+    def update_worker_capabilities(
+        self, worker_id: str, capabilities: list[str]
+    ) -> None:
         """Workerスキル更新"""
         self.worker_capabilities[worker_id] = capabilities
         self.logger.info(f"Updated capabilities for {worker_id}: {capabilities}")

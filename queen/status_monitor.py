@@ -22,6 +22,7 @@ from queen.task_distributor import Nectar, TaskDistributor
 
 class WorkerState(Enum):
     """Worker状態"""
+
     IDLE = "idle"
     WORKING = "working"
     OVERLOADED = "overloaded"
@@ -32,6 +33,7 @@ class WorkerState(Enum):
 @dataclass
 class WorkerStatus:
     """Worker状態情報"""
+
     worker_id: str
     state: WorkerState
     current_tasks: list[str]
@@ -45,14 +47,15 @@ class WorkerStatus:
     def to_dict(self) -> dict[str, Any]:
         """辞書形式に変換"""
         data = asdict(self)
-        data['state'] = self.state.value
-        data['last_seen'] = self.last_seen.isoformat()
+        data["state"] = self.state.value
+        data["last_seen"] = self.last_seen.isoformat()
         return data
 
 
 @dataclass
 class BottleneckAlert:
     """ボトルネック警告"""
+
     alert_id: str
     worker_id: str
     nectar_id: str
@@ -65,7 +68,7 @@ class BottleneckAlert:
     def to_dict(self) -> dict[str, Any]:
         """辞書形式に変換"""
         data = asdict(self)
-        data['detected_at'] = self.detected_at.isoformat()
+        data["detected_at"] = self.detected_at.isoformat()
         return data
 
 
@@ -143,8 +146,10 @@ class StatusMonitor:
         """Worker状態更新"""
         # 既知のWorkerリスト取得
         known_workers = set()
-        for nectar in (self.task_distributor.get_active_nectars() +
-                      self.task_distributor.get_pending_nectars()):
+        for nectar in (
+            self.task_distributor.get_active_nectars()
+            + self.task_distributor.get_pending_nectars()
+        ):
             known_workers.add(nectar.assigned_to)
 
         for worker_id in known_workers:
@@ -170,7 +175,7 @@ class StatusMonitor:
                 to_worker=worker_id,
                 content={"request": "status_check"},
                 message_type=MessageType.STATUS_REQUEST,
-                priority=MessagePriority.MEDIUM
+                priority=MessagePriority.MEDIUM,
             )
 
             if response:
@@ -190,9 +195,11 @@ class StatusMonitor:
                     current_tasks=current_tasks,
                     last_seen=datetime.now(),
                     total_tasks_completed=self._get_completed_task_count(worker_id),
-                    average_completion_time=self._calculate_average_completion_time(worker_id),
+                    average_completion_time=self._calculate_average_completion_time(
+                        worker_id
+                    ),
                     current_workload=workload,
-                    error_count=self._get_error_count(worker_id)
+                    error_count=self._get_error_count(worker_id),
                 )
 
         except Exception as e:
@@ -213,7 +220,7 @@ class StatusMonitor:
                         nectar.nectar_id,
                         "stuck_task",
                         "warning",
-                        f"Nectar {nectar.nectar_id} has been active for too long"
+                        f"Nectar {nectar.nectar_id} has been active for too long",
                     )
 
                 # 期限超過チェック
@@ -223,11 +230,13 @@ class StatusMonitor:
                         nectar.nectar_id,
                         "deadline_exceeded",
                         "critical",
-                        f"Nectar {nectar.nectar_id} has exceeded its deadline"
+                        f"Nectar {nectar.nectar_id} has exceeded its deadline",
                     )
 
             except Exception as e:
-                self.logger.error(f"Failed to check progress for {nectar.nectar_id}: {e}")
+                self.logger.error(
+                    f"Failed to check progress for {nectar.nectar_id}: {e}"
+                )
 
     def _detect_bottlenecks(self) -> None:
         """ボトルネック検出"""
@@ -240,7 +249,7 @@ class StatusMonitor:
                         "",
                         "worker_overload",
                         "warning",
-                        f"Worker {worker_id} is overloaded ({status.current_workload:.1%})"
+                        f"Worker {worker_id} is overloaded ({status.current_workload:.1%})",
                     )
 
                 # エラー頻発検出
@@ -250,7 +259,7 @@ class StatusMonitor:
                         "",
                         "frequent_errors",
                         "critical",
-                        f"Worker {worker_id} has frequent errors ({status.error_count})"
+                        f"Worker {worker_id} has frequent errors ({status.error_count})",
                     )
 
             except Exception as e:
@@ -259,7 +268,9 @@ class StatusMonitor:
     def _check_deadline_warnings(self) -> None:
         """期限警告チェック"""
         active_nectars = self.task_distributor.get_active_nectars()
-        warning_threshold = datetime.now() + timedelta(hours=self.config["deadline_warning_hours"])
+        warning_threshold = datetime.now() + timedelta(
+            hours=self.config["deadline_warning_hours"]
+        )
 
         for nectar in active_nectars:
             if nectar.deadline < warning_threshold:
@@ -268,11 +279,17 @@ class StatusMonitor:
                     nectar.nectar_id,
                     "deadline_warning",
                     "info",
-                    f"Nectar {nectar.nectar_id} deadline approaching in {self.config['deadline_warning_hours']} hours"
+                    f"Nectar {nectar.nectar_id} deadline approaching in {self.config['deadline_warning_hours']} hours",
                 )
 
-    def _create_bottleneck_alert(self, worker_id: str, nectar_id: str, alert_type: str,
-                                severity: str, message: str) -> None:
+    def _create_bottleneck_alert(
+        self,
+        worker_id: str,
+        nectar_id: str,
+        alert_type: str,
+        severity: str,
+        message: str,
+    ) -> None:
         """ボトルネック警告作成"""
         alert_id = f"alert-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{len(self.bottleneck_alerts)}"
 
@@ -283,7 +300,7 @@ class StatusMonitor:
             alert_type=alert_type,
             severity=severity,
             message=message,
-            detected_at=datetime.now()
+            detected_at=datetime.now(),
         )
 
         self.bottleneck_alerts.append(alert)
@@ -298,20 +315,18 @@ class StatusMonitor:
         try:
             # Queen Workerに通知
             self.comb_api.add_progress(
-                f"Bottleneck Alert: {alert.alert_type}",
-                alert.message
+                f"Bottleneck Alert: {alert.alert_type}", alert.message
             )
 
             # 該当Workerにも通知
             if alert.worker_id:
                 self.comb_api.send_message(
                     to_worker=alert.worker_id,
-                    content={
-                        "alert": alert.to_dict(),
-                        "action_required": True
-                    },
+                    content={"alert": alert.to_dict(), "action_required": True},
                     message_type=MessageType.ALERT,
-                    priority=MessagePriority.HIGH if alert.severity == "critical" else MessagePriority.MEDIUM
+                    priority=MessagePriority.HIGH
+                    if alert.severity == "critical"
+                    else MessagePriority.MEDIUM,
                 )
 
         except Exception as e:
@@ -329,14 +344,24 @@ class StatusMonitor:
                 "active_nectars": len(active_nectars),
                 "pending_nectars": len(pending_nectars),
                 "completed_nectars": len(completed_nectars),
-                "active_workers": len([w for w in self.worker_states.values() if w.state == WorkerState.WORKING]),
+                "active_workers": len(
+                    [
+                        w
+                        for w in self.worker_states.values()
+                        if w.state == WorkerState.WORKING
+                    ]
+                ),
                 "total_alerts": len(self.bottleneck_alerts),
-                "unresolved_alerts": len([a for a in self.bottleneck_alerts if not a.resolved])
+                "unresolved_alerts": len(
+                    [a for a in self.bottleneck_alerts if not a.resolved]
+                ),
             },
-            "worker_states": {wid: status.to_dict() for wid, status in self.worker_states.items()},
+            "worker_states": {
+                wid: status.to_dict() for wid, status in self.worker_states.items()
+            },
             "recent_alerts": [a.to_dict() for a in self.bottleneck_alerts[-10:]],
             "nectar_by_priority": self._get_nectar_priority_breakdown(),
-            "completion_statistics": self._get_completion_statistics()
+            "completion_statistics": self._get_completion_statistics(),
         }
 
     def resolve_alert(self, alert_id: str) -> bool:
@@ -363,10 +388,12 @@ class StatusMonitor:
                 "total_completed": len(completed_nectars),
                 "average_completion_time": status.average_completion_time,
                 "success_rate": self._calculate_success_rate(worker_id),
-                "workload_history": self._get_workload_history(worker_id)
+                "workload_history": self._get_workload_history(worker_id),
             },
             "recent_tasks": [n.to_dict() for n in completed_nectars[-5:]],
-            "alerts": [a.to_dict() for a in self.bottleneck_alerts if a.worker_id == worker_id][-5:]
+            "alerts": [
+                a.to_dict() for a in self.bottleneck_alerts if a.worker_id == worker_id
+            ][-5:],
         }
 
     def _calculate_workload(self, worker_id: str) -> float:
@@ -405,7 +432,7 @@ class StatusMonitor:
             "",
             "worker_timeout",
             "critical",
-            f"Worker {worker_id} is not responding"
+            f"Worker {worker_id} is not responding",
         )
 
     def _handle_worker_error(self, worker_id: str, error_message: str) -> None:
@@ -430,13 +457,21 @@ class StatusMonitor:
 
     def _get_error_count(self, worker_id: str) -> int:
         """エラー数取得"""
-        return len([a for a in self.bottleneck_alerts
-                   if a.worker_id == worker_id and a.alert_type in ["worker_error", "frequent_errors"]])
+        return len(
+            [
+                a
+                for a in self.bottleneck_alerts
+                if a.worker_id == worker_id
+                and a.alert_type in ["worker_error", "frequent_errors"]
+            ]
+        )
 
     def _get_nectar_priority_breakdown(self) -> dict[str, int]:
         """優先度別Nectar内訳"""
-        all_nectars = (self.task_distributor.get_active_nectars() +
-                      self.task_distributor.get_pending_nectars())
+        all_nectars = (
+            self.task_distributor.get_active_nectars()
+            + self.task_distributor.get_pending_nectars()
+        )
 
         breakdown: dict[str, int] = defaultdict(int)
         for nectar in all_nectars:
@@ -458,14 +493,19 @@ class StatusMonitor:
             "total_completed": len(completed_nectars),
             "average_completion_time": average_time,
             "completion_rate_today": self._calculate_today_completion_rate(),
-            "most_productive_worker": self._find_most_productive_worker()
+            "most_productive_worker": self._find_most_productive_worker(),
         }
 
     def _calculate_success_rate(self, worker_id: str) -> float:
         """成功率計算"""
         completed = len(self.task_distributor.get_completed_nectars(worker_id))
-        failed = len(list(self.task_distributor._load_nectars_from_dir(
-            self.task_distributor.failed_dir, worker_id)))
+        failed = len(
+            list(
+                self.task_distributor._load_nectars_from_dir(
+                    self.task_distributor.failed_dir, worker_id
+                )
+            )
+        )
 
         total = completed + failed
         return completed / total if total > 0 else 0.0
@@ -473,16 +513,25 @@ class StatusMonitor:
     def _get_workload_history(self, worker_id: str) -> list[dict[str, Any]]:
         """ワークロード履歴取得"""
         # 簡易実装: 現在の値のみ
-        return [{"timestamp": datetime.now().isoformat(),
-                "workload": self._calculate_workload(worker_id)}]
+        return [
+            {
+                "timestamp": datetime.now().isoformat(),
+                "workload": self._calculate_workload(worker_id),
+            }
+        ]
 
     def _calculate_today_completion_rate(self) -> float:
         """今日の完了率計算"""
         today = datetime.now().date()
-        completed_today = [n for n in self.task_distributor.get_completed_nectars()
-                          if n.created_at.date() == today]
+        completed_today = [
+            n
+            for n in self.task_distributor.get_completed_nectars()
+            if n.created_at.date() == today
+        ]
 
-        total_today = len(completed_today) + len(self.task_distributor.get_active_nectars())
+        total_today = len(completed_today) + len(
+            self.task_distributor.get_active_nectars()
+        )
         return len(completed_today) / total_today if total_today > 0 else 0.0
 
     def _find_most_productive_worker(self) -> str:
@@ -503,13 +552,20 @@ class StatusMonitor:
             # 現在の状態を保存
             monitoring_data = {
                 "timestamp": datetime.now().isoformat(),
-                "worker_states": {wid: status.to_dict() for wid, status in self.worker_states.items()},
-                "alerts": [alert.to_dict() for alert in self.bottleneck_alerts[-100:]]  # 最新100件
+                "worker_states": {
+                    wid: status.to_dict() for wid, status in self.worker_states.items()
+                },
+                "alerts": [
+                    alert.to_dict() for alert in self.bottleneck_alerts[-100:]
+                ],  # 最新100件
             }
 
             # ファイルに保存
-            data_file = self.monitor_dir / f"monitoring-{datetime.now().strftime('%Y%m%d')}.json"
-            with open(data_file, 'w', encoding='utf-8') as f:
+            data_file = (
+                self.monitor_dir
+                / f"monitoring-{datetime.now().strftime('%Y%m%d')}.json"
+            )
+            with open(data_file, "w", encoding="utf-8") as f:
                 json.dump(monitoring_data, f, ensure_ascii=False, indent=2)
 
         except Exception as e:
