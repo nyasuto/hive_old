@@ -44,7 +44,6 @@ dev = [
     "pytest-mock>=3.11.1",
     "ruff>=0.0.280",
     "mypy>=1.5.0",
-    "black>=23.7.0",
     "types-python-dateutil>=2.8.19",
     "types-requests>=2.31.0",
 ]
@@ -76,7 +75,7 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long, handled by black
+    "E501",  # line too long, handled by ruff format
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
 ]
@@ -85,25 +84,6 @@ ignore = [
 "__init__.py" = ["F401"]
 "tests/**/*" = ["B011"]
 
-[tool.black]
-target-version = ['py39']
-line-length = 88
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
 
 [tool.mypy]
 python_version = "3.9"
