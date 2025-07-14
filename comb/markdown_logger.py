@@ -75,7 +75,7 @@ class MarkdownLogger:
         formatted_time = timestamp.strftime("%H:%M:%S")
 
         # 優先度の絵文字マッピング
-        priority_emoji = {"LOW": "🟢", "NORMAL": "🔵", "HIGH": "🟠", "URGENT": "🔴"}
+        priority_emoji = {"LOW": "🟢", "MEDIUM": "🔵", "HIGH": "🟠", "URGENT": "🔴"}
 
         # メッセージタイプの絵文字マッピング
         type_emoji = {

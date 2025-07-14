@@ -63,7 +63,7 @@ class CombAPI:
         to_worker: str,
         content: dict[str, Any],
         message_type: MessageType = MessageType.REQUEST,
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
         ttl_minutes: int = 60,
     ) -> bool:
         """
@@ -103,7 +103,7 @@ class CombAPI:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         レスポンス送信
@@ -124,7 +124,7 @@ class CombAPI:
         self,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority | str = MessagePriority.NORMAL,
+        priority: MessagePriority | str = MessagePriority.MEDIUM,
     ) -> bool:
         """
         通知送信
@@ -141,11 +141,12 @@ class CombAPI:
         if isinstance(priority, str):
             priority_map = {
                 "low": MessagePriority.LOW,
-                "normal": MessagePriority.NORMAL,
+                "medium": MessagePriority.MEDIUM,
+                "normal": MessagePriority.MEDIUM,
                 "high": MessagePriority.HIGH,
                 "urgent": MessagePriority.URGENT,
             }
-            priority = priority_map.get(priority.lower(), MessagePriority.NORMAL)
+            priority = priority_map.get(priority.lower(), MessagePriority.MEDIUM)
 
         return self.message_router.send_notification(
             self.worker_id, to_worker, content, priority

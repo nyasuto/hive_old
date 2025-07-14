@@ -117,7 +117,7 @@ class TestCombCommunication:
             "developer_worker", {"msg": "urgent"}, priority=MessagePriority.URGENT
         )
         self.queen_api.send_message(
-            "developer_worker", {"msg": "normal"}, priority=MessagePriority.NORMAL
+            "developer_worker", {"msg": "normal"}, priority=MessagePriority.MEDIUM
         )
 
         messages = self.worker_api.receive_messages()
@@ -268,7 +268,7 @@ class TestCombCommunication:
             from_worker="queen",
             to_worker="developer_worker",
             message_type=MessageType.REQUEST,
-            priority=MessagePriority.NORMAL,
+            priority=MessagePriority.MEDIUM,
             content={"action": "test"},
             timestamp=now.isoformat(),
             expires_at=expires_at.isoformat(),

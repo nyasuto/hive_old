@@ -20,13 +20,17 @@ class MessageType(Enum):
     RESPONSE = "response"
     NOTIFICATION = "notification"
     ERROR = "error"
+    NECTAR_DISTRIBUTION = "nectar_distribution"
+    STATUS_REQUEST = "status_request"
+    ALERT = "alert"
+    URGENT_NOTIFICATION = "urgent_notification"
 
 
 class MessagePriority(Enum):
     """メッセージ優先度"""
 
     LOW = 1
-    NORMAL = 2
+    MEDIUM = 2
     HIGH = 3
     URGENT = 4
 
@@ -53,7 +57,7 @@ class Message:
         to_worker: str,
         message_type: MessageType,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
         ttl_minutes: int = 60,
         max_retries: int = 3,
     ) -> "Message":
@@ -240,7 +244,7 @@ class MessageRouter:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         レスポンスメッセージを送信
@@ -271,7 +275,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL,
+        priority: MessagePriority = MessagePriority.MEDIUM,
     ) -> bool:
         """
         通知メッセージを送信

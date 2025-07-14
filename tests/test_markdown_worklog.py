@@ -81,7 +81,7 @@ class TestMarkdownLogger:
                 to_worker="developer",
                 message_type=msg_type,
                 content={"test": "data"},
-                priority=MessagePriority.NORMAL,
+                priority=MessagePriority.MEDIUM,
             )
 
             success = self.markdown_logger.log_message(message)
@@ -104,7 +104,7 @@ class TestMarkdownLogger:
         """優先度別ログテスト"""
         priorities = [
             (MessagePriority.LOW, "🟢"),
-            (MessagePriority.NORMAL, "🔵"),
+            (MessagePriority.MEDIUM, "🔵"),
             (MessagePriority.HIGH, "🟠"),
             (MessagePriority.URGENT, "🔴"),
         ]
