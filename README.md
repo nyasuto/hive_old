@@ -71,7 +71,7 @@ Comb（ファイルベース通信）
 - `start-small-hive.sh` - 基本Hive起動スクリプト
 - `nectar-template.json` - タスク定義テンプレート
 - `collect-honey.sh` - 成果物収集スクリプト
-- `README-basic.md` - 基本使用方法
+- `docs/quickstart-guide.md` - 基本使用方法
 
 ### Phase 2: Full Colony (完全なHive体制)
 **目標**: 6-Worker体制の構築
