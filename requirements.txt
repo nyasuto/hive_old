@@ -1,0 +1,35 @@
+# Hive - Claude Code Multi-Agent System
+# Phase 1 基本依存関係
+
+# ファイル操作とJSON処理
+jsonschema>=4.19.0
+watchdog>=3.0.0
+
+# 日時処理
+python-dateutil>=2.8.2
+
+# ログ機能
+coloredlogs>=15.0.1
+
+# HTTP/API関連（将来のWeb UI用）
+requests>=2.31.0
+
+# テスト関連
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+
+# 開発ツール
+ruff>=0.0.280
+mypy>=1.5.0
+black>=23.7.0
+
+# 型チェック用
+types-python-dateutil>=2.8.19
+types-requests>=2.31.0
+
+# tmux 操作（オプション）
+libtmux>=0.23.0
+
+# 設定管理
+python-dotenv>=1.0.0
