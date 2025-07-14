@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # GitHub Actions依存関係の更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    
+  # Python依存関係の更新（pyproject.toml）
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+    # 開発依存関係も含める
+    allow:
+      - dependency-type: "all"
