@@ -63,8 +63,7 @@ lint: ## Run linting
 
 format: ## Format code
 	@echo "Formatting code..."
-	uv run ruff format .
-	uv run black .
+	uv run ruff format . --fix
 
 type-check: ## Run type checking
 	@echo "Running type checker..."
@@ -77,7 +76,6 @@ quality-fix: ## Auto-fix issues where possible
 	@echo "Auto-fixing code issues..."
 	uv run ruff check . --fix
 	uv run ruff format .
-	uv run black .
 	@$(MAKE) quality
 
 pr-ready: quality test ## Ensure code is ready for PR submission
@@ -139,7 +137,6 @@ env-info: ## Show environment information
 	@if command -v uv >/dev/null 2>&1; then echo "✅ uv: $$(uv --version)"; else echo "❌ uv: Not found"; fi
 	@if command -v uv >/dev/null 2>&1; then echo "✅ ruff: $$(uv run ruff --version)"; else echo "❌ ruff: Not found"; fi
 	@if command -v uv >/dev/null 2>&1; then echo "✅ mypy: $$(uv run mypy --version)"; else echo "❌ mypy: Not found"; fi
-	@if command -v uv >/dev/null 2>&1; then echo "✅ black: $$(uv run black --version)"; else echo "❌ black: Not found"; fi
 	@if command -v uv >/dev/null 2>&1; then echo "✅ pytest: $$(uv run pytest --version)"; else echo "❌ pytest: Not found"; fi
 
 # Hive-specific commands
