@@ -5,8 +5,7 @@
 ## 📁 ファイル構成
 
 - `pre-commit` - コミット前の品質チェックとルール検証
-- `commit-msg` - コミットメッセージ形式の検証（Phase 2で実装予定）
-- `pre-push` - プッシュ前の最終検証（Phase 3で実装予定）
+- `pre-push` - プッシュ前の最終検証（将来実装予定）
 
 ## 🚀 使用方法
 
@@ -77,12 +76,7 @@ make quality-fix
 git commit --no-verify -m "message"
 ```
 
-## 🔄 Phase 2以降の予定
-
-### commit-msg フック
-- Conventional Commits形式の強制
-- コミットメッセージ長制限
-- Issue番号の参照チェック
+## 🔄 将来の拡張予定
 
 ### pre-push フック  
 - プッシュ前の最終品質チェック

@@ -135,8 +135,6 @@ if ! make test >/dev/null 2>&1; then
     exit 1
 fi
 
-# コミットメッセージの基本チェック（将来のcommit-msgフック準備）
-commit_msg_pattern="^(feat|fix|docs|style|refactor|test|chore|ci)(\(.+\))?: .{1,50}"
 echo ""
 echo "💡 コミットメッセージのヒント:"
 echo "   Conventional Commits形式を推奨します:"
