@@ -31,9 +31,9 @@ class TestCombCommunication:
 
     def teardown_method(self) -> None:
         """各テストメソッド後のクリーンアップ"""
-        if hasattr(self, 'queen_api'):
+        if hasattr(self, "queen_api"):
             self.queen_api.stop_polling()
-        if hasattr(self, 'worker_api'):
+        if hasattr(self, "worker_api"):
             self.worker_api.stop_polling()
 
         if self.temp_dir.exists():
@@ -66,7 +66,7 @@ class TestCombCommunication:
         success = self.queen_api.send_message(
             to_worker="developer_worker",
             content={"task": "implement_feature", "priority": "high"},
-            message_type=MessageType.REQUEST
+            message_type=MessageType.REQUEST,
         )
 
         assert success
@@ -126,7 +126,7 @@ class TestCombCommunication:
         assert len(messages) == 3
         assert messages[0].content["msg"] == "urgent"  # URGENT最初
         assert messages[1].content["msg"] == "normal"  # NORMAL次
-        assert messages[2].content["msg"] == "low"     # LOW最後
+        assert messages[2].content["msg"] == "low"  # LOW最後
 
     def test_nectar_workflow(self) -> None:
         """Nectar（タスク）ワークフローテスト"""
@@ -135,9 +135,9 @@ class TestCombCommunication:
             nectar_type="code_implementation",
             content={
                 "description": "Implement login feature",
-                "requirements": ["authentication", "validation"]
+                "requirements": ["authentication", "validation"],
             },
-            priority="high"
+            priority="high",
         )
         assert nectar_success
 
@@ -154,8 +154,8 @@ class TestCombCommunication:
             result={
                 "status": "completed",
                 "files": ["login.py", "auth.py"],
-                "tests_passed": True
-            }
+                "tests_passed": True,
+            },
         )
         assert completion_success
 
@@ -212,9 +212,7 @@ class TestCombCommunication:
         for i in range(5):
             thread = threading.Thread(
                 target=lambda i=i: self.queen_api.send_message(
-                    "developer_worker",
-                    {"action": "ping", "id": i},
-                    MessageType.REQUEST
+                    "developer_worker", {"action": "ping", "id": i}, MessageType.REQUEST
                 )
             )
             ping_threads.append(thread)
@@ -244,7 +242,7 @@ class TestCombCommunication:
         error_success = self.queen_api.send_error(
             "developer_worker",
             "Invalid task format",
-            {"code": "INVALID_FORMAT", "line": 42}
+            {"code": "INVALID_FORMAT", "line": 42},
         )
         assert error_success
 
@@ -261,6 +259,7 @@ class TestCombCommunication:
         """メッセージ期限切れテスト"""
         # 非常に短いTTLでメッセージ送信（テスト用）
         import datetime
+
         now = datetime.datetime.now()
         expires_at = now + datetime.timedelta(seconds=0.5)  # 0.5秒後に期限切れ
 
@@ -272,11 +271,14 @@ class TestCombCommunication:
             priority=MessagePriority.NORMAL,
             content={"action": "test"},
             timestamp=now.isoformat(),
-            expires_at=expires_at.isoformat()
+            expires_at=expires_at.isoformat(),
         )
 
         # メッセージをinboxに直接配置（期限切れテスト用）
-        inbox_file = self.queen_api.message_router.inbox_dir / "developer_worker_test_message.json"
+        inbox_file = (
+            self.queen_api.message_router.inbox_dir
+            / "developer_worker_test_message.json"
+        )
         self.queen_api.file_handler.write_json(inbox_file, message.to_dict())
 
         # 期限切れまで待機
@@ -332,7 +334,7 @@ class TestFileHandler:
         test_data = {
             "message": "Hello Hive",
             "timestamp": datetime.now().isoformat(),
-            "numbers": [1, 2, 3, 4, 5]
+            "numbers": [1, 2, 3, 4, 5],
         }
 
         test_file = self.temp_dir / "test.json"

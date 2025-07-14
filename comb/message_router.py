@@ -15,6 +15,7 @@ from .file_handler import HiveFileHandler
 
 class MessageType(Enum):
     """メッセージタイプ"""
+
     REQUEST = "request"
     RESPONSE = "response"
     NOTIFICATION = "notification"
@@ -23,6 +24,7 @@ class MessageType(Enum):
 
 class MessagePriority(Enum):
     """メッセージ優先度"""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -32,6 +34,7 @@ class MessagePriority(Enum):
 @dataclass
 class Message:
     """メッセージデータ構造"""
+
     id: str
     from_worker: str
     to_worker: str
@@ -52,7 +55,7 @@ class Message:
         content: dict[str, Any],
         priority: MessagePriority = MessagePriority.NORMAL,
         ttl_minutes: int = 60,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> "Message":
         """
         新しいメッセージを作成
@@ -81,7 +84,7 @@ class Message:
             content=content,
             timestamp=now.isoformat(),
             expires_at=expires_at.isoformat(),
-            max_retries=max_retries
+            max_retries=max_retries,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -131,8 +134,13 @@ class MessageRouter:
         self.failed_dir = self.messages_dir / "failed"
 
         # ディレクトリ作成
-        for directory in [self.inbox_dir, self.outbox_dir, self.pending_dir,
-                         self.sent_dir, self.failed_dir]:
+        for directory in [
+            self.inbox_dir,
+            self.outbox_dir,
+            self.pending_dir,
+            self.sent_dir,
+            self.failed_dir,
+        ]:
             directory.mkdir(exist_ok=True)
 
     def send_message(self, message: Message) -> bool:
@@ -216,7 +224,7 @@ class MessageRouter:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL
+        priority: MessagePriority = MessagePriority.NORMAL,
     ) -> bool:
         """
         レスポンスメッセージを送信
@@ -235,9 +243,9 @@ class MessageRouter:
             message_type=MessageType.RESPONSE,
             content={
                 "original_message_id": original_message.id,
-                "response": response_content
+                "response": response_content,
             },
-            priority=priority
+            priority=priority,
         )
 
         return self.send_message(response)
@@ -247,7 +255,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL
+        priority: MessagePriority = MessagePriority.NORMAL,
     ) -> bool:
         """
         通知メッセージを送信
@@ -266,7 +274,7 @@ class MessageRouter:
             to_worker=to_worker,
             message_type=MessageType.NOTIFICATION,
             content=content,
-            priority=priority
+            priority=priority,
         )
 
         return self.send_message(notification)
@@ -276,7 +284,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         error_message: str,
-        error_details: Optional[dict[str, Any]] = None
+        error_details: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         エラーメッセージを送信
@@ -294,11 +302,8 @@ class MessageRouter:
             from_worker=from_worker,
             to_worker=to_worker,
             message_type=MessageType.ERROR,
-            content={
-                "error": error_message,
-                "details": error_details or {}
-            },
-            priority=MessagePriority.HIGH
+            content={"error": error_message, "details": error_details or {}},
+            priority=MessagePriority.HIGH,
         )
 
         return self.send_message(error)
@@ -330,7 +335,9 @@ class MessageRouter:
                                 retry_count += 1
                             else:
                                 # リトライも失敗
-                                self.file_handler.write_json(failed_file, message.to_dict())
+                                self.file_handler.write_json(
+                                    failed_file, message.to_dict()
+                                )
                         else:
                             # リトライ不可、削除
                             self.file_handler.delete_file(failed_file)
@@ -389,7 +396,7 @@ class MessageRouter:
             ("outbox", self.outbox_dir),
             ("pending", self.pending_dir),
             ("sent", self.sent_dir),
-            ("failed", self.failed_dir)
+            ("failed", self.failed_dir),
         ]:
             try:
                 files = self.file_handler.list_files(directory, "*.json")

@@ -24,5 +24,5 @@ __all__ = [
     "Message",
     "MessageType",
     "MessagePriority",
-    "SyncManager"
+    "SyncManager",
 ]

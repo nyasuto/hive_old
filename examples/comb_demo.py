@@ -71,10 +71,10 @@ def queen_worker_demo() -> None:
             "requirements": [
                 "パスワードハッシュ化",
                 "セッション管理",
-                "入力バリデーション"
-            ]
+                "入力バリデーション",
+            ],
         },
-        priority="high"
+        priority="high",
     )
     print(f"   送信結果: {'成功' if nectar_result else '失敗'}")
 
@@ -94,18 +94,18 @@ def queen_worker_demo() -> None:
         # タスク完了
         print("Developer: タスク完了・結果送信")
         completion_result = developer.complete_nectar(
-            nectar['id'],
+            nectar["id"],
             result={
                 "status": "completed",
                 "files_created": [
                     "auth/login.py",
                     "auth/session.py",
-                    "validators/user_input.py"
+                    "validators/user_input.py",
                 ],
                 "tests_written": True,
                 "test_coverage": "95%",
-                "notes": "全要件を満たして実装完了。パフォーマンステストも実施済み。"
-            }
+                "notes": "全要件を満たして実装完了。パフォーマンステストも実施済み。",
+            },
         )
         print(f"   完了処理結果: {'成功' if completion_result else '失敗'}")
 
@@ -192,7 +192,7 @@ def message_handler_demo() -> None:
         else:
             worker.send_response(
                 message,
-                {"status": "processed", "timestamp": datetime.now().isoformat()}
+                {"status": "processed", "timestamp": datetime.now().isoformat()},
             )
             print("   → 処理完了応答送信")
 
@@ -216,7 +216,7 @@ def message_handler_demo() -> None:
     client.send_message(
         "auto_worker",
         {"action": "process_data", "data": [1, 2, 3, 4, 5]},
-        MessageType.REQUEST
+        MessageType.REQUEST,
     )
     print("2. データ処理リクエスト送信")
 
@@ -227,7 +227,7 @@ def message_handler_demo() -> None:
         "auto_worker",
         {"action": "urgent_task", "priority": "critical"},
         MessageType.REQUEST,
-        priority=MessagePriority.URGENT
+        priority=MessagePriority.URGENT,
     )
     print("3. 緊急タスク送信")
 

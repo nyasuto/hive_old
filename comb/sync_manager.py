@@ -16,6 +16,7 @@ from .file_handler import HiveFileHandler
 @dataclass
 class LockInfo:
     """ロック情報"""
+
     resource_name: str
     holder: str
     acquired_at: str
@@ -42,7 +43,7 @@ class SyncManager:
     def __init__(
         self,
         file_handler: Optional[HiveFileHandler] = None,
-        default_timeout: float = 30.0
+        default_timeout: float = 30.0,
     ) -> None:
         """
         初期化
@@ -69,10 +70,7 @@ class SyncManager:
         self._local_lock = threading.Lock()
 
     def acquire_lock(
-        self,
-        resource_name: str,
-        worker_id: str,
-        timeout: Optional[float] = None
+        self, resource_name: str, worker_id: str, timeout: Optional[float] = None
     ) -> bool:
         """
         排他ロック取得
@@ -123,7 +121,7 @@ class SyncManager:
                     resource_name=resource_name,
                     holder=worker_id,
                     acquired_at=now.isoformat(),
-                    expires_at=expires_at.isoformat()
+                    expires_at=expires_at.isoformat(),
                 )
 
                 # アトミックに書き込み試行
@@ -132,7 +130,10 @@ class SyncManager:
                     time.sleep(0.01)  # 短い待機
 
                     current_lock = self.file_handler.read_json(lock_file)
-                    if current_lock and LockInfo.from_dict(current_lock).holder == worker_id:
+                    if (
+                        current_lock
+                        and LockInfo.from_dict(current_lock).holder == worker_id
+                    ):
                         with self._local_lock:
                             self._local_locks.add(resource_name)
                         return True
@@ -334,12 +335,14 @@ class SyncManager:
             "name": barrier_name,
             "expected_workers": expected_workers,
             "arrived_workers": [],
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
         }
 
         return self.file_handler.write_json(barrier_file, barrier_data)
 
-    def wait_at_barrier(self, barrier_name: str, worker_id: str, timeout: float = 30.0) -> bool:
+    def wait_at_barrier(
+        self, barrier_name: str, worker_id: str, timeout: float = 30.0
+    ) -> bool:
         """
         バリアで待機
 
@@ -367,7 +370,10 @@ class SyncManager:
                     self.file_handler.write_json(barrier_file, barrier_data)
 
                 # 全Worker到着チェック
-                if len(barrier_data["arrived_workers"]) >= barrier_data["expected_workers"]:
+                if (
+                    len(barrier_data["arrived_workers"])
+                    >= barrier_data["expected_workers"]
+                ):
                     return True
 
                 time.sleep(0.1)
@@ -412,11 +418,13 @@ class SyncManager:
                         if lock_info.is_expired():
                             expired_locks += 1
                         else:
-                            active_locks.append({
-                                "resource": lock_info.resource_name,
-                                "holder": lock_info.holder,
-                                "acquired_at": lock_info.acquired_at
-                            })
+                            active_locks.append(
+                                {
+                                    "resource": lock_info.resource_name,
+                                    "holder": lock_info.holder,
+                                    "acquired_at": lock_info.acquired_at,
+                                }
+                            )
                 except Exception:
                     continue
 
@@ -424,12 +432,17 @@ class SyncManager:
                 "active_locks": len(active_locks),
                 "expired_locks": expired_locks,
                 "locks": active_locks,
-                "local_locks": len(self._local_locks)
+                "local_locks": len(self._local_locks),
             }
 
         except Exception as e:
             print(f"Error getting lock stats: {e}")
-            return {"active_locks": 0, "expired_locks": 0, "locks": [], "local_locks": 0}
+            return {
+                "active_locks": 0,
+                "expired_locks": 0,
+                "locks": [],
+                "local_locks": 0,
+            }
 
 
 # モジュールレベルのデフォルトインスタンス

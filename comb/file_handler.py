@@ -24,7 +24,7 @@ class HiveFileHandler:
         "nectar": ["pending", "active", "completed"],
         "comb": ["messages", "shared", "cells"],
         "honey": [],
-        "logs": []
+        "logs": [],
     }
 
     def __init__(self, root_path: Optional[Path] = None) -> None:
@@ -92,7 +92,7 @@ class HiveFileHandler:
         # ファイルが存在しない場合は作成
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(file_path, 'a+') as f:
+        with open(file_path, "a+") as f:
             retry_count = 0
             max_retries = 10
 

@@ -22,7 +22,7 @@ class CombAPI:
         worker_id: str,
         file_handler: Optional[HiveFileHandler] = None,
         message_router: Optional[MessageRouter] = None,
-        sync_manager: Optional[SyncManager] = None
+        sync_manager: Optional[SyncManager] = None,
     ) -> None:
         """
         API初期化
@@ -55,7 +55,7 @@ class CombAPI:
         content: dict[str, Any],
         message_type: MessageType = MessageType.REQUEST,
         priority: MessagePriority = MessagePriority.NORMAL,
-        ttl_minutes: int = 60
+        ttl_minutes: int = 60,
     ) -> bool:
         """
         メッセージ送信
@@ -76,7 +76,7 @@ class CombAPI:
             message_type=message_type,
             content=content,
             priority=priority,
-            ttl_minutes=ttl_minutes
+            ttl_minutes=ttl_minutes,
         )
 
         return self.message_router.send_message(message)
@@ -94,7 +94,7 @@ class CombAPI:
         self,
         original_message: Message,
         response_content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL
+        priority: MessagePriority = MessagePriority.NORMAL,
     ) -> bool:
         """
         レスポンス送信
@@ -115,7 +115,7 @@ class CombAPI:
         self,
         to_worker: str,
         content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.NORMAL
+        priority: MessagePriority = MessagePriority.NORMAL,
     ) -> bool:
         """
         通知送信
@@ -136,7 +136,7 @@ class CombAPI:
         self,
         to_worker: str,
         error_message: str,
-        error_details: Optional[dict[str, Any]] = None
+        error_details: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         エラー通知送信
@@ -167,7 +167,7 @@ class CombAPI:
             to_worker=to_worker,
             content={"action": "ping", "timestamp": datetime.now().isoformat()},
             message_type=MessageType.REQUEST,
-            priority=MessagePriority.LOW
+            priority=MessagePriority.LOW,
         )
 
     def pong(self, original_message: Message) -> bool:
@@ -184,17 +184,14 @@ class CombAPI:
             original_message=original_message,
             response_content={
                 "action": "pong",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            priority=MessagePriority.LOW
+            priority=MessagePriority.LOW,
         )
 
     # Nectar操作（タスク管理）
     def send_nectar(
-        self,
-        nectar_type: str,
-        content: dict[str, Any],
-        priority: str = "normal"
+        self, nectar_type: str, content: dict[str, Any], priority: str = "normal"
     ) -> bool:
         """
         Nectar（タスク）送信
@@ -214,7 +211,7 @@ class CombAPI:
             "priority": priority,
             "created_by": self.worker_id,
             "created_at": datetime.now().isoformat(),
-            "status": "pending"
+            "status": "pending",
         }
 
         nectar_file = self.file_handler.get_path(
@@ -290,15 +287,16 @@ class CombAPI:
             self.file_handler.delete_file(active_file)
 
             # Honeyとして結果を保存
-            honey_file = self.file_handler.get_path(
-                "honey", f"{nectar_id}_result.json"
+            honey_file = self.file_handler.get_path("honey", f"{nectar_id}_result.json")
+            self.file_handler.write_json(
+                honey_file,
+                {
+                    "nectar_id": nectar_id,
+                    "worker_id": self.worker_id,
+                    "result": result,
+                    "completed_at": nectar_data["completed_at"],
+                },
             )
-            self.file_handler.write_json(honey_file, {
-                "nectar_id": nectar_id,
-                "worker_id": self.worker_id,
-                "result": result,
-                "completed_at": nectar_data["completed_at"]
-            })
 
             return True
 
@@ -316,9 +314,7 @@ class CombAPI:
         Returns:
             ロック取得成功時True
         """
-        return self.sync_manager.acquire_lock(
-            resource_name, self.worker_id, timeout
-        )
+        return self.sync_manager.acquire_lock(resource_name, self.worker_id, timeout)
 
     def release_lock(self, resource_name: str) -> bool:
         """
@@ -334,9 +330,7 @@ class CombAPI:
 
     # メッセージハンドラー登録
     def register_handler(
-        self,
-        message_type: MessageType,
-        handler: Callable[[Message], None]
+        self, message_type: MessageType, handler: Callable[[Message], None]
     ) -> None:
         """
         メッセージハンドラー登録
@@ -383,8 +377,7 @@ class CombAPI:
                             print(f"Error in message handler: {e}")
                             # エラーレスポンス送信
                             self.send_error(
-                                message.from_worker,
-                                f"Handler error: {str(e)}"
+                                message.from_worker, f"Handler error: {str(e)}"
                             )
 
                 time.sleep(self._polling_interval)
@@ -408,7 +401,7 @@ class CombAPI:
             "polling": self._polling,
             "messages": message_stats,
             "locks": lock_stats,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
 
