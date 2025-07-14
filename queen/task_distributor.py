@@ -80,13 +80,60 @@ class Nectar:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Nectar":
         """辞書から作成"""
+        # 旧形式との互換性のため id -> nectar_id の変換
+        if "id" in data and "nectar_id" not in data:
+            data["nectar_id"] = data["id"]
+
+        # content.title/description の抽出
+        if "content" in data:
+            content = data["content"]
+            if "title" in content:
+                data["title"] = content["title"]
+            if "description" in content:
+                data["description"] = content["description"]
+
+        # デフォルト値の設定
+        if "dependencies" not in data:
+            data["dependencies"] = []
+        if "expected_honey" not in data:
+            data["expected_honey"] = []
+        if "estimated_time" not in data:
+            data["estimated_time"] = data.get("estimated_hours", 1)
+        if "deadline" not in data:
+            data["deadline"] = data["created_at"]
+
+        # Nectarクラスに必要なフィールドのみを抽出
+        expected_fields = {
+            "nectar_id",
+            "title",
+            "description",
+            "assigned_to",
+            "created_by",
+            "priority",
+            "status",
+            "dependencies",
+            "expected_honey",
+            "estimated_time",
+            "created_at",
+            "deadline",
+            "tags",
+            "metadata",
+        }
+        filtered_data = {k: v for k, v in data.items() if k in expected_fields}
+
         # Enumに変換
-        data["priority"] = Priority(data["priority"])
-        data["status"] = TaskStatus(data["status"])
+        filtered_data["priority"] = Priority(filtered_data["priority"])
+        filtered_data["status"] = TaskStatus(filtered_data["status"])
         # datetimeに変換
-        data["created_at"] = datetime.fromisoformat(data["created_at"])
-        data["deadline"] = datetime.fromisoformat(data["deadline"])
-        return cls(**data)
+        filtered_data["created_at"] = datetime.fromisoformat(
+            filtered_data["created_at"]
+        )
+        if isinstance(filtered_data["deadline"], str):
+            filtered_data["deadline"] = datetime.fromisoformat(
+                filtered_data["deadline"]
+            )
+
+        return cls(**filtered_data)
 
 
 class TaskDistributor:
