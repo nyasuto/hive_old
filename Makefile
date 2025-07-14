@@ -63,20 +63,33 @@ lint: ## Run linting
 
 format: ## Format code
 	@echo "Formatting code..."
-	uv run ruff format . --fix
+	uv run ruff format .
+
+format-check: ## Check code formatting
+	@echo "Checking code formatting..."
+	uv run ruff format . --check
 
 type-check: ## Run type checking
 	@echo "Running type checker..."
 	uv run mypy .
 
-quality: lint type-check ## Run all quality checks
+quality: ## Run all quality checks with auto-fix
+	@echo "Running quality checks with auto-fix..."
+	@echo "Auto-fixing linting issues..."
+	@uv run ruff check . --fix || true
+	@echo "Auto-fixing formatting issues..."
+	@uv run ruff format .
+	@echo "Running final validation..."
+	@uv run ruff check .
+	@uv run ruff format . --check
+	@uv run mypy .
 	@echo "All quality checks completed!"
 
-quality-fix: ## Auto-fix issues where possible
-	@echo "Auto-fixing code issues..."
-	uv run ruff check . --fix
-	uv run ruff format .
-	@$(MAKE) quality
+quality-check: lint format-check type-check ## Run quality checks without auto-fix
+	@echo "All quality checks completed!"
+
+quality-fix: quality ## Auto-fix issues (alias for quality)
+	@echo "Quality fix completed!"
 
 pr-ready: quality test ## Ensure code is ready for PR submission
 	@echo "Code is ready for PR submission!"

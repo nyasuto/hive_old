@@ -118,14 +118,27 @@ Use descriptive, consistent branch names:
 
 1. Create feature branch from main
 2. Make changes
-3. **Run quality checks before commit:**
-   - `make quality` (comprehensive checks)
-   - OR `make quality-fix` (auto-fix + check)
-4. Commit only after all checks pass
-5. Push branch to remote
-6. Create Pull Request with descriptive title and body
-7. Wait for CI checks to pass
-8. Merge via GitHub interface (not locally)
+3. **Run quality checks and auto-fix:**
+   ```bash
+   make quality  # Auto-fix linting + formatting + type check
+   ```
+4. **Check for auto-fix changes and commit if needed:**
+   ```bash
+   # Check if quality fixes created changes
+   if [ -n "$(git status --porcelain)" ]; then
+     git add .
+     git commit -m "style: Auto-fix code formatting and linting issues
+
+   🤖 Generated with [Claude Code](https://claude.ai/code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   fi
+   ```
+5. Make your actual feature/fix commits
+6. Push branch to remote
+7. Create Pull Request with descriptive title and body
+8. Wait for CI checks to pass
+9. Merge via GitHub interface (not locally)
 
 ### Pull Request Guidelines
 
@@ -237,7 +250,7 @@ make install
 
 # Development workflow
 make dev          # Start development environment
-make quality      # Run all quality checks
+make quality      # Run all quality checks with auto-fix
 make test         # Run test suite
 
 # Hive-specific
@@ -245,5 +258,53 @@ make test         # Run test suite
 ./scripts/check-comb.sh               # Check communication
 ./scripts/collect-honey.sh            # Collect results
 ```
+
+### 🔄 Standard Development Workflow
+
+**推奨する開発フローの詳細手順:**
+
+```bash
+# 1. Feature branch作成
+git checkout main
+git pull origin main
+git checkout -b feat/issue-X-description
+
+# 2. 変更作業
+# ... コード変更 ...
+
+# 3. 品質チェック・自動修正
+make quality
+
+# 4. 自動修正があった場合の専用コミット
+if [ -n "$(git status --porcelain)" ]; then
+  git add .
+  git commit -m "style: Auto-fix code formatting and linting issues
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+fi
+
+# 5. 実際の変更をコミット
+git add .
+git commit -m "feat: 新機能の実装
+
+詳細な説明...
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 6. PR作成
+git push -u origin feat/issue-X-description
+gh pr create --title "feat: 新機能の実装" --body "..."
+```
+
+### 🎯 Quality Commands Reference
+
+- **`make quality`**: 自動修正 + 検証 (推奨)
+- **`make quality-check`**: 検証のみ (CI用)
+- **`make quality-fix`**: quality のエイリアス
+- **`make pr-ready`**: quality + test (PR準備)
 
 ---
