@@ -30,42 +30,129 @@ cd hive
 tmux attach-session -t hive-small-colony
 ```
 
+**✅ 成功の確認：**
+- 画面が左右2つのpaneに分割されている
+- 左pane: Queen Worker（プロジェクト管理担当）
+- 右pane: Developer Worker（実装担当）
+- 両paneでClaude Codeが起動している
+
+**🚨 うまくいかない場合：**
+```bash
+# セッション状態を確認
+tmux list-sessions
+
+# 強制再起動
+./scripts/shutdown-hive.sh --force
+./scripts/start-small-hive.sh
+```
+
 ## 🎯 最初にやってみること（4分）
 
+**💡 ここからはtmuxセッション内での操作です。左右のpaneを切り替えながら作業します。**
+
 ### 1. Worker間の通信テスト
-```bash
-# 左pane (Queen Worker) で実行：
+
+**👈 左pane（Queen Worker）での操作：**
+
+まず、Queen Workerとして基本的な通信テストを行います：
+
+```python
+# Queen WorkerでCombAPIを初期化
 from comb import CombAPI
 queen = CombAPI("queen")
+
+# Developer Workerにメッセージを送信
 queen.send_message(
     to_worker="developer",
     content={"task": "Hello from Queen!", "priority": "low"},
     message_type="request"
 )
+print("✅ メッセージを送信しました")
+```
 
-# 右pane (Developer Worker) で実行：
+**👉 右pane（Developer Worker）での操作：**
+
+`Ctrl+B` → 右矢印でDeveloper Workerのpaneに移動し：
+
+```python
+# Developer WorkerでCombAPIを初期化
 from comb import CombAPI
 dev = CombAPI("developer")
+
+# Queen Workerからのメッセージを受信
 messages = dev.receive_messages()
-print(f"受信メッセージ: {len(messages)}件")
+print(f"📬 受信メッセージ: {len(messages)}件")
+
+# メッセージの内容を確認
+for msg in messages:
+    print(f"📝 内容: {msg.content}")
 ```
+
+**🎯 期待する結果：** Developer Workerで「受信メッセージ: 1件」と表示され、Queen Workerからのメッセージ内容が表示されます。
 
 ### 2. 簡単なタスク実行
-```bash
-# Queen Worker で：
-task_id = queen.start_task("テスト機能実装", task_type="feature")
-print(f"タスク開始: {task_id}")
 
-# Developer Worker で：
-progress = dev.add_progress("環境確認完了", "実装準備中")
-print("進捗を報告しました")
+**👈 左pane（Queen Worker）での操作：**
+
+プロジェクトのタスク管理機能をテストします：
+
+```python
+# 新しいタスクを開始
+task_id = queen.start_task("テスト機能実装", task_type="feature")
+print(f"🚀 タスク開始: {task_id}")
+
+# タスクの進捗を記録
+queen.add_progress("通信テスト完了", "基本機能確認済み")
+print("📊 進捗を記録しました")
 ```
+
+**👉 右pane（Developer Worker）での操作：**
+
+Developer Workerとしてタスクに取り組みます：
+
+```python
+# 作業進捗を報告
+dev.add_progress("環境確認完了", "実装準備中")
+print("📋 進捗を報告しました")
+
+# 技術的決定を記録
+dev.add_technical_decision(
+    "Pythonでの実装",
+    "既存のCombAPIを活用するため",
+    ["JavaScript", "Go", "Rust"]
+)
+print("🔧 技術決定を記録しました")
+```
+
+**🎯 期待する結果：** 両paneで進捗報告とタスク管理の動作が確認できます。
 
 ### 3. 成果物の確認
+
+**🖥️ 新しいターミナルを開いて確認：**
+
+tmuxセッションの外で、作業の成果を確認します：
+
 ```bash
-# 新しいターミナルで：
-./scripts/collect-honey.sh stats
+# Hiveディレクトリに移動
+cd /path/to/hive
+
+# Comb通信システムの状態確認
+./scripts/check-comb.sh --stats
+
+# 作業ログの確認
+ls -la .hive/work_logs/daily/
+ls -la .hive/work_logs/projects/
+
+# メッセージの統計確認
+ls -la .hive/comb/messages/sent/
 ```
+
+**🎯 期待する結果：** 
+- ヘルスチェックで全項目が✅表示
+- work_logsディレクトリに日次・プロジェクトログファイルが作成されている
+- sentディレクトリにメッセージファイルが保存されている
+
+**💡 ヒント：** これらのファイルには、Worker間のやり取りがMarkdown形式で記録されています！
 
 ## 🔧 基本操作
 
