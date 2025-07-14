@@ -1,0 +1,146 @@
+#!/bin/bash
+# Hive Project - Enhanced Pre-commit Hook
+# Based on ../beaver project git-hooks best practices
+
+set -e
+
+echo "🪝 Pre-commit フック実行中..."
+
+# 現在のブランチ名を取得
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+# mainブランチへの直接コミット禁止
+if [ "$current_branch" = "main" ]; then
+    echo "❌ エラー: mainブランチへの直接コミットは禁止されています"
+    echo ""
+    echo "   🔄 機能ブランチを作成してください:"
+    echo "   git checkout -b feat/your-feature-name"
+    echo ""
+    echo "   📋 Hiveプロジェクトのブランチ命名規則:"
+    echo "   - feat/issue-X-feature-name     (新機能)"
+    echo "   - fix/issue-X-description       (バグ修正)"
+    echo "   - docs/X-description            (ドキュメント)"
+    echo "   - refactor/X-description        (リファクタリング)"
+    echo "   - test/X-description            (テスト)"
+    echo "   - ci/X-description              (CI/CD)"
+    echo "   - claude/X-description          (Claude Code作業)"
+    echo ""
+    exit 1
+fi
+
+# ブランチ命名規則チェック（mainブランチ以外）
+if [ "$current_branch" != "main" ]; then
+    valid_patterns="^(feat|fix|hotfix|test|docs|ci|cicd|refactor|perf|security|deps|claude)/"
+    if ! echo "$current_branch" | grep -qE "$valid_patterns"; then
+        echo "❌ エラー: ブランチ名が命名規則に従っていません: $current_branch"
+        echo ""
+        echo "   📋 正しいブランチ命名形式:"
+        echo "   - feat/issue-X-feature-name     (新機能)"
+        echo "   - fix/issue-X-description       (バグ修正)"
+        echo "   - docs/X-description            (ドキュメント)"
+        echo "   - refactor/X-description        (リファクタリング)"
+        echo "   - test/X-description            (テスト)"
+        echo "   - ci/cicd/X-description         (CI/CD)"
+        echo "   - perf/X-description            (パフォーマンス)"
+        echo "   - security/X-description        (セキュリティ)"
+        echo "   - deps/X-description            (依存関係)"
+        echo "   - claude/X-description          (Claude Code作業)"
+        echo ""
+        echo "   🔄 ブランチ名を変更するには:"
+        echo "   git branch -m $current_branch feat/issue-X-description"
+        echo ""
+        exit 1
+    fi
+fi
+
+# 空のコミットメッセージチェック
+if [ -z "$(git diff --cached --name-only)" ]; then
+    echo "❌ エラー: ステージされた変更がありません"
+    echo "   git add <files> でファイルをステージしてください"
+    exit 1
+fi
+
+# ステージされたファイルの確認
+staged_files=$(git diff --cached --name-only)
+echo "📁 ステージされたファイル:"
+echo "$staged_files" | sed 's/^/   /'
+echo ""
+
+# Python固有チェック
+python_files=$(git diff --cached --name-only | grep "\.py$" || true)
+if [ -n "$python_files" ]; then
+    echo "🐍 Python固有チェック実行中..."
+    
+    # __pycache__ディレクトリがステージされていないかチェック
+    if echo "$staged_files" | grep -q "__pycache__"; then
+        echo "❌ エラー: __pycache__ディレクトリがステージされています"
+        echo "   git reset HEAD **/__pycache__/ で除外してください"
+        exit 1
+    fi
+    
+    # .pycファイルがステージされていないかチェック
+    if echo "$staged_files" | grep -q "\.pyc$"; then
+        echo "❌ エラー: .pycファイルがステージされています"
+        echo "   git reset HEAD **/*.pyc で除外してください"
+        exit 1
+    fi
+fi
+
+# Makefileの変更がある場合
+makefile_changed=$(git diff --cached --name-only | grep -E '^Makefile$' || true)
+if [ -n "$makefile_changed" ]; then
+    echo "🔧 Makefile構文チェック..."
+    if ! make -n help >/dev/null 2>&1; then
+        echo "❌ エラー: Makefile構文エラーがあります"
+        exit 1
+    fi
+    echo "✅ Makefile構文チェック完了"
+fi
+
+# 大きなファイルのチェック（10MB以上）
+large_files=$(git diff --cached --name-only | xargs -I {} sh -c 'if [ -f "{}" ] && [ $(stat -f%z "{}" 2>/dev/null || stat -c%s "{}" 2>/dev/null || echo 0) -gt 10485760 ]; then echo "{}"; fi' || true)
+if [ -n "$large_files" ]; then
+    echo "⚠️ 警告: 大きなファイル（10MB以上）が検出されました:"
+    echo "$large_files" | sed 's/^/   /'
+    echo "   Git LFSの使用を検討してください"
+    echo ""
+fi
+
+# 機密情報パターンチェック
+echo "🔒 機密情報チェック中..."
+sensitive_patterns="(password|secret|token|key|api_key|private_key)"
+if git diff --cached | grep -iE "$sensitive_patterns" >/dev/null 2>&1; then
+    echo "⚠️ 警告: 機密情報の可能性がある文字列が検出されました"
+    echo "   コミット前に内容を確認してください"
+    echo ""
+fi
+
+# 品質チェック実行
+echo "🔍 品質チェック実行中..."
+if ! make quality >/dev/null 2>&1; then
+    echo "❌ エラー: 品質チェックに失敗しました"
+    echo "   make quality を実行して問題を修正してください"
+    echo ""
+    echo "   💡 自動修正を試すには:"
+    echo "   make quality-fix"
+    echo ""
+    exit 1
+fi
+
+# Phase 1ではテストは基本テストのみ実行
+echo "🧪 基本テスト実行中..."
+if ! make test >/dev/null 2>&1; then
+    echo "❌ エラー: テストに失敗しました"
+    echo "   make test を実行して問題を修正してください"
+    exit 1
+fi
+
+echo ""
+echo "💡 コミットメッセージのヒント:"
+echo "   Conventional Commits形式を推奨します:"
+echo "   feat(queen): add multi-agent coordination"
+echo "   fix(comb): resolve file locking issue"
+echo ""
+
+echo "✅ Pre-commit チェック完了"
+echo "🚀 コミットを続行します..."
