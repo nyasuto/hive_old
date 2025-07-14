@@ -9,7 +9,7 @@ Phase 1 用の基本的なテストスイート。
 class TestBasicImports:
     """Test basic module imports."""
 
-    def test_hive_modules_import(self):
+    def test_hive_modules_import(self) -> None:
         """Test that all Hive modules can be imported."""
         # Test core modules
         import comb  # noqa: F401
@@ -17,7 +17,7 @@ class TestBasicImports:
         import tools  # noqa: F401
         import workers  # noqa: F401
 
-    def test_module_versions(self):
+    def test_module_versions(self) -> None:
         """Test that modules have version information."""
         import comb
         import queen
@@ -40,7 +40,7 @@ class TestBasicImports:
 class TestProjectStructure:
     """Test project directory structure."""
 
-    def test_module_structure(self):
+    def test_module_structure(self) -> None:
         """Test that module structure is correct."""
         import comb
         import queen
@@ -55,13 +55,13 @@ class TestProjectStructure:
 
 
 # Phase 1 テストのためのダミーテスト
-def test_basic_functionality():
+def test_basic_functionality() -> None:
     """Test basic functionality placeholder."""
     # Phase 1 では実装はまだないので、基本的な動作確認のみ
     assert True
 
 
-def test_project_metadata():
+def test_project_metadata() -> None:
     """Test project metadata is available."""
     # プロジェクト構造が正しく設定されていることを確認
     import os
