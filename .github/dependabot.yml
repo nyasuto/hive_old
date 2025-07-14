@@ -10,8 +10,6 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-    reviewers:
-      - "nyasuto"
     
   # Python依存関係の更新（pyproject.toml）
   - package-ecosystem: "pip"
@@ -23,13 +21,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-    reviewers:
-      - "nyasuto"
     # 開発依存関係も含める
     allow:
       - dependency-type: "all"
-    # セキュリティアップデートは即座に
-    open-pull-requests-limit: 10
-    
-  # バージョニング戦略
-  versioning-strategy: increase
