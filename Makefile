@@ -6,40 +6,33 @@
 # デフォルトターゲット
 .DEFAULT_GOAL := help
 
-# カラー定義
-GREEN := \033[32m
-YELLOW := \033[33m
-BLUE := \033[34m
-RED := \033[31m
-RESET := \033[0m
-
 # Python実行環境
 PYTHON := python3
 PIP := pip3
 
 help: ## Show this help message
-	@echo "$(BLUE)Hive - Claude Code Multi-Agent System$(RESET)"
-	@echo "$(YELLOW)Available commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo "Hive - Claude Code Multi-Agent System"
+	@echo "Available commands:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install: ## Install dependencies
-	@echo "$(BLUE)Installing dependencies...$(RESET)"
+	@echo "Installing dependencies..."
 	$(PIP) install -r requirements.txt
 	$(PIP) install -e ".[dev]"
 
 dev: install ## Quick development setup
-	@echo "$(BLUE)Setting up development environment...$(RESET)"
+	@echo "Setting up development environment..."
 	@$(MAKE) git-hooks
-	@echo "$(BLUE)Running initial quality check...$(RESET)"
+	@echo "Running initial quality check..."
 	@$(MAKE) quality
-	@echo "$(GREEN)Development environment ready!$(RESET)"
-	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "Development environment ready!"
+	@echo "Next steps:"
 	@echo "  1. Create a feature branch: git checkout -b feat/your-feature"
 	@echo "  2. Make your changes and commit with descriptive messages"
 	@echo "  3. Run 'make pr-ready' before creating a pull request"
 
 clean: ## Clean build artifacts and cache
-	@echo "$(BLUE)Cleaning artifacts...$(RESET)"
+	@echo "Cleaning artifacts..."
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
@@ -50,46 +43,46 @@ clean: ## Clean build artifacts and cache
 	rm -rf .pytest_cache/
 	rm -rf .mypy_cache/
 	rm -rf .ruff_cache/
-	@echo "$(GREEN)Clean complete!$(RESET)"
+	@echo "Clean complete!"
 
 build: clean ## Build package
-	@echo "$(BLUE)Building package...$(RESET)"
+	@echo "Building package..."
 	$(PYTHON) -m build
-	@echo "$(GREEN)Build complete!$(RESET)"
+	@echo "Build complete!"
 
 test: ## Run tests
-	@echo "$(BLUE)Running tests...$(RESET)"
+	@echo "Running tests..."
 	pytest tests/ -v
 
 test-cov: ## Run tests with coverage
-	@echo "$(BLUE)Running tests with coverage...$(RESET)"
+	@echo "Running tests with coverage..."
 	pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
 
 lint: ## Run linting
-	@echo "$(BLUE)Running linter...$(RESET)"
+	@echo "Running linter..."
 	ruff check .
 
 format: ## Format code
-	@echo "$(BLUE)Formatting code...$(RESET)"
+	@echo "Formatting code..."
 	ruff format .
 	black .
 
 type-check: ## Run type checking
-	@echo "$(BLUE)Running type checker...$(RESET)"
+	@echo "Running type checker..."
 	mypy .
 
 quality: lint type-check ## Run all quality checks
-	@echo "$(GREEN)All quality checks completed!$(RESET)"
+	@echo "All quality checks completed!"
 
 quality-fix: ## Auto-fix issues where possible
-	@echo "$(BLUE)Auto-fixing code issues...$(RESET)"
+	@echo "Auto-fixing code issues..."
 	ruff check . --fix
 	ruff format .
 	black .
 	@$(MAKE) quality
 
 pr-ready: quality test ## Ensure code is ready for PR submission
-	@echo "$(GREEN)Code is ready for PR submission!$(RESET)"
+	@echo "Code is ready for PR submission!"
 
 git-hooks: ## Setup git pre-commit hooks from .git-hooks folder
 	@echo "🔗 Git pre-commit hookを設定中..."
@@ -114,16 +107,16 @@ git-hooks: ## Setup git pre-commit hooks from .git-hooks folder
 		chmod +x .git/hooks/pre-commit; \
 		echo "✅ Pre-commit hook設定完了 (フォールバック版)"; \
 	fi
-	@echo "$(GREEN)Git hooks setup completed!$(RESET)"
+	@echo "Git hooks setup completed!"
 
 env-info: ## Show environment information
-	@echo "$(BLUE)Environment Information:$(RESET)"
+	@echo "Environment Information:"
 	@echo "Python version: $$(python3 --version)"
 	@echo "Pip version: $$(pip3 --version)"
 	@echo "Current directory: $$(pwd)"
 	@echo "Current branch: $$(git branch --show-current 2>/dev/null || echo 'Not a git repository')"
 	@echo ""
-	@echo "$(BLUE)Git Hooks Status:$(RESET)"
+	@echo "Git Hooks Status:"
 	@if [ -f .git/hooks/pre-commit ]; then \
 		echo "✅ Pre-commit hook: Installed"; \
 		if [ -x .git/hooks/pre-commit ]; then \
@@ -140,10 +133,10 @@ env-info: ## Show environment information
 		echo "⚠️  Enhanced pre-commit: Not found (.git-hooks/pre-commit)"; \
 	fi
 	@echo ""
-	@echo "$(BLUE)Git status:$(RESET)"
+	@echo "Git status:"
 	@git status --short || echo "Not a git repository"
 	@echo ""
-	@echo "$(BLUE)Development Tools:$(RESET)"
+	@echo "Development Tools:"
 	@if command -v ruff >/dev/null 2>&1; then echo "✅ ruff: $$(ruff --version)"; else echo "❌ ruff: Not found"; fi
 	@if command -v mypy >/dev/null 2>&1; then echo "✅ mypy: $$(mypy --version)"; else echo "❌ mypy: Not found"; fi
 	@if command -v black >/dev/null 2>&1; then echo "✅ black: $$(black --version)"; else echo "❌ black: Not found"; fi
@@ -151,54 +144,54 @@ env-info: ## Show environment information
 
 # Hive-specific commands
 hive-start: ## Start Small Hive (Phase 1)
-	@echo "$(BLUE)Starting Small Hive...$(RESET)"
+	@echo "Starting Small Hive..."
 	@if [ -f scripts/start-small-hive.sh ]; then \
 		chmod +x scripts/start-small-hive.sh; \
 		./scripts/start-small-hive.sh; \
 	else \
-		echo "$(RED)scripts/start-small-hive.sh not found. Please implement Issue #3 first.$(RESET)"; \
+		echo "scripts/start-small-hive.sh not found. Please implement Issue #3 first."; \
 	fi
 
 hive-stop: ## Stop Hive
-	@echo "$(BLUE)Stopping Hive...$(RESET)"
+	@echo "Stopping Hive..."
 	@if [ -f scripts/shutdown-hive.sh ]; then \
 		chmod +x scripts/shutdown-hive.sh; \
 		./scripts/shutdown-hive.sh; \
 	else \
-		echo "$(RED)scripts/shutdown-hive.sh not found. Please implement Issue #3 first.$(RESET)"; \
+		echo "scripts/shutdown-hive.sh not found. Please implement Issue #3 first."; \
 	fi
 
 hive-status: ## Check Hive status
-	@echo "$(BLUE)Checking Hive status...$(RESET)"
+	@echo "Checking Hive status..."
 	@if [ -f scripts/check-comb.sh ]; then \
 		chmod +x scripts/check-comb.sh; \
 		./scripts/check-comb.sh; \
 	else \
-		echo "$(RED)scripts/check-comb.sh not found. Please implement Issue #2 first.$(RESET)"; \
+		echo "scripts/check-comb.sh not found. Please implement Issue #2 first."; \
 	fi
 
 hive-collect: ## Collect Honey (results)
-	@echo "$(BLUE)Collecting Honey...$(RESET)"
+	@echo "Collecting Honey..."
 	@if [ -f scripts/collect-honey.sh ]; then \
 		chmod +x scripts/collect-honey.sh; \
 		./scripts/collect-honey.sh; \
 	else \
-		echo "$(RED)scripts/collect-honey.sh not found. Please implement Issue #5 first.$(RESET)"; \
+		echo "scripts/collect-honey.sh not found. Please implement Issue #5 first."; \
 	fi
 
 # Development helpers
 check-deps: ## Check if all dependencies are available
-	@echo "$(BLUE)Checking dependencies...$(RESET)"
-	@command -v python3 >/dev/null 2>&1 || { echo "$(RED)python3 is required but not installed$(RESET)"; exit 1; }
-	@command -v tmux >/dev/null 2>&1 || { echo "$(RED)tmux is required but not installed$(RESET)"; exit 1; }
-	@command -v git >/dev/null 2>&1 || { echo "$(RED)git is required but not installed$(RESET)"; exit 1; }
-	@echo "$(GREEN)All dependencies are available!$(RESET)"
+	@echo "Checking dependencies..."
+	@command -v python3 >/dev/null 2>&1 || { echo "python3 is required but not installed"; exit 1; }
+	@command -v tmux >/dev/null 2>&1 || { echo "tmux is required but not installed"; exit 1; }
+	@command -v git >/dev/null 2>&1 || { echo "git is required but not installed"; exit 1; }
+	@echo "All dependencies are available!"
 
 init-project: check-deps install ## Initialize new Hive project
-	@echo "$(BLUE)Initializing Hive project...$(RESET)"
+	@echo "Initializing Hive project..."
 	@$(MAKE) dev
-	@echo "$(GREEN)Hive project initialized successfully!$(RESET)"
-	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "Hive project initialized successfully!"
+	@echo "Next steps:"
 	@echo "  1. Run 'make hive-start' to start your first Hive"
 	@echo "  2. Check 'make hive-status' to verify communication"
 	@echo "  3. Use 'make hive-collect' to gather results"
