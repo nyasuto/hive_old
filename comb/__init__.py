@@ -9,3 +9,20 @@ Hive Comb Module - ファイルベース通信システム
 """
 
 __version__ = "0.1.0"
+
+# Public API exports
+from .api import CombAPI, create_worker_api
+from .file_handler import HiveFileHandler
+from .message_router import Message, MessagePriority, MessageRouter, MessageType
+from .sync_manager import SyncManager
+
+__all__ = [
+    "CombAPI",
+    "create_worker_api",
+    "HiveFileHandler",
+    "MessageRouter",
+    "Message",
+    "MessageType",
+    "MessagePriority",
+    "SyncManager"
+]
