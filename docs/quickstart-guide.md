@@ -60,7 +60,7 @@ python examples/quickstart/01_basic_communication.py queen
 
 **👉 右pane（Developer Worker）での操作：**
 
-`Ctrl+B` → 右矢印でDeveloper Workerのpaneに移動し：
+`Alt + →` でDeveloper Workerのpaneに移動し（または`Ctrl+B` → 右矢印）：
 
 ```bash
 python examples/quickstart/01_basic_communication.py developer
@@ -111,7 +111,8 @@ python examples/quickstart/03_check_results.py
 ## 🔧 基本操作
 
 ### tmux操作
-- **pane切り替え**: `Ctrl+B` → 矢印キー
+- **pane切り替え**: `Alt + ← / →` (楽！) または `Ctrl+B` → 矢印キー  
+- **マウス移動**: クリックでpane移動
 - **セッション終了**: `Ctrl+B` → `d` (デタッチ)
 - **セッション復帰**: `tmux attach-session -t hive-small-colony`
 
