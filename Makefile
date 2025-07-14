@@ -7,8 +7,8 @@
 .DEFAULT_GOAL := help
 
 # Python実行環境
-PYTHON := python3
-PIP := pip3
+PYTHON := uv run python
+UV := uv
 
 help: ## Show this help message
 	@echo "Hive - Claude Code Multi-Agent System"
@@ -17,8 +17,7 @@ help: ## Show this help message
 
 install: ## Install dependencies
 	@echo "Installing dependencies..."
-	$(PIP) install -r requirements.txt
-	$(PIP) install -e ".[dev]"
+	uv sync --extra dev
 
 dev: install ## Quick development setup
 	@echo "Setting up development environment..."
@@ -52,33 +51,33 @@ build: clean ## Build package
 
 test: ## Run tests
 	@echo "Running tests..."
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-cov: ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
+	uv run pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
 
 lint: ## Run linting
 	@echo "Running linter..."
-	ruff check .
+	uv run ruff check .
 
 format: ## Format code
 	@echo "Formatting code..."
-	ruff format .
-	black .
+	uv run ruff format .
+	uv run black .
 
 type-check: ## Run type checking
 	@echo "Running type checker..."
-	mypy .
+	uv run mypy .
 
 quality: lint type-check ## Run all quality checks
 	@echo "All quality checks completed!"
 
 quality-fix: ## Auto-fix issues where possible
 	@echo "Auto-fixing code issues..."
-	ruff check . --fix
-	ruff format .
-	black .
+	uv run ruff check . --fix
+	uv run ruff format .
+	uv run black .
 	@$(MAKE) quality
 
 pr-ready: quality test ## Ensure code is ready for PR submission
@@ -101,8 +100,8 @@ git-hooks: ## Setup git pre-commit hooks from .git-hooks folder
 		echo '  echo "❌ エラー: mainブランチへの直接コミットは禁止されています"' >> .git/hooks/pre-commit; \
 		echo '  exit 1' >> .git/hooks/pre-commit; \
 		echo 'fi' >> .git/hooks/pre-commit; \
-		echo 'make quality' >> .git/hooks/pre-commit; \
-		echo 'make test' >> .git/hooks/pre-commit; \
+		echo 'uv run make quality' >> .git/hooks/pre-commit; \
+		echo 'uv run make test' >> .git/hooks/pre-commit; \
 		echo 'echo "✅ Pre-commit チェック完了"' >> .git/hooks/pre-commit; \
 		chmod +x .git/hooks/pre-commit; \
 		echo "✅ Pre-commit hook設定完了 (フォールバック版)"; \
@@ -137,10 +136,11 @@ env-info: ## Show environment information
 	@git status --short || echo "Not a git repository"
 	@echo ""
 	@echo "Development Tools:"
-	@if command -v ruff >/dev/null 2>&1; then echo "✅ ruff: $$(ruff --version)"; else echo "❌ ruff: Not found"; fi
-	@if command -v mypy >/dev/null 2>&1; then echo "✅ mypy: $$(mypy --version)"; else echo "❌ mypy: Not found"; fi
-	@if command -v black >/dev/null 2>&1; then echo "✅ black: $$(black --version)"; else echo "❌ black: Not found"; fi
-	@if command -v pytest >/dev/null 2>&1; then echo "✅ pytest: $$(pytest --version)"; else echo "❌ pytest: Not found"; fi
+	@if command -v uv >/dev/null 2>&1; then echo "✅ uv: $$(uv --version)"; else echo "❌ uv: Not found"; fi
+	@if command -v uv >/dev/null 2>&1; then echo "✅ ruff: $$(uv run ruff --version)"; else echo "❌ ruff: Not found"; fi
+	@if command -v uv >/dev/null 2>&1; then echo "✅ mypy: $$(uv run mypy --version)"; else echo "❌ mypy: Not found"; fi
+	@if command -v uv >/dev/null 2>&1; then echo "✅ black: $$(uv run black --version)"; else echo "❌ black: Not found"; fi
+	@if command -v uv >/dev/null 2>&1; then echo "✅ pytest: $$(uv run pytest --version)"; else echo "❌ pytest: Not found"; fi
 
 # Hive-specific commands
 hive-start: ## Start Small Hive (Phase 1)
@@ -182,7 +182,7 @@ hive-collect: ## Collect Honey (results)
 # Development helpers
 check-deps: ## Check if all dependencies are available
 	@echo "Checking dependencies..."
-	@command -v python3 >/dev/null 2>&1 || { echo "python3 is required but not installed"; exit 1; }
+	@command -v uv >/dev/null 2>&1 || { echo "uv is required but not installed"; exit 1; }
 	@command -v tmux >/dev/null 2>&1 || { echo "tmux is required but not installed"; exit 1; }
 	@command -v git >/dev/null 2>&1 || { echo "git is required but not installed"; exit 1; }
 	@echo "All dependencies are available!"
