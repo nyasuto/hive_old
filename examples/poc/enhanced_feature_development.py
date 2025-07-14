@@ -147,7 +147,7 @@ def review_deliverables(queen: CombAPI) -> None:
                 f"   {i}. {check_item['check']}: {check_item.get('command', check_item.get('method', ''))}"
             )
 
-    review_results = {
+    review_results: dict[str, Any] = {
         "files_reviewed": [],
         "issues_found": [],
         "quality_score": 0,
@@ -253,7 +253,7 @@ def review_deliverables(queen: CombAPI) -> None:
 
 def review_file(file_path: Path) -> dict[str, Any]:
     """個別ファイルの品質レビュー"""
-    review_result = {
+    review_result: dict[str, Any] = {
         "file": str(file_path),
         "checks_performed": [],
         "issues": [],
@@ -377,13 +377,16 @@ def review_file(file_path: Path) -> dict[str, Any]:
 
 def perform_functional_test(file_path: Path) -> dict[str, list[str]]:
     """実装ファイルの機能動作検証"""
-    result = {"passed": [], "failed": []}
+    result: dict[str, list[str]] = {"passed": [], "failed": []}
 
     try:
         # Pythonモジュールとして動的インポート
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("test_module", file_path)
+        if spec is None or spec.loader is None:
+            result["failed"].append("モジュールのロードに失敗")
+            return result
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -466,7 +469,7 @@ def execute_verification_checklist(
     checklist: list[dict[str, Any]],
 ) -> dict[str, list[str]]:
     """Developer Workerが提供した検証チェックリストを実行"""
-    results = {"passed": [], "failed": []}
+    results: dict[str, list[str]] = {"passed": [], "failed": []}
 
     for check_item in checklist:
         check_name = check_item.get("check", "unknown")
@@ -588,7 +591,7 @@ def developer_worker() -> None:
         print("🔧 Queen Workerで先にタスクを作成してください")
 
 
-def handle_review_feedback(dev: CombAPI, feedback_msg) -> None:
+def handle_review_feedback(dev: CombAPI, feedback_msg: Any) -> None:
     """Queen Workerからのレビューフィードバックを処理"""
     feedback = feedback_msg.content
     status = feedback.get("status", "unknown")
@@ -619,7 +622,7 @@ def handle_review_feedback(dev: CombAPI, feedback_msg) -> None:
     )
 
 
-def implement_feature(dev: CombAPI, task_msg) -> None:
+def implement_feature(dev: CombAPI, task_msg: Any) -> None:
     """機能の実装と自己品質チェック"""
     task_content = task_msg.content
     print(f"\n📋 実装タスク: {task_content['feature_name']}")
