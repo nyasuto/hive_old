@@ -26,12 +26,14 @@ class TestHoneyCollector:
 
         # HiveCollectorを初期化（一時ディレクトリを使用）
         import os
+
         os.chdir(self.temp_dir)
         self.honey_collector = HoneyCollector()
 
     def teardown_method(self) -> None:
         """テスト後のクリーンアップ"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def _create_test_files(self) -> None:
@@ -70,14 +72,16 @@ def example():
 
         # 設定ファイル
         config_file = self.test_files_dir / "config.json"
-        config_file.write_text(json.dumps({
-            "name": "test_project",
-            "version": "1.0.0",
-            "settings": {
-                "debug": True,
-                "timeout": 30
-            }
-        }, indent=2))
+        config_file.write_text(
+            json.dumps(
+                {
+                    "name": "test_project",
+                    "version": "1.0.0",
+                    "settings": {"debug": True, "timeout": 30},
+                },
+                indent=2,
+            )
+        )
 
         # 小さいファイル（品質が低い）
         tiny_file = self.test_files_dir / "tiny.txt"
@@ -102,7 +106,9 @@ def example():
         for filename, expected_type in test_cases:
             file_path = Path(filename)
             actual_type = self.honey_collector._classify_file_type(file_path)
-            assert actual_type == expected_type, f"Expected {expected_type} for {filename}, got {actual_type}"
+            assert actual_type == expected_type, (
+                f"Expected {expected_type} for {filename}, got {actual_type}"
+            )
 
     def test_manual_artifact_collection(self) -> None:
         """手動成果物収集テスト"""
@@ -110,7 +116,9 @@ def example():
         test_file = self.test_files_dir / "example.py"
 
         # 手動収集実行
-        artifacts = self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar")
+        artifacts = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], "test-nectar"
+        )
 
         assert len(artifacts) == 1
         artifact = artifacts[0]
@@ -126,18 +134,30 @@ def example():
         """品質スコア計算テスト"""
         # 高品質ファイル（Python）
         python_file = self.test_files_dir / "example.py"
-        python_score = self.honey_collector._calculate_quality_score(python_file, HoneyType.CODE)
-        assert python_score > 50, f"Python file should have good quality score, got {python_score}"
+        python_score = self.honey_collector._calculate_quality_score(
+            python_file, HoneyType.CODE
+        )
+        assert python_score > 50, (
+            f"Python file should have good quality score, got {python_score}"
+        )
 
         # 高品質ドキュメント（Markdown）
         md_file = self.test_files_dir / "README.md"
-        md_score = self.honey_collector._calculate_quality_score(md_file, HoneyType.DOCS)
-        assert md_score > 50, f"Markdown file should have good quality score, got {md_score}"
+        md_score = self.honey_collector._calculate_quality_score(
+            md_file, HoneyType.DOCS
+        )
+        assert md_score > 50, (
+            f"Markdown file should have good quality score, got {md_score}"
+        )
 
         # 低品質ファイル（小さすぎる）
         tiny_file = self.test_files_dir / "tiny.txt"
-        tiny_score = self.honey_collector._calculate_quality_score(tiny_file, HoneyType.DOCS)
-        assert tiny_score < 50, f"Tiny file should have low quality score, got {tiny_score}"
+        tiny_score = self.honey_collector._calculate_quality_score(
+            tiny_file, HoneyType.DOCS
+        )
+        assert tiny_score < 50, (
+            f"Tiny file should have low quality score, got {tiny_score}"
+        )
 
     def test_quality_level_determination(self) -> None:
         """品質レベル決定テスト"""
@@ -150,18 +170,24 @@ def example():
 
         for score, expected_level in test_cases:
             actual_level = self.honey_collector._determine_quality_level(score)
-            assert actual_level == expected_level, f"Score {score} should be {expected_level}, got {actual_level}"
+            assert actual_level == expected_level, (
+                f"Score {score} should be {expected_level}, got {actual_level}"
+            )
 
     def test_duplicate_detection(self) -> None:
         """重複検出テスト"""
         test_file = self.test_files_dir / "example.py"
 
         # 最初の収集
-        artifacts1 = self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar-1")
+        artifacts1 = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], "test-nectar-1"
+        )
         assert len(artifacts1) == 1
 
         # 同じファイルの再収集（重複として検出される）
-        artifacts2 = self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar-2")
+        artifacts2 = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], "test-nectar-2"
+        )
         assert len(artifacts2) == 0, "Duplicate file should not be collected again"
 
     def test_honey_directory_structure(self) -> None:
@@ -186,9 +212,9 @@ def example():
         md_file = self.test_files_dir / "README.md"
         config_file = self.test_files_dir / "config.json"
 
-        self.honey_collector.collect_manual_artifacts([
-            str(python_file), str(md_file), str(config_file)
-        ], "test-nectar")
+        self.honey_collector.collect_manual_artifacts(
+            [str(python_file), str(md_file), str(config_file)], "test-nectar"
+        )
 
         # タイプ別取得テスト
         code_artifacts = self.honey_collector.get_honey_by_type(HoneyType.CODE)
@@ -271,7 +297,9 @@ def example():
         self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar")
 
         # 履歴ディレクトリとファイルの存在確認
-        history_files = list(self.honey_collector.collection_history_dir.glob("collection-*.json"))
+        history_files = list(
+            self.honey_collector.collection_history_dir.glob("collection-*.json")
+        )
         assert len(history_files) > 0
 
         # 履歴ファイル内容確認
@@ -287,7 +315,9 @@ def example():
         """古いHoney清理テスト"""
         # ファイル収集
         test_file = self.test_files_dir / "example.py"
-        artifacts = self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar")
+        artifacts = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], "test-nectar"
+        )
 
         # 収集ファイルの存在確認
         assert len(artifacts) == 1
@@ -304,7 +334,9 @@ def example():
     def test_artifact_metadata_serialization(self) -> None:
         """成果物メタデータシリアライゼーションテスト"""
         test_file = self.test_files_dir / "example.py"
-        artifacts = self.honey_collector.collect_manual_artifacts([str(test_file)], "test-nectar")
+        artifacts = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], "test-nectar"
+        )
 
         artifact = artifacts[0]
 
@@ -330,6 +362,7 @@ class TestHoneyIntegration:
         """テスト前のセットアップ"""
         self.temp_dir = Path(tempfile.mkdtemp())
         import os
+
         os.chdir(self.temp_dir)
 
         self.task_distributor = TaskDistributor()
@@ -338,6 +371,7 @@ class TestHoneyIntegration:
     def teardown_method(self) -> None:
         """テスト後のクリーンアップ"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def test_nectar_to_honey_workflow(self) -> None:
@@ -351,14 +385,18 @@ class TestHoneyIntegration:
             title="Test Task",
             description="Create a simple Python script",
             assigned_to="developer",
-            expected_honey=["output.py"]
+            expected_honey=["output.py"],
         )
 
         # Nectarを完了状態に変更
-        self.task_distributor.update_nectar_status(nectar.nectar_id, TaskStatus.COMPLETED)
+        self.task_distributor.update_nectar_status(
+            nectar.nectar_id, TaskStatus.COMPLETED
+        )
 
         # 手動でファイルを収集（自動収集のシミュレーション）
-        artifacts = self.honey_collector.collect_manual_artifacts([str(test_file)], nectar.nectar_id)
+        artifacts = self.honey_collector.collect_manual_artifacts(
+            [str(test_file)], nectar.nectar_id
+        )
 
         assert len(artifacts) == 1
         artifact = artifacts[0]
@@ -382,7 +420,9 @@ class TestHoneyIntegration:
             file_paths.append(str(file_path))
 
         # 手動収集
-        artifacts = self.honey_collector.collect_manual_artifacts(file_paths, "integration-test")
+        artifacts = self.honey_collector.collect_manual_artifacts(
+            file_paths, "integration-test"
+        )
         assert len(artifacts) == 4
 
         # 品質レポート生成
@@ -403,4 +443,3 @@ class TestHoneyIntegration:
         stats = self.honey_collector.get_collection_stats()
         assert stats["total_artifacts"] == 4
         assert stats["unique_nectars"] == 1  # integration-test nectar
-

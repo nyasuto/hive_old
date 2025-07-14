@@ -137,7 +137,16 @@ class HoneyCollector:
 
         # 品質チェック設定
         self.quality_config = {
-            "code_extensions": {".py", ".js", ".ts", ".go", ".rs", ".java", ".cpp", ".c"},
+            "code_extensions": {
+                ".py",
+                ".js",
+                ".ts",
+                ".go",
+                ".rs",
+                ".java",
+                ".cpp",
+                ".c",
+            },
             "docs_extensions": {".md", ".txt", ".rst", ".pdf", ".html"},
             "config_extensions": {".json", ".yaml", ".yml", ".toml", ".ini", ".cfg"},
             "min_file_size": 1,  # 最小ファイルサイズ（バイト）
@@ -162,12 +171,16 @@ class HoneyCollector:
                     f"Collected {len(artifacts)} artifacts from nectar {nectar.nectar_id}"
                 )
             except Exception as e:
-                self.logger.error(f"Failed to collect artifacts from {nectar.nectar_id}: {e}")
+                self.logger.error(
+                    f"Failed to collect artifacts from {nectar.nectar_id}: {e}"
+                )
 
         self._save_collection_history(collected_artifacts)
         return collected_artifacts
 
-    def collect_manual_artifacts(self, file_paths: list[str], nectar_id: str | None = None) -> list[HoneyArtifact]:
+    def collect_manual_artifacts(
+        self, file_paths: list[str], nectar_id: str | None = None
+    ) -> list[HoneyArtifact]:
         """
         手動で指定されたファイルを収集
 
@@ -272,7 +285,13 @@ class HoneyCollector:
         cutoff_date = datetime.now().timestamp() - (days_to_keep * 24 * 3600)
         deleted_count = 0
 
-        for type_dir in [self.code_dir, self.docs_dir, self.reports_dir, self.config_dir, self.data_dir]:
+        for type_dir in [
+            self.code_dir,
+            self.docs_dir,
+            self.reports_dir,
+            self.config_dir,
+            self.data_dir,
+        ]:
             for artifact_file in type_dir.glob("*.json"):
                 try:
                     if artifact_file.stat().st_mtime < cutoff_date:
@@ -303,7 +322,9 @@ class HoneyCollector:
         for file_path in expected_paths:
             path = Path(file_path)
             if path.exists():
-                artifact = self._create_honey_artifact(path, nectar.nectar_id, nectar.assigned_to)
+                artifact = self._create_honey_artifact(
+                    path, nectar.nectar_id, nectar.assigned_to
+                )
                 if artifact:
                     artifacts.append(artifact)
 
@@ -326,12 +347,18 @@ class HoneyCollector:
             file_paths.extend(common_paths)
 
         # メタデータから追加パスを取得
-        if hasattr(nectar, 'metadata') and nectar.metadata and "output_files" in nectar.metadata:
+        if (
+            hasattr(nectar, "metadata")
+            and nectar.metadata
+            and "output_files" in nectar.metadata
+        ):
             file_paths.extend(nectar.metadata["output_files"])
 
         return list(set(file_paths))  # 重複を除去
 
-    def _create_honey_artifact(self, file_path: Path, nectar_id: str, worker_id: str) -> HoneyArtifact | None:
+    def _create_honey_artifact(
+        self, file_path: Path, nectar_id: str, worker_id: str
+    ) -> HoneyArtifact | None:
         """Honey成果物を作成"""
         try:
             # ファイル情報取得
@@ -352,7 +379,9 @@ class HoneyCollector:
 
             # 収集先パス決定
             type_dir = self._get_type_directory(honey_type)
-            honey_id = f"honey-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{file_hash[:8]}"
+            honey_id = (
+                f"honey-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{file_hash[:8]}"
+            )
             collected_path = type_dir / f"{honey_id}{file_path.suffix}"
 
             # ファイルをコピー
@@ -363,8 +392,12 @@ class HoneyCollector:
                 "mime_type": mimetypes.guess_type(str(file_path))[0],
                 "original_name": file_path.name,
                 "extension": file_path.suffix,
-                "created_at": datetime.fromtimestamp(file_path.stat().st_ctime).isoformat(),
-                "modified_at": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat(),
+                "created_at": datetime.fromtimestamp(
+                    file_path.stat().st_ctime
+                ).isoformat(),
+                "modified_at": datetime.fromtimestamp(
+                    file_path.stat().st_mtime
+                ).isoformat(),
             }
 
             artifact = HoneyArtifact(
@@ -468,7 +501,11 @@ class HoneyCollector:
                 score += 20.0
 
             # コメント率チェック
-            comment_lines = [line for line in lines if line.strip().startswith("#") or line.strip().startswith("//")]
+            comment_lines = [
+                line
+                for line in lines
+                if line.strip().startswith("#") or line.strip().startswith("//")
+            ]
             if len(comment_lines) / len(lines) > 0.1:  # 10%以上のコメント
                 score += 15.0
 
@@ -550,7 +587,9 @@ class HoneyCollector:
         # 適切な命名規則をチェック
         if name.count(".") == 1 and file_path.suffix:  # 拡張子が適切
             if not any(char in name for char in [" ", "　"]):  # スペースがない
-                if name.replace("_", "").replace("-", "").replace(".", "").isalnum():  # 英数字+記号のみ
+                if (
+                    name.replace("_", "").replace("-", "").replace(".", "").isalnum()
+                ):  # 英数字+記号のみ
                     return True
 
         return False
@@ -619,7 +658,10 @@ class HoneyCollector:
         if not artifacts:
             return
 
-        history_file = self.collection_history_dir / f"collection-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        history_file = (
+            self.collection_history_dir
+            / f"collection-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        )
         history_data = {
             "collected_at": datetime.now().isoformat(),
             "artifact_count": len(artifacts),
@@ -641,12 +683,16 @@ class HoneyCollector:
 
         return artifacts
 
-    def _generate_recommendations(self, artifacts: list[HoneyArtifact], average_quality: float) -> list[str]:
+    def _generate_recommendations(
+        self, artifacts: list[HoneyArtifact], average_quality: float
+    ) -> list[str]:
         """推奨事項を生成"""
         recommendations = []
 
         if average_quality < 60:
-            recommendations.append("Overall quality is below acceptable level. Review development practices.")
+            recommendations.append(
+                "Overall quality is below acceptable level. Review development practices."
+            )
 
         # タイプ別の推奨事項
         type_counts: dict[HoneyType, int] = defaultdict(int)
@@ -662,7 +708,9 @@ class HoneyCollector:
         # 品質分布の推奨事項
         poor_count = len([a for a in artifacts if a.quality_level == QualityLevel.POOR])
         if poor_count > len(artifacts) * 0.2:  # 20%以上がPOOR
-            recommendations.append("High number of poor quality artifacts. Implement quality gates.")
+            recommendations.append(
+                "High number of poor quality artifacts. Implement quality gates."
+            )
 
         return recommendations
 
@@ -698,16 +746,24 @@ class HoneyCollector:
         return {
             "total_artifacts": len(all_artifacts),
             "type_distribution": {
-                honey_type.value: len([a for a in all_artifacts if a.honey_type == honey_type])
+                honey_type.value: len(
+                    [a for a in all_artifacts if a.honey_type == honey_type]
+                )
                 for honey_type in HoneyType
             },
             "quality_distribution": {
-                quality.value: len([a for a in all_artifacts if a.quality_level == quality])
+                quality.value: len(
+                    [a for a in all_artifacts if a.quality_level == quality]
+                )
                 for quality in QualityLevel
             },
-            "average_quality": sum(a.quality_score for a in all_artifacts) / len(all_artifacts) if all_artifacts else 0,
+            "average_quality": sum(a.quality_score for a in all_artifacts)
+            / len(all_artifacts)
+            if all_artifacts
+            else 0,
             "total_size_mb": sum(a.file_size for a in all_artifacts) / (1024 * 1024),
             "unique_nectars": len({a.nectar_id for a in all_artifacts}),
-            "collection_history_files": len(list(self.collection_history_dir.glob("*.json"))),
+            "collection_history_files": len(
+                list(self.collection_history_dir.glob("*.json"))
+            ),
         }
-
