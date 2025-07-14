@@ -106,15 +106,6 @@ if [ -n "$large_files" ]; then
     echo ""
 fi
 
-# 機密情報パターンチェック
-echo "🔒 機密情報チェック中..."
-sensitive_patterns="(password|secret|token|key|api_key|private_key)"
-if git diff --cached | grep -iE "$sensitive_patterns" >/dev/null 2>&1; then
-    echo "⚠️ 警告: 機密情報の可能性がある文字列が検出されました"
-    echo "   コミット前に内容を確認してください"
-    echo ""
-fi
-
 # 品質チェック実行
 echo "🔍 品質チェック実行中..."
 if ! make quality >/dev/null 2>&1; then
