@@ -30,42 +30,83 @@ cd hive
 tmux attach-session -t hive-small-colony
 ```
 
+**✅ 成功の確認：**
+- 画面が左右2つのpaneに分割されている
+- 左pane: Queen Worker（プロジェクト管理担当）
+- 右pane: Developer Worker（実装担当）
+- 両paneでClaude Codeが起動している
+
+**🚨 うまくいかない場合：**
+```bash
+# セッション状態を確認
+tmux list-sessions
+
+# 強制再起動
+./scripts/shutdown-hive.sh --force
+./scripts/start-small-hive.sh
+```
+
 ## 🎯 最初にやってみること（4分）
 
+**💡 ここからはtmuxセッション内での操作です。左右のpaneを切り替えながら作業します。**
+
 ### 1. Worker間の通信テスト
-```bash
-# 左pane (Queen Worker) で実行：
-from comb import CombAPI
-queen = CombAPI("queen")
-queen.send_message(
-    to_worker="developer",
-    content={"task": "Hello from Queen!", "priority": "low"},
-    message_type="request"
-)
 
-# 右pane (Developer Worker) で実行：
-from comb import CombAPI
-dev = CombAPI("developer")
-messages = dev.receive_messages()
-print(f"受信メッセージ: {len(messages)}件")
+**👈 左pane（Queen Worker）での操作：**
+
+```bash
+python examples/quickstart/01_basic_communication.py queen
 ```
 
-### 2. 簡単なタスク実行
-```bash
-# Queen Worker で：
-task_id = queen.start_task("テスト機能実装", task_type="feature")
-print(f"タスク開始: {task_id}")
+**👉 右pane（Developer Worker）での操作：**
 
-# Developer Worker で：
-progress = dev.add_progress("環境確認完了", "実装準備中")
-print("進捗を報告しました")
+`Ctrl+B` → 右矢印でDeveloper Workerのpaneに移動し：
+
+```bash
+python examples/quickstart/01_basic_communication.py developer
 ```
+
+**🎯 期待する結果：** 
+- Queen Worker: "メッセージを送信しました" と表示
+- Developer Worker: "受信メッセージ: 1件" と表示され、メッセージ内容が確認できる
+
+### 2. タスク管理機能のテスト
+
+**👈 左pane（Queen Worker）での操作：**
+
+```bash
+python examples/quickstart/02_task_management.py queen
+```
+
+**👉 右pane（Developer Worker）での操作：**
+
+```bash
+python examples/quickstart/02_task_management.py developer
+```
+
+**🎯 期待する結果：** 
+- Queen Worker: タスク作成、進捗記録、技術決定の記録が完了
+- Developer Worker: タスク受信、作業実施、完了報告が完了
 
 ### 3. 成果物の確認
+
+**🖥️ 新しいターミナルを開いて確認：**
+
 ```bash
-# 新しいターミナルで：
-./scripts/collect-honey.sh stats
+# Hiveディレクトリに移動（必要に応じて）
+cd /path/to/hive
+
+# 包括的な結果確認
+python examples/quickstart/03_check_results.py
 ```
+
+**🎯 期待する結果：** 
+- ✅ Combシステム正常動作確認
+- ✅ 作業ログファイルの生成確認
+- ✅ メッセージファイルの送受信確認
+- ✅ 通信ログ（Markdown）の生成確認
+
+**💡 ヒント：** 生成されたファイルには、Worker間のやり取りが人間が読めるMarkdown形式で記録されています！
 
 ## 🔧 基本操作
 
@@ -158,34 +199,52 @@ tmux kill-session -t hive-small-colony
 ./scripts/start-small-hive.sh --force
 ```
 
-### 問題2: Worker間の通信ができない
+### 問題2: Python スクリプトでエラーが発生する
 ```bash
-# Combディレクトリの権限確認
-ls -la .hive/
-chmod -R 755 .hive/
+# Combモジュールが見つからない場合
+pip install -e .
 
-# ディレクトリ構造の再作成
+# プロジェクトディレクトリから実行することを確認
+pwd  # /path/to/hive になっているはず
+
+# 詳細なエラー確認
+python examples/quickstart/01_basic_communication.py queen
+```
+
+### 問題3: Worker間の通信ができない
+```bash
+# Combシステムの診断
+./scripts/check-comb.sh --verbose
+
+# ディレクトリ構造の確認・修復
+./scripts/check-comb.sh --fix
+
+# 強制再起動
 ./scripts/start-small-hive.sh --force
 ```
 
-### 問題3: Python モジュールが見つからない
+### 問題4: スクリプトの実行でヘルプが表示される
 ```bash
-# プロジェクトディレクトリから実行することを確認
-pwd  # /path/to/hive になっているはず
-export PYTHONPATH="$PWD:$PYTHONPATH"
+# 引数を正しく指定してください
+python examples/quickstart/01_basic_communication.py queen  # Queen Worker用
+python examples/quickstart/01_basic_communication.py developer  # Developer Worker用
+
+# 引数なしでヘルプを確認
+python examples/quickstart/01_basic_communication.py
 ```
 
 ## 📚 次のステップ
 
 ### 詳細を学ぶ
-- [セットアップガイド](docs/setup-guide.md) - 詳細な環境構築
-- [Comb API仕様](docs/comb-api.md) - 通信システムの詳細
-- [トラブルシューティング](docs/troubleshooting.md) - 問題解決
+- [セットアップガイド](setup-guide.md) - 詳細な環境構築
+- [Comb API仕様](comb-api.md) - 通信システムの詳細
+- [トラブルシューティング](troubleshooting.md) - 問題解決
+- [クイックスタートサンプル](../examples/quickstart/README.md) - スクリプトの詳細説明
 
 ### 実践してみる
-- [Web アプリ開発例](examples/web-app-hive/) - Flask/FastAPI
-- [API 開発例](examples/api-development-hive/) - REST API
-- [データ分析例](examples/data-analysis-hive/) - Pandas/Jupyter
+- [Web アプリ開発例](../examples/web-app-hive/) - Flask/FastAPI
+- [API 開発例](../examples/api-development-hive/) - REST API
+- [データ分析例](../examples/data-analysis-hive/) - Pandas/Jupyter
 
 ### システムを拡張する
 ```bash
