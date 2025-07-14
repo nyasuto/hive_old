@@ -297,7 +297,7 @@ Current test coverage: 95%
         dev_task_id = self.developer_api.start_task(
             "Implement User Authentication",
             task_type="implementation",
-            description="JWT authentication with bcrypt password hashing"
+            description="JWT authentication with bcrypt password hashing",
         )
         assert dev_task_id is not None
 
@@ -473,7 +473,9 @@ Current test coverage: 95%
         system_status = {
             "queen_status": self.queen_api.get_status(),
             "developer_status": self.developer_api.get_status(),
-            "task_distributor_stats": self.task_distributor.get_worker_workload("queen"),
+            "task_distributor_stats": self.task_distributor.get_worker_workload(
+                "queen"
+            ),
             "honey_collection_stats": self.honey_collector.get_collection_stats(),
         }
 
