@@ -1641,15 +1641,15 @@ def test_ai_quality_checker() -> None:
     test_files = [
         Path("examples/poc/test_quality_calculator.py"),
         Path("examples/poc/quality_calculator.py"),
-        Path("comb/__init__.py")
+        Path("comb/__init__.py"),
     ]
-    
+
     test_file = None
     for f in test_files:
         if f.exists():
             test_file = f
             break
-    
+
     if test_file:
         print(f"\n📁 テストファイル: {test_file.name}")
         print("=" * 50)
