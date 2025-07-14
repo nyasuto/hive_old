@@ -9,8 +9,10 @@ Queen Workerによる成果物検証を含む完全な開発サイクル
   3. Queen Worker: python examples/poc/enhanced_feature_development.py queen --review
 """
 
+import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +21,428 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from comb import CombAPI, MessagePriority, MessageType  # noqa: E402
+
+
+@dataclass
+class QualityIssue:
+    """品質問題の構造化表現"""
+
+    issue_type: str
+    severity: str  # critical, high, medium, low
+    description: str
+    file_path: str | None = None
+    line_number: int | None = None
+    error_message: str | None = None
+    context: dict | None = None
+
+
+@dataclass
+class FixSuggestion:
+    """修正提案の構造化表現"""
+
+    issue_id: str
+    fix_type: str
+    description: str
+    code_template: str
+    insertion_point: str  # function_start, line_replace, etc.
+    confidence_score: float  # 0.0-1.0
+    estimated_effort: str  # "5分", "10分", etc.
+
+
+@dataclass
+class QualityAssessment:
+    """包括的品質評価結果"""
+
+    overall_score: int  # 0-100
+    issues: list[QualityIssue]
+    fix_suggestions: list[FixSuggestion]
+    detailed_analysis: dict
+    test_results: dict | None = None
+
+
+class AIQualityChecker:
+    """AI による高度な品質チェック機能"""
+
+    def __init__(self) -> None:
+        self.error_patterns = self._initialize_error_patterns()
+
+    def _initialize_error_patterns(self) -> dict[str, dict]:
+        """エラーパターンの初期化"""
+        return {
+            "type_error_concatenation": {
+                "pattern": r"can only concatenate str \(not \".*?\"\) to str",
+                "category": "type_error",
+                "severity": "high",
+                "fix_template": """
+    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise TypeError("引数は数値である必要があります")
+                """,
+            },
+            "assertion_error_regex": {
+                "pattern": r"Regex pattern did not match",
+                "category": "test_assertion",
+                "severity": "medium",
+                "fix_template": """
+    # エラーメッセージを期待値に合わせて修正
+    # 実際のエラー: {actual}
+    # 期待値: {expected}
+                """,
+            },
+            "import_error": {
+                "pattern": r"No module named '.*?'",
+                "category": "import_error",
+                "severity": "critical",
+                "fix_template": """
+    # 必要なモジュールをインストール
+    # uv add {module_name}
+                """,
+            },
+        }
+
+    def analyze_test_failures(self, test_output: str) -> list[QualityIssue]:
+        """pytest出力を解析して問題を特定"""
+        issues: list[QualityIssue] = []
+
+        # pytest の失敗パターンを解析
+        failure_sections = self._extract_failure_sections(test_output)
+
+        for failure in failure_sections:
+            issue = self._analyze_single_failure(failure)
+            if issue:
+                issues.append(issue)
+
+        return issues
+
+    def _extract_failure_sections(self, test_output: str) -> list[dict]:
+        """pytest出力から失敗セクションを抽出"""
+        sections = []
+        lines = test_output.split("\n")
+
+        current_failure = None
+        collecting_traceback = False
+
+        for line in lines:
+            if "FAILED " in line and "::" in line:
+                # 新しい失敗の開始
+                if current_failure:
+                    sections.append(current_failure)
+                current_failure = {
+                    "test_name": line.split("FAILED ")[1].split(" ")[0],
+                    "traceback": [],
+                    "error_message": "",
+                }
+                collecting_traceback = True
+            elif collecting_traceback and current_failure:
+                if line.startswith("="):
+                    # 次のセクション開始
+                    if current_failure:
+                        sections.append(current_failure)
+                    current_failure = None
+                    collecting_traceback = False
+                else:
+                    current_failure["traceback"].append(line)  # type: ignore
+                    if "AssertionError:" in line or "TypeError:" in line:
+                        current_failure["error_message"] = line.strip()
+
+        if current_failure:
+            sections.append(current_failure)
+
+        return sections
+
+    def _analyze_single_failure(self, failure: dict) -> QualityIssue | None:
+        """単一の失敗を分析"""
+        error_message = failure.get("error_message", "")
+        test_name = failure.get("test_name", "")
+
+        # エラーパターンとマッチング
+        for pattern_name, pattern_info in self.error_patterns.items():
+            if re.search(pattern_info["pattern"], error_message):
+                return QualityIssue(
+                    issue_type=pattern_info["category"],
+                    severity=pattern_info["severity"],
+                    description=f"テスト {test_name} で {pattern_info['category']} が発生",
+                    error_message=error_message,
+                    context={
+                        "test_name": test_name,
+                        "pattern_matched": pattern_name,
+                        "traceback": failure.get("traceback", []),
+                    },
+                )
+
+        # パターンにマッチしない場合は汎用エラー
+        return QualityIssue(
+            issue_type="unknown_error",
+            severity="medium",
+            description=f"テスト {test_name} で未分類のエラーが発生",
+            error_message=error_message,
+            context={"test_name": test_name, "traceback": failure.get("traceback", [])},
+        )
+
+    def generate_fix_suggestions(
+        self, issues: list[QualityIssue]
+    ) -> list[FixSuggestion]:
+        """検出された問題に対する修正提案を生成"""
+        suggestions: list[FixSuggestion] = []
+
+        for i, issue in enumerate(issues):
+            suggestion = self._generate_single_fix(issue, i)
+            if suggestion:
+                suggestions.append(suggestion)
+
+        return suggestions
+
+    def _generate_single_fix(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """単一問題に対する修正提案生成"""
+        if issue.issue_type == "type_error":
+            return FixSuggestion(
+                issue_id=f"fix_{index}",
+                fix_type="add_type_validation",
+                description="関数の引数に型チェックを追加",
+                code_template=self.error_patterns["type_error_concatenation"][
+                    "fix_template"
+                ],
+                insertion_point="function_start",
+                confidence_score=0.9,
+                estimated_effort="5分",
+            )
+        elif issue.issue_type == "test_assertion":
+            # エラーメッセージから期待値と実際値を抽出
+            actual, expected = self._extract_assertion_values(issue.error_message or "")
+            return FixSuggestion(
+                issue_id=f"fix_{index}",
+                fix_type="fix_error_message",
+                description="エラーメッセージを期待値に合わせて修正",
+                code_template=f'raise TypeError("{expected}")',
+                insertion_point="error_message_replace",
+                confidence_score=0.8,
+                estimated_effort="3分",
+            )
+        elif issue.issue_type == "import_error":
+            module_name = self._extract_module_name(issue.error_message or "")
+            return FixSuggestion(
+                issue_id=f"fix_{index}",
+                fix_type="install_dependency",
+                description=f"必要なモジュール {module_name} をインストール",
+                code_template=f"uv add {module_name}",
+                insertion_point="command_line",
+                confidence_score=0.7,
+                estimated_effort="2分",
+            )
+
+        return None
+
+    def _extract_assertion_values(self, error_message: str) -> tuple[str, str]:
+        """アサーションエラーから期待値と実際値を抽出"""
+        # "Regex: '期待値' Input: '実際値'" パターンを解析
+        regex_match = re.search(r"Regex: '([^']+)'.*Input: '([^']+)'", error_message)
+        if regex_match:
+            expected = regex_match.group(1)
+            actual = regex_match.group(2)
+            return actual, expected
+        return "", ""
+
+    def _extract_module_name(self, error_message: str) -> str:
+        """インポートエラーからモジュール名を抽出"""
+        match = re.search(r"No module named '([^']+)'", error_message)
+        return match.group(1) if match else "unknown"
+
+    def assess_code_quality(self, file_path: Path) -> QualityAssessment:
+        """コード品質の包括的評価"""
+        issues: list[QualityIssue] = []
+        detailed_analysis = {
+            "file_path": str(file_path),
+            "checks_performed": [],
+            "metrics": {},
+        }
+
+        if not file_path.exists():
+            issues.append(
+                QualityIssue(
+                    issue_type="missing_file",
+                    severity="critical",
+                    description=f"ファイル {file_path} が見つかりません",
+                    file_path=str(file_path),
+                )
+            )
+            return QualityAssessment(
+                overall_score=0,
+                issues=issues,
+                fix_suggestions=[],
+                detailed_analysis=detailed_analysis,
+            )
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+
+            # 基本的なコード品質チェック
+            if file_path.suffix == ".py":
+                detailed_analysis["checks_performed"].extend(  # type: ignore
+                    [
+                        "python_syntax_check",
+                        "type_hints_check",
+                        "docstring_check",
+                        "error_handling_check",
+                    ]
+                )
+
+                # 型ヒントチェック
+                if not self._has_type_hints(content):
+                    issues.append(
+                        QualityIssue(
+                            issue_type="missing_type_hints",
+                            severity="medium",
+                            description="型ヒントが不足しています",
+                            file_path=str(file_path),
+                        )
+                    )
+
+                # docstringチェック
+                if not self._has_docstrings(content):
+                    issues.append(
+                        QualityIssue(
+                            issue_type="missing_docstrings",
+                            severity="low",
+                            description="docstringが不足しています",
+                            file_path=str(file_path),
+                        )
+                    )
+
+                # エラーハンドリングチェック
+                if not self._has_error_handling(content):
+                    issues.append(
+                        QualityIssue(
+                            issue_type="missing_error_handling",
+                            severity="medium",
+                            description="エラーハンドリングを検討してください",
+                            file_path=str(file_path),
+                        )
+                    )
+
+            # テストファイルの場合はpytest実行
+            if "test_" in file_path.name:
+                test_result = self._run_pytest(file_path)
+                detailed_analysis["test_results"] = test_result
+
+                if test_result["failed_count"] > 0:
+                    test_issues = self.analyze_test_failures(test_result["output"])
+                    issues.extend(test_issues)
+
+            # 品質スコア算出
+            overall_score = self._calculate_quality_score(issues, detailed_analysis)
+
+            # 修正提案生成
+            fix_suggestions = self.generate_fix_suggestions(issues)
+
+            return QualityAssessment(
+                overall_score=overall_score,
+                issues=issues,
+                fix_suggestions=fix_suggestions,
+                detailed_analysis=detailed_analysis,
+                test_results=detailed_analysis.get("test_results"),  # type: ignore
+            )
+
+        except Exception as e:
+            issues.append(
+                QualityIssue(
+                    issue_type="analysis_error",
+                    severity="high",
+                    description=f"品質分析中にエラーが発生: {str(e)}",
+                    file_path=str(file_path),
+                )
+            )
+
+            return QualityAssessment(
+                overall_score=0,
+                issues=issues,
+                fix_suggestions=[],
+                detailed_analysis=detailed_analysis,
+            )
+
+    def _has_type_hints(self, content: str) -> bool:
+        """型ヒントの存在チェック"""
+        return "def " in content and "->" in content
+
+    def _has_docstrings(self, content: str) -> bool:
+        """docstringの存在チェック"""
+        return '"""' in content or "'''" in content
+
+    def _has_error_handling(self, content: str) -> bool:
+        """エラーハンドリングの存在チェック"""
+        return "raise " in content or "except " in content
+
+    def _run_pytest(self, test_file: Path) -> dict[str, Any]:
+        """pytestを実行してテスト結果を取得"""
+        try:
+            result = subprocess.run(
+                ["uv", "run", "pytest", str(test_file), "-v"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=test_file.parent,
+            )
+
+            output = result.stdout + result.stderr
+
+            # テスト結果の解析
+            failed_count = output.count("FAILED")
+            passed_count = output.count("PASSED")
+
+            return {
+                "return_code": result.returncode,
+                "output": output,
+                "failed_count": failed_count,
+                "passed_count": passed_count,
+                "total_count": failed_count + passed_count,
+                "success_rate": passed_count / (failed_count + passed_count)
+                if (failed_count + passed_count) > 0
+                else 0,
+            }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "return_code": -1,
+                "output": "テスト実行がタイムアウトしました",
+                "failed_count": 1,
+                "passed_count": 0,
+                "total_count": 1,
+                "success_rate": 0,
+            }
+        except Exception as e:
+            return {
+                "return_code": -1,
+                "output": f"テスト実行エラー: {str(e)}",
+                "failed_count": 1,
+                "passed_count": 0,
+                "total_count": 1,
+                "success_rate": 0,
+            }
+
+    def _calculate_quality_score(
+        self, issues: list[QualityIssue], analysis: dict
+    ) -> int:
+        """品質スコアを算出"""
+        base_score = 100
+
+        # 問題の重要度に応じて減点
+        for issue in issues:
+            if issue.severity == "critical":
+                base_score -= 25
+            elif issue.severity == "high":
+                base_score -= 15
+            elif issue.severity == "medium":
+                base_score -= 10
+            elif issue.severity == "low":
+                base_score -= 5
+
+        # テスト成功率を考慮
+        test_results = analysis.get("test_results")
+        if test_results:
+            success_rate = test_results.get("success_rate", 0)
+            base_score = int(base_score * (0.3 + 0.7 * success_rate))
+
+        return max(0, min(100, base_score))
 
 
 def queen_worker() -> None:
@@ -109,8 +533,12 @@ def create_development_task(queen: CombAPI) -> None:
 
 
 def review_deliverables(queen: CombAPI) -> None:
-    """成果物の品質レビューと承認プロセス"""
-    print("🔍 成果物レビューを開始します...")
+    """成果物の品質レビューと承認プロセス（AI品質チェック機能付き）"""
+    print("🔍 AI品質チェック機能付きレビューを開始します...")
+
+    # AI品質チェッカーを初期化
+    ai_checker = AIQualityChecker()
+    print("🤖 AI品質チェッカー初期化完了")
 
     # Developer Workerからの完了報告を確認
     messages = queen.receive_messages()
@@ -152,21 +580,78 @@ def review_deliverables(queen: CombAPI) -> None:
         "issues_found": [],
         "quality_score": 0,
         "approval_status": "pending",
+        "ai_assessments": [],  # AI品質評価結果
+        "fix_suggestions": [],  # 修正提案
+        "overall_ai_score": 0,  # AI総合スコア
     }
 
-    # 各成果物をレビュー
+    # 各成果物をAI品質チェック付きでレビュー
     for deliverable in deliverables:
         file_path = Path(deliverable)
         if file_path.exists():
-            print(f"\n🔍 レビュー中: {file_path.name}")
+            print(f"\n🔍 AI品質チェック中: {file_path.name}")
+
+            # 従来のレビュー
             file_review = review_file(file_path)
+
+            # AI品質評価を実行
+            ai_assessment = ai_checker.assess_code_quality(file_path)
+
+            print(f"🤖 AI品質スコア: {ai_assessment.overall_score}/100")
+
+            # AI による問題検出の表示
+            if ai_assessment.issues:
+                print(f"🔍 AI検出問題: {len(ai_assessment.issues)}件")
+                for issue in ai_assessment.issues:
+                    print(f"   - {issue.severity.upper()}: {issue.description}")
+                    if issue.error_message:
+                        print(f"     エラー: {issue.error_message}")
+
+            # AI による修正提案の表示
+            if ai_assessment.fix_suggestions:
+                print(f"💡 AI修正提案: {len(ai_assessment.fix_suggestions)}件")
+                for suggestion in ai_assessment.fix_suggestions:
+                    print(
+                        f"   - {suggestion.description} (信頼度: {suggestion.confidence_score:.1%})"
+                    )
+                    print(f"     推定工数: {suggestion.estimated_effort}")
+
+            # 結果を統合
             review_results["files_reviewed"].append(
-                {"file": str(file_path), "review": file_review}
+                {
+                    "file": str(file_path),
+                    "traditional_review": file_review,
+                    "ai_assessment": {
+                        "overall_score": ai_assessment.overall_score,
+                        "issues_count": len(ai_assessment.issues),
+                        "suggestions_count": len(ai_assessment.fix_suggestions),
+                        "test_results": ai_assessment.test_results,
+                    },
+                }
             )
+
+            # AI検出問題を従来問題リストに追加
             review_results["issues_found"].extend(file_review.get("issues", []))
+            review_results["issues_found"].extend(
+                [f"AI検出: {issue.description}" for issue in ai_assessment.issues]
+            )
+
+            # AI評価結果を記録
+            review_results["ai_assessments"].append(ai_assessment)
+            review_results["fix_suggestions"].extend(ai_assessment.fix_suggestions)
+
         else:
             print(f"❌ ファイルが見つかりません: {file_path}")
             review_results["issues_found"].append(f"Missing file: {file_path}")
+
+    # AI総合スコア算出
+    if review_results["ai_assessments"]:
+        total_ai_score = sum(
+            assessment.overall_score for assessment in review_results["ai_assessments"]
+        )
+        review_results["overall_ai_score"] = total_ai_score // len(
+            review_results["ai_assessments"]
+        )
 
     # Developer Workerの検証チェックリストを実行
     if verification_checklist:
@@ -175,46 +660,87 @@ def review_deliverables(queen: CombAPI) -> None:
         review_results["checklist_results"] = checklist_results
         review_results["issues_found"].extend(checklist_results.get("failed", []))
 
-    # 品質評価
+    # AI統合品質評価
     total_issues = len(review_results["issues_found"])
-    if total_issues == 0:
+    ai_score = review_results["overall_ai_score"]
+
+    # AI品質スコアと問題数を組み合わせた評価
+    if ai_score >= 90 and total_issues == 0:
         review_results["quality_score"] = 100
         review_results["approval_status"] = "approved"
-        print("\n🎉 レビュー完了: 品質基準をすべて満たしています！")
-    elif total_issues <= 3:
-        review_results["quality_score"] = 80
+        print(f"\n🎉 AI品質チェック完了: 優秀な品質です！ (AIスコア: {ai_score}/100)")
+    elif ai_score >= 80 and total_issues <= 2:
+        review_results["quality_score"] = 85
+        review_results["approval_status"] = "approved_with_suggestions"
+        print(f"\n✅ AI品質チェック完了: 良好な品質です (AIスコア: {ai_score}/100)")
+        print(f"   軽微な改善提案: {len(review_results['fix_suggestions'])}件")
+    elif ai_score >= 70 and total_issues <= 5:
+        review_results["quality_score"] = 75
         review_results["approval_status"] = "conditional_approval"
-        print(
-            f"\n⚠️ レビュー完了: {total_issues}件の軽微な問題があります（条件付き承認）"
-        )
+        print(f"\n⚠️ AI品質チェック完了: 条件付き承認 (AIスコア: {ai_score}/100)")
+        print(f"   要検討事項: {total_issues}件")
     else:
-        review_results["quality_score"] = 60
-        review_results["approval_status"] = "rejected"
-        print(f"\n❌ レビュー完了: {total_issues}件の問題があります（要修正）")
+        review_results["quality_score"] = max(50, ai_score - 10)
+        review_results["approval_status"] = "requires_improvement"
+        print(f"\n❌ AI品質チェック完了: 改善が必要です (AIスコア: {ai_score}/100)")
+        print(
+            f"   修正必要: {total_issues}件の問題と{len(review_results['fix_suggestions'])}件の改善提案"
+        )
+
+    # AI修正提案の詳細表示
+    if review_results["fix_suggestions"]:
+        print(f"\n🤖 AI修正提案の詳細 ({len(review_results['fix_suggestions'])}件):")
+        for i, suggestion in enumerate(review_results["fix_suggestions"], 1):
+            print(f"\n   {i}. {suggestion.description}")
+            print(f"      修正タイプ: {suggestion.fix_type}")
+            print(f"      信頼度: {suggestion.confidence_score:.1%}")
+            print(f"      推定工数: {suggestion.estimated_effort}")
+            if suggestion.code_template.strip():
+                print("      修正例:")
+                for line in suggestion.code_template.strip().split("\n"):
+                    print(f"        {line}")
 
     # 詳細レビュー結果の表示
     print("\n📊 詳細レビュー結果:")
     for file_info in review_results["files_reviewed"]:
         file_path = file_info["file"]
-        file_review = file_info["review"]
+        traditional_review = file_info.get("traditional_review", {})
+        ai_assessment = file_info.get("ai_assessment", {})
+
         print(f"\n📁 {Path(file_path).name}:")
 
-        # 実行されたチェック
-        checks = file_review.get("checks_performed", [])
-        print(f"   🔍 実行チェック: {', '.join(checks)}")
+        # AI品質スコア表示
+        if ai_assessment:
+            print(f"   🤖 AI品質スコア: {ai_assessment['overall_score']}/100")
+            print(f"   🔍 AI検出問題: {ai_assessment['issues_count']}件")
+            print(f"   💡 AI修正提案: {ai_assessment['suggestions_count']}件")
+
+            # テスト結果がある場合
+            if ai_assessment.get("test_results"):
+                test_results = ai_assessment["test_results"]
+                success_rate = test_results.get("success_rate", 0)
+                print(
+                    f"   🧪 テスト成功率: {success_rate:.1%} ({test_results.get('passed_count', 0)}/{test_results.get('total_count', 0)})"
+                )
+
+        # 従来のチェック結果
+        checks = traditional_review.get("checks_performed", [])
+        if checks:
+            print(f"   🔍 実行チェック: {', '.join(checks)}")
 
         # 強み
-        strengths = file_review.get("strengths", [])
+        strengths = traditional_review.get("strengths", [])
         if strengths:
             print(f"   ✅ 評価点: {', '.join(strengths)}")
 
         # 問題点
-        issues = file_review.get("issues", [])
+        issues = traditional_review.get("issues", [])
         if issues:
-            print("   ❌ 問題点:")
+            print("   ❌ 従来検出問題:")
             for issue in issues:
                 print(f"      - {issue}")
-        else:
+
+        if not issues and ai_assessment.get("issues_count", 0) == 0:
             print("   🎉 問題なし")
 
     # 全体サマリー
@@ -225,12 +751,33 @@ def review_deliverables(queen: CombAPI) -> None:
 
     # Developer Workerにフィードバック
     feedback_message = {
-        "review_type": "queen_quality_review",
+        "review_type": "ai_enhanced_quality_review",
         "status": review_results["approval_status"],
         "quality_score": review_results["quality_score"],
+        "ai_overall_score": review_results["overall_ai_score"],
         "issues_found": review_results["issues_found"],
+        "fix_suggestions": [
+            {
+                "description": suggestion.description,
+                "fix_type": suggestion.fix_type,
+                "code_template": suggestion.code_template,
+                "confidence_score": suggestion.confidence_score,
+                "estimated_effort": suggestion.estimated_effort,
+                "insertion_point": suggestion.insertion_point,
+            }
+            for suggestion in review_results["fix_suggestions"]
+        ],
         "next_steps": get_next_steps(review_results["approval_status"]),
         "reviewed_files": [item["file"] for item in review_results["files_reviewed"]],
+        "ai_assessment_summary": {
+            "total_files_analyzed": len(review_results["ai_assessments"]),
+            "average_ai_score": review_results["overall_ai_score"],
+            "total_issues_detected": sum(
+                len(assessment.issues)
+                for assessment in review_results["ai_assessments"]
+            ),
+            "total_suggestions_generated": len(review_results["fix_suggestions"]),
+        },
     }
 
     # フィードバック送信
@@ -1084,10 +1631,75 @@ if __name__ == "__main__":
     print("   python examples/poc/enhanced_feature_development.py queen --review")
 
 
+def test_ai_quality_checker() -> None:
+    """AI品質チェッカーのテスト機能"""
+    print("🧪 AI品質チェッカーのテスト実行中...")
+
+    ai_checker = AIQualityChecker()
+
+    # テスト可能なファイルを検索
+    test_files = [
+        Path("examples/poc/test_quality_calculator.py"),
+        Path("examples/poc/quality_calculator.py"),
+        Path("comb/__init__.py"),
+    ]
+
+    test_file = None
+    for f in test_files:
+        if f.exists():
+            test_file = f
+            break
+
+    if test_file:
+        print(f"\n📁 テストファイル: {test_file.name}")
+        print("=" * 50)
+        assessment = ai_checker.assess_code_quality(test_file)
+
+        print(f"🤖 AI品質スコア: {assessment.overall_score}/100")
+        print(f"🔍 検出問題数: {len(assessment.issues)}")
+        print(f"💡 修正提案数: {len(assessment.fix_suggestions)}")
+
+        if assessment.test_results:
+            test_results = assessment.test_results
+            print("🧪 テスト実行結果:")
+            print(f"   成功: {test_results['passed_count']}件")
+            print(f"   失敗: {test_results['failed_count']}件")
+            print(f"   成功率: {test_results['success_rate']:.1%}")
+
+        # 問題の詳細表示
+        if assessment.issues:
+            print("\n🔍 検出された問題:")
+            for i, issue in enumerate(assessment.issues, 1):
+                print(f"   {i}. [{issue.severity.upper()}] {issue.description}")
+                if issue.error_message:
+                    print(f"      エラー: {issue.error_message}")
+
+        # 修正提案の詳細表示
+        if assessment.fix_suggestions:
+            print("\n💡 修正提案:")
+            for i, suggestion in enumerate(assessment.fix_suggestions, 1):
+                print(f"   {i}. {suggestion.description}")
+                print(f"      タイプ: {suggestion.fix_type}")
+                print(f"      信頼度: {suggestion.confidence_score:.1%}")
+                print(f"      工数: {suggestion.estimated_effort}")
+                if suggestion.code_template.strip():
+                    print(
+                        f"      修正例: {suggestion.code_template.strip().split()[0]}..."
+                    )
+        print("\n" + "=" * 50)
+        print("✅ AI品質チェックテスト完了")
+    else:
+        print("❌ テスト可能なファイルが見つかりません")
+        print("🔧 利用可能ファイル:")
+        for f in test_files:
+            status = "✅" if f.exists() else "❌"
+            print(f"   {status} {f}")
+
+
 def main() -> None:
     """メイン実行関数"""
     if len(sys.argv) < 2:
-        print("🐝 Hive PoC - Enhanced Feature Development with Quality Assurance")
+        print("🐝 Hive PoC - Enhanced Feature Development with AI Quality Assurance")
         print("")
         print("使用方法:")
         print("  1. タスク作成 (Queen Worker - 左pane):")
@@ -1099,9 +1711,12 @@ def main() -> None:
         print("  3. 品質レビュー (Queen Worker - 左pane):")
         print("     python examples/poc/enhanced_feature_development.py queen --review")
         print("")
+        print("  4. AI品質チェックテスト:")
+        print("     python examples/poc/enhanced_feature_development.py test-ai")
+        print("")
         print("📋 完全なワークフロー:")
         print(
-            "  Queen (タスク作成) → Developer (実装) → Queen (レビュー) → 承認/修正指示"
+            "  Queen (タスク作成) → Developer (実装) → Queen (AI品質レビュー) → 承認/修正指示"
         )
         sys.exit(1)
 
@@ -1111,9 +1726,11 @@ def main() -> None:
         queen_worker()
     elif worker_type == "developer":
         developer_worker()
+    elif worker_type == "test-ai":
+        test_ai_quality_checker()
     else:
         print(f"❌ 不正なworker type: {worker_type}")
-        print("正しい値: queen または developer")
+        print("正しい値: queen, developer, test-ai")
         sys.exit(1)
 
 
