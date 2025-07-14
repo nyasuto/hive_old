@@ -512,7 +512,7 @@ chmod +x check-setup.sh
 
 設定が完了したら：
 
-1. **[クイックスタートガイド](../README-basic.md)** で基本操作を確認
+1. **[クイックスタートガイド](quickstart-guide.md)** で基本操作を確認
 2. **[Comb API仕様](comb-api.md)** でWorker間通信を学習
 3. **[実用例](../examples/)** でプロジェクト開発を実践
 4. **[トラブルシューティング](troubleshooting.md)** で問題解決方法を確認
