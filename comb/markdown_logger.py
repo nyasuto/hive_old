@@ -75,30 +75,25 @@ class MarkdownLogger:
         formatted_time = timestamp.strftime("%H:%M:%S")
 
         # 優先度の絵文字マッピング
-        priority_emoji = {
-            "LOW": "🟢",
-            "NORMAL": "🔵",
-            "HIGH": "🟠",
-            "URGENT": "🔴"
-        }
+        priority_emoji = {"LOW": "🟢", "NORMAL": "🔵", "HIGH": "🟠", "URGENT": "🔴"}
 
         # メッセージタイプの絵文字マッピング
         type_emoji = {
             "request": "❓",
             "response": "✅",
             "notification": "📢",
-            "error": "❌"
+            "error": "❌",
         }
 
         # コンテンツの整形
         content_md = self._format_content(message.content)
 
         markdown_entry = f"""
-## {type_emoji.get(message.message_type.value, '📝')} {message.message_type.value.title()}
+## {type_emoji.get(message.message_type.value, "📝")} {message.message_type.value.title()}
 
 ### {message.from_worker} → {message.to_worker}
 **Time:** {formatted_time}
-**Priority:** {priority_emoji.get(message.priority.name, '⚪')} {message.priority.name}
+**Priority:** {priority_emoji.get(message.priority.name, "⚪")} {message.priority.name}
 **Message ID:** `{message.id}`
 
 {content_md}
@@ -227,7 +222,7 @@ Worker間通信の記録
             f"**Total Communication Files:** {len(log_files)}",
             "",
             "## 📁 Communication Files",
-            ""
+            "",
         ]
 
         for log_file in sorted(log_files):
@@ -236,21 +231,16 @@ Worker間通信の記録
             worker_pair = log_file.stem.replace("_", " ↔ ")
             summary_lines.append(f"- **{worker_pair}** (`{file_size_kb:.1f}KB`)")
 
-        summary_lines.extend([
-            "",
-            "## 🔍 Quick Access",
-            ""
-        ])
+        summary_lines.extend(["", "## 🔍 Quick Access", ""])
 
         for log_file in sorted(log_files):
             relative_path = log_file.name
             worker_pair = log_file.stem.replace("_", " ↔ ")
             summary_lines.append(f"- [{worker_pair}](./{relative_path})")
 
-        summary_lines.extend([
-            "",
-            f"*Generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"
-        ])
+        summary_lines.extend(
+            ["", f"*Generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"]
+        )
 
         return "\n".join(summary_lines)
 
@@ -303,7 +293,7 @@ Worker間通信の記録
                 "total_log_files": 0,
                 "total_size_kb": 0,
                 "worker_pairs": [],
-                "daily_directories": 0
+                "daily_directories": 0,
             }
 
             # 日次ディレクトリ数
@@ -332,4 +322,3 @@ Worker間通信の記録
         except Exception as e:
             print(f"Error getting communication stats: {e}")
             return {}
-

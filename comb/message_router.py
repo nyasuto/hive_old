@@ -118,7 +118,7 @@ class MessageRouter:
     def __init__(
         self,
         file_handler: Optional[HiveFileHandler] = None,
-        enable_markdown_logging: bool = True
+        enable_markdown_logging: bool = True,
     ) -> None:
         """
         初期化
@@ -134,6 +134,7 @@ class MessageRouter:
         self.markdown_logger = None
         if enable_markdown_logging:
             from .markdown_logger import MarkdownLogger
+
             self.markdown_logger = MarkdownLogger(self.file_handler)
 
         # メッセージディレクトリ

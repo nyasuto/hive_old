@@ -27,14 +27,14 @@ def markdown_worklog_demo() -> None:
         task_type="feature",
         description="Worker間通信のMarkdown化と作業ログ機能を実装",
         issue_number=25,
-        workers=["queen", "developer_worker"]
+        workers=["queen", "developer_worker"],
     )
     print(f"✅ タスク開始 (ID: {task_id})")
 
     # 進捗追加
     queen_api.add_progress(
         "Phase 1: Markdown通信ログ機能実装",
-        "MarkdownLoggerクラスを実装し、通信ログを人間が読みやすい形式に変換"
+        "MarkdownLoggerクラスを実装し、通信ログを人間が読みやすい形式に変換",
     )
     print("📋 進捗追加: Phase 1完了")
 
@@ -42,14 +42,13 @@ def markdown_worklog_demo() -> None:
     queen_api.add_technical_decision(
         "循環インポート問題をTYPE_CHECKINGで解決",
         "message_routerとmarkdown_logger間の循環インポートを回避",
-        ["forward references", "別モジュール分離"]
+        ["forward references", "別モジュール分離"],
     )
     print("🔧 技術的決定記録: 循環インポート解決策")
 
     # 課題記録
     queen_api.add_challenge(
-        "テストでの期待値の不一致",
-        "実際の動作を確認してテストケースを修正"
+        "テストでの期待値の不一致", "実際の動作を確認してテストケースを修正"
     )
     print("🚧 課題記録: テスト修正")
 
@@ -67,7 +66,7 @@ def markdown_worklog_demo() -> None:
     queen_api.send_notification(
         "developer_worker",
         {"message": "Task progress update", "completion": "50%"},
-        priority="high"
+        priority="high",
     )
     print("  📢 通知送信 (HIGH priority)")
 
@@ -75,17 +74,19 @@ def markdown_worklog_demo() -> None:
     queen_api.send_error(
         "developer_worker",
         "Test error message",
-        {"error_code": "TEST_001", "context": "demo"}
+        {"error_code": "TEST_001", "context": "demo"},
     )
     print("  ❌ エラー通知送信")
 
     # メトリクス追加
-    queen_api.add_metrics({
-        "lines_of_code": 1200,
-        "test_coverage": "100%",
-        "files_created": 3,
-        "tests_passed": 28
-    })
+    queen_api.add_metrics(
+        {
+            "lines_of_code": 1200,
+            "test_coverage": "100%",
+            "files_created": 3,
+            "tests_passed": 28,
+        }
+    )
     print("📊 メトリクス追加: 実装統計")
 
     print("\n📄 3. ログファイル生成状況")
@@ -118,7 +119,9 @@ def markdown_worklog_demo() -> None:
         # 生成されたファイルの場所を表示
         today = datetime.now().strftime("%Y-%m-%d")
         print("\n📁 生成されたファイル (.hive/以下):")
-        print(f"   📄 通信ログ: comb/communication_logs/{today}/queen_developer_worker.md")
+        print(
+            f"   📄 通信ログ: comb/communication_logs/{today}/queen_developer_worker.md"
+        )
         print(f"   📊 日次サマリー: comb/communication_logs/{today}/summary_{today}.md")
         print(f"   📝 作業ログ: work_logs/daily/{today}.md")
         print(f"   🎯 プロジェクトログ: work_logs/projects/issue-25-{task_id}.md")
@@ -135,11 +138,13 @@ def markdown_worklog_demo() -> None:
         from pathlib import Path
 
         # 通信ログの例
-        comm_log_path = Path(".hive/comb/communication_logs") / today / "queen_developer_worker.md"
+        comm_log_path = (
+            Path(".hive/comb/communication_logs") / today / "queen_developer_worker.md"
+        )
         if comm_log_path.exists():
             print("📡 通信ログ例 (最初の10行):")
             content = comm_log_path.read_text(encoding="utf-8")
-            lines = content.split('\n')[:10]
+            lines = content.split("\n")[:10]
             for line in lines:
                 print(f"   {line}")
             print("   ...")
@@ -149,7 +154,7 @@ def markdown_worklog_demo() -> None:
         if work_log_path.exists():
             print("\n📝 作業ログ例 (ヘッダー部分):")
             content = work_log_path.read_text(encoding="utf-8")
-            lines = content.split('\n')[:15]
+            lines = content.split("\n")[:15]
             for line in lines:
                 print(f"   {line}")
             print("   ...")
@@ -223,4 +228,3 @@ if __name__ == "__main__":
         markdown_worklog_demo()
         print("\n💡 ヒント: 生成されたファイルの一覧を見るには:")
         print("   python3 examples/markdown_worklog_demo.py --show-files")
-

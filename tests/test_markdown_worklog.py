@@ -30,6 +30,7 @@ class TestMarkdownLogger:
     def teardown_method(self) -> None:
         """テスト後のクリーンアップ"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def test_log_message_basic(self) -> None:
@@ -39,7 +40,7 @@ class TestMarkdownLogger:
             to_worker="developer",
             message_type=MessageType.REQUEST,
             content={"action": "ping"},
-            priority=MessagePriority.LOW
+            priority=MessagePriority.LOW,
         )
 
         # ログ記録
@@ -48,7 +49,14 @@ class TestMarkdownLogger:
 
         # ログファイルの存在確認
         today = datetime.now().strftime("%Y-%m-%d")
-        log_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / "queen_developer.md"
+        log_file = (
+            self.temp_dir
+            / ".hive"
+            / "comb"
+            / "communication_logs"
+            / today
+            / "queen_developer.md"
+        )
         assert log_file.exists()
 
         # ログ内容確認
@@ -64,7 +72,7 @@ class TestMarkdownLogger:
             (MessageType.REQUEST, "❓"),
             (MessageType.RESPONSE, "✅"),
             (MessageType.NOTIFICATION, "📢"),
-            (MessageType.ERROR, "❌")
+            (MessageType.ERROR, "❌"),
         ]
 
         for msg_type, emoji in message_types:
@@ -73,7 +81,7 @@ class TestMarkdownLogger:
                 to_worker="developer",
                 message_type=msg_type,
                 content={"test": "data"},
-                priority=MessagePriority.NORMAL
+                priority=MessagePriority.NORMAL,
             )
 
             success = self.markdown_logger.log_message(message)
@@ -81,7 +89,14 @@ class TestMarkdownLogger:
 
             # ログファイル内容確認
             today = datetime.now().strftime("%Y-%m-%d")
-            log_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / "queen_developer.md"
+            log_file = (
+                self.temp_dir
+                / ".hive"
+                / "comb"
+                / "communication_logs"
+                / today
+                / "queen_developer.md"
+            )
             content = log_file.read_text(encoding="utf-8")
             assert f"## {emoji} {msg_type.value.title()}" in content
 
@@ -91,7 +106,7 @@ class TestMarkdownLogger:
             (MessagePriority.LOW, "🟢"),
             (MessagePriority.NORMAL, "🔵"),
             (MessagePriority.HIGH, "🟠"),
-            (MessagePriority.URGENT, "🔴")
+            (MessagePriority.URGENT, "🔴"),
         ]
 
         for priority, emoji in priorities:
@@ -100,7 +115,7 @@ class TestMarkdownLogger:
                 to_worker="developer",
                 message_type=MessageType.REQUEST,
                 content={"test": "data"},
-                priority=priority
+                priority=priority,
             )
 
             success = self.markdown_logger.log_message(message)
@@ -108,7 +123,14 @@ class TestMarkdownLogger:
 
             # ログファイル内容確認
             today = datetime.now().strftime("%Y-%m-%d")
-            log_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / "queen_developer.md"
+            log_file = (
+                self.temp_dir
+                / ".hive"
+                / "comb"
+                / "communication_logs"
+                / today
+                / "queen_developer.md"
+            )
             content = log_file.read_text(encoding="utf-8")
             assert f"**Priority:** {emoji} {priority.name}" in content
 
@@ -116,9 +138,15 @@ class TestMarkdownLogger:
         """日次サマリー生成テスト"""
         # 複数のメッセージをログ記録
         messages = [
-            Message.create("queen", "developer", MessageType.REQUEST, {"action": "ping"}),
-            Message.create("developer", "queen", MessageType.RESPONSE, {"action": "pong"}),
-            Message.create("queen", "worker", MessageType.NOTIFICATION, {"status": "active"})
+            Message.create(
+                "queen", "developer", MessageType.REQUEST, {"action": "ping"}
+            ),
+            Message.create(
+                "developer", "queen", MessageType.RESPONSE, {"action": "pong"}
+            ),
+            Message.create(
+                "queen", "worker", MessageType.NOTIFICATION, {"status": "active"}
+            ),
         ]
 
         for message in messages:
@@ -130,7 +158,14 @@ class TestMarkdownLogger:
 
         # サマリーファイル確認
         today = datetime.now().strftime("%Y-%m-%d")
-        summary_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / f"summary_{today}.md"
+        summary_file = (
+            self.temp_dir
+            / ".hive"
+            / "comb"
+            / "communication_logs"
+            / today
+            / f"summary_{today}.md"
+        )
         assert summary_file.exists()
 
         content = summary_file.read_text(encoding="utf-8")
@@ -168,6 +203,7 @@ class TestWorkLogManager:
     def teardown_method(self) -> None:
         """テスト後のクリーンアップ"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def test_start_task(self) -> None:
@@ -177,7 +213,7 @@ class TestWorkLogManager:
             task_type="feature",
             description="Test description",
             issue_number=25,
-            workers=["queen", "developer"]
+            workers=["queen", "developer"],
         )
 
         assert task_id is not None
@@ -192,7 +228,13 @@ class TestWorkLogManager:
         assert current_task["status"] == "in_progress"
 
         # プロジェクトログファイル確認
-        project_file = self.temp_dir / ".hive" / "work_logs" / "projects" / f"issue-25-{task_id}.md"
+        project_file = (
+            self.temp_dir
+            / ".hive"
+            / "work_logs"
+            / "projects"
+            / f"issue-25-{task_id}.md"
+        )
         assert project_file.exists()
 
         content = project_file.read_text(encoding="utf-8")
@@ -207,8 +249,7 @@ class TestWorkLogManager:
 
         # 進捗追加
         success = self.work_log_manager.add_progress(
-            "Implementation started",
-            "Created basic structure"
+            "Implementation started", "Created basic structure"
         )
         assert success
 
@@ -236,7 +277,7 @@ class TestWorkLogManager:
         success = self.work_log_manager.add_technical_decision(
             "Use file-based communication",
             "Better reliability and debugging",
-            ["HTTP API", "WebSocket"]
+            ["HTTP API", "WebSocket"],
         )
         assert success
 
@@ -256,8 +297,7 @@ class TestWorkLogManager:
 
         # 課題追加
         success = self.work_log_manager.add_challenge(
-            "File locking issues",
-            "Implemented fcntl-based locking"
+            "File locking issues", "Implemented fcntl-based locking"
         )
         assert success
 
@@ -286,7 +326,9 @@ class TestWorkLogManager:
         assert current_task is None
 
         # プロジェクトログファイル確認
-        project_file = self.temp_dir / ".hive" / "work_logs" / "projects" / f"task-{task_id}.md"
+        project_file = (
+            self.temp_dir / ".hive" / "work_logs" / "projects" / f"task-{task_id}.md"
+        )
         content = project_file.read_text(encoding="utf-8")
         assert "**Status:** completed" in content
         assert "**Completed:**" in content
@@ -319,6 +361,7 @@ class TestCombAPIIntegration:
     def teardown_method(self) -> None:
         """テスト後のクリーンアップ"""
         import shutil
+
         shutil.rmtree(self.temp_dir)
 
     def test_markdown_logging_integration(self) -> None:
@@ -329,7 +372,14 @@ class TestCombAPIIntegration:
 
         # Markdownログファイルの確認
         today = datetime.now().strftime("%Y-%m-%d")
-        log_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / "queen_developer.md"
+        log_file = (
+            self.temp_dir
+            / ".hive"
+            / "comb"
+            / "communication_logs"
+            / today
+            / "queen_developer.md"
+        )
         assert log_file.exists()
 
         content = log_file.read_text(encoding="utf-8")
@@ -342,7 +392,7 @@ class TestCombAPIIntegration:
             "Integration Test Task",
             "test",
             "Testing work log integration",
-            issue_number=25
+            issue_number=25,
         )
         assert task_id is not None
 
@@ -352,22 +402,19 @@ class TestCombAPIIntegration:
 
         # 技術的決定追加
         success = self.queen_api.add_technical_decision(
-            "Use CombAPI integration",
-            "Provides unified interface"
+            "Use CombAPI integration", "Provides unified interface"
         )
         assert success
 
         # メトリクス追加
-        success = self.queen_api.add_metrics({
-            "lines_of_code": 500,
-            "test_coverage": "95%"
-        })
+        success = self.queen_api.add_metrics(
+            {"lines_of_code": 500, "test_coverage": "95%"}
+        )
         assert success
 
         # 課題追加
         success = self.queen_api.add_challenge(
-            "Integration complexity",
-            "Simplified API design"
+            "Integration complexity", "Simplified API design"
         )
         assert success
 
@@ -376,7 +423,13 @@ class TestCombAPIIntegration:
         assert success
 
         # プロジェクトログファイル確認
-        project_file = self.temp_dir / ".hive" / "work_logs" / "projects" / f"issue-25-{task_id}.md"
+        project_file = (
+            self.temp_dir
+            / ".hive"
+            / "work_logs"
+            / "projects"
+            / f"issue-25-{task_id}.md"
+        )
         assert project_file.exists()
 
         content = project_file.read_text(encoding="utf-8")
@@ -415,9 +468,15 @@ class TestCombAPIIntegration:
 
         # サマリーファイル確認
         today = datetime.now().strftime("%Y-%m-%d")
-        summary_file = self.temp_dir / ".hive" / "comb" / "communication_logs" / today / f"summary_{today}.md"
+        summary_file = (
+            self.temp_dir
+            / ".hive"
+            / "comb"
+            / "communication_logs"
+            / today
+            / f"summary_{today}.md"
+        )
         assert summary_file.exists()
 
         content = summary_file.read_text(encoding="utf-8")
         assert "# 📊 Daily Communication Summary" in content
-

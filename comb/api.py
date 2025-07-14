@@ -25,7 +25,7 @@ class CombAPI:
         message_router: Optional[MessageRouter] = None,
         sync_manager: Optional[SyncManager] = None,
         work_log_manager: Optional[WorkLogManager] = None,
-        enable_markdown_logging: bool = True
+        enable_markdown_logging: bool = True,
     ) -> None:
         """
         API初期化
@@ -142,7 +142,7 @@ class CombAPI:
                 "low": MessagePriority.LOW,
                 "normal": MessagePriority.NORMAL,
                 "high": MessagePriority.HIGH,
-                "urgent": MessagePriority.URGENT
+                "urgent": MessagePriority.URGENT,
             }
             priority = priority_map.get(priority.lower(), MessagePriority.NORMAL)
 
@@ -433,7 +433,7 @@ class CombAPI:
         task_type: str = "feature",
         description: str = "",
         issue_number: Optional[int] = None,
-        workers: Optional[list[str]] = None
+        workers: Optional[list[str]] = None,
     ) -> str:
         """
         タスクを開始
@@ -469,10 +469,7 @@ class CombAPI:
         return self.work_log_manager.add_progress(description, details)
 
     def add_technical_decision(
-        self,
-        decision: str,
-        reasoning: str,
-        alternatives: Optional[list[str]] = None
+        self, decision: str, reasoning: str, alternatives: Optional[list[str]] = None
     ) -> bool:
         """
         技術的決定を記録

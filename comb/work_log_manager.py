@@ -44,7 +44,7 @@ class WorkLogManager:
         task_type: str = "feature",
         description: str = "",
         issue_number: Optional[int] = None,
-        workers: Optional[list[str]] = None
+        workers: Optional[list[str]] = None,
     ) -> str:
         """
         タスクを開始
@@ -77,7 +77,7 @@ class WorkLogManager:
             "technical_decisions": [],
             "challenges": [],
             "metrics": {},
-            "files_modified": []
+            "files_modified": [],
         }
 
         # 日次ログに記録
@@ -110,7 +110,7 @@ class WorkLogManager:
         progress_entry = {
             "timestamp": datetime.now().isoformat(),
             "description": description,
-            "details": details
+            "details": details,
         }
 
         self.current_task["progress"].append(progress_entry)
@@ -124,10 +124,7 @@ class WorkLogManager:
         return True
 
     def add_technical_decision(
-        self,
-        decision: str,
-        reasoning: str,
-        alternatives: Optional[list[str]] = None
+        self, decision: str, reasoning: str, alternatives: Optional[list[str]] = None
     ) -> bool:
         """
         技術的決定を記録
@@ -147,7 +144,7 @@ class WorkLogManager:
             "timestamp": datetime.now().isoformat(),
             "decision": decision,
             "reasoning": reasoning,
-            "alternatives": alternatives or []
+            "alternatives": alternatives or [],
         }
 
         self.current_task["technical_decisions"].append(decision_entry)
@@ -177,7 +174,7 @@ class WorkLogManager:
         challenge_entry = {
             "timestamp": datetime.now().isoformat(),
             "challenge": challenge,
-            "solution": solution
+            "solution": solution,
         }
 
         self.current_task["challenges"].append(challenge_entry)
@@ -237,7 +234,9 @@ class WorkLogManager:
         self.current_task["status"] = result
 
         # 日次ログに記録
-        self._log_to_daily(f"🎉 **Task Completed:** {self.current_task['title']} ({duration})")
+        self._log_to_daily(
+            f"🎉 **Task Completed:** {self.current_task['title']} ({duration})"
+        )
 
         # プロジェクトログを更新
         self._update_project_log()
@@ -373,21 +372,22 @@ Daily activity log
         if task["issue_number"]:
             lines.append(f"**Issue:** #{task['issue_number']}")
 
-        lines.extend([
-            f"**Workers:** {', '.join(task['workers'])}",
-            "",
-            "## 📝 Description",
-            "",
-            task["description"] if task["description"] else "*No description provided*",
-            ""
-        ])
+        lines.extend(
+            [
+                f"**Workers:** {', '.join(task['workers'])}",
+                "",
+                "## 📝 Description",
+                "",
+                task["description"]
+                if task["description"]
+                else "*No description provided*",
+                "",
+            ]
+        )
 
         # 進捗セクション
         if task["progress"]:
-            lines.extend([
-                "## 📋 Progress",
-                ""
-            ])
+            lines.extend(["## 📋 Progress", ""])
             for progress in task["progress"]:
                 timestamp = datetime.fromisoformat(progress["timestamp"])
                 time_str = timestamp.strftime("%H:%M:%S")
@@ -398,10 +398,7 @@ Daily activity log
 
         # 技術的決定セクション
         if task["technical_decisions"]:
-            lines.extend([
-                "## 🔧 Technical Decisions",
-                ""
-            ])
+            lines.extend(["## 🔧 Technical Decisions", ""])
             for decision in task["technical_decisions"]:
                 timestamp = datetime.fromisoformat(decision["timestamp"])
                 time_str = timestamp.strftime("%H:%M:%S")
@@ -415,10 +412,7 @@ Daily activity log
 
         # 課題セクション
         if task["challenges"]:
-            lines.extend([
-                "## 🚧 Challenges Encountered",
-                ""
-            ])
+            lines.extend(["## 🚧 Challenges Encountered", ""])
             for challenge in task["challenges"]:
                 timestamp = datetime.fromisoformat(challenge["timestamp"])
                 time_str = timestamp.strftime("%H:%M:%S")
@@ -431,19 +425,15 @@ Daily activity log
 
         # メトリクスセクション
         if task["metrics"]:
-            lines.extend([
-                "## 📊 Metrics",
-                ""
-            ])
+            lines.extend(["## 📊 Metrics", ""])
             for key, value in task["metrics"].items():
                 lines.append(f"- **{key}:** {value}")
             lines.append("")
 
         # フッター
-        lines.extend([
-            "---",
-            f"*Generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"
-        ])
+        lines.extend(
+            ["---", f"*Generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"]
+        )
 
         return "\n".join(lines)
 
@@ -468,7 +458,7 @@ Daily activity log
                 "daily_logs": 0,
                 "project_logs": 0,
                 "total_size_kb": 0.0,
-                "current_task": None
+                "current_task": None,
             }
 
             # 日次ログ数
@@ -491,7 +481,7 @@ Daily activity log
                     "id": self.current_task["id"],
                     "title": self.current_task["title"],
                     "status": self.current_task["status"],
-                    "start_time": self.current_task["start_time"]
+                    "start_time": self.current_task["start_time"],
                 }
 
             return stats
@@ -499,4 +489,3 @@ Daily activity log
         except Exception as e:
             print(f"Error getting work log stats: {e}")
             return {}
-
