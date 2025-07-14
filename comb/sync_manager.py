@@ -8,7 +8,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from .file_handler import HiveFileHandler
 
@@ -42,7 +42,7 @@ class SyncManager:
 
     def __init__(
         self,
-        file_handler: Optional[HiveFileHandler] = None,
+        file_handler: HiveFileHandler | None = None,
         default_timeout: float = 30.0,
     ) -> None:
         """
@@ -70,7 +70,7 @@ class SyncManager:
         self._local_lock = threading.Lock()
 
     def acquire_lock(
-        self, resource_name: str, worker_id: str, timeout: Optional[float] = None
+        self, resource_name: str, worker_id: str, timeout: float | None = None
     ) -> bool:
         """
         排他ロック取得
@@ -212,7 +212,7 @@ class SyncManager:
         except Exception:
             return False
 
-    def get_lock_holder(self, resource_name: str) -> Optional[str]:
+    def get_lock_holder(self, resource_name: str) -> str | None:
         """
         リソースのロック保持者を取得
 

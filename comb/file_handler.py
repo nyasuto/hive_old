@@ -11,7 +11,7 @@ import os
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 class HiveFileHandler:
@@ -27,7 +27,7 @@ class HiveFileHandler:
         "logs": [],
     }
 
-    def __init__(self, root_path: Optional[Path] = None) -> None:
+    def __init__(self, root_path: Path | None = None) -> None:
         """
         初期化
 
@@ -139,7 +139,7 @@ class HiveFileHandler:
             print(f"Error writing JSON to {file_path}: {e}")
             return False
 
-    def read_json(self, file_path: Path) -> Optional[dict[str, Any]]:
+    def read_json(self, file_path: Path) -> dict[str, Any] | None:
         """
         JSONファイルの安全な読み込み
 

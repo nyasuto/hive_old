@@ -8,7 +8,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from .file_handler import HiveFileHandler
 
@@ -42,7 +42,7 @@ class Message:
     priority: MessagePriority
     content: dict[str, Any]
     timestamp: str
-    expires_at: Optional[str] = None
+    expires_at: str | None = None
     retry_count: int = 0
     max_retries: int = 3
 
@@ -117,7 +117,7 @@ class MessageRouter:
 
     def __init__(
         self,
-        file_handler: Optional[HiveFileHandler] = None,
+        file_handler: HiveFileHandler | None = None,
         enable_markdown_logging: bool = True,
     ) -> None:
         """
@@ -300,7 +300,7 @@ class MessageRouter:
         from_worker: str,
         to_worker: str,
         error_message: str,
-        error_details: Optional[dict[str, Any]] = None,
+        error_details: dict[str, Any] | None = None,
     ) -> bool:
         """
         エラーメッセージを送信
