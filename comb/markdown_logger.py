@@ -6,7 +6,7 @@ Worker間の通信を人間とAIにとって読みやすいMarkdown形式で記�
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from .file_handler import HiveFileHandler
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class MarkdownLogger:
     """Markdown形式での通信ログ管理"""
 
-    def __init__(self, file_handler: Optional[HiveFileHandler] = None) -> None:
+    def __init__(self, file_handler: HiveFileHandler | None = None) -> None:
         """
         初期化
 
