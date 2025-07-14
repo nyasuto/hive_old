@@ -12,6 +12,7 @@ Queen Workerによる成果物検証を含む完全な開発サイクル
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,31 @@ class FixSuggestion:
     insertion_point: str  # function_start, line_replace, etc.
     confidence_score: float  # 0.0-1.0
     estimated_effort: str  # "5分", "10分", etc.
+    file_path: str | None = None
+    line_number: int | None = None
+    priority: int = 1  # 1=highest, 5=lowest
+    dependencies: list[str] | None = None  # 依存する他の修正のID
+
+
+@dataclass
+class SimulationResult:
+    """修正案適用シミュレーション結果"""
+
+    success: bool
+    simulated_code: str
+    syntax_valid: bool
+    estimated_impact: str
+    warnings: list[str]
+
+
+@dataclass
+class ApplicationResult:
+    """修正案適用結果"""
+
+    applied_fixes: list[str]  # 適用された修正のID
+    failed_fixes: list[str]  # 適用に失敗した修正のID
+    final_code: str
+    test_results: dict | None = None
 
 
 @dataclass
@@ -181,72 +207,11 @@ class AIQualityChecker:
     def generate_fix_suggestions(
         self, issues: list[QualityIssue]
     ) -> list[FixSuggestion]:
-        """検出された問題に対する修正提案を生成"""
-        suggestions: list[FixSuggestion] = []
+        """検出された問題に対する修正提案を生成（FixSuggestionEngine使用）"""
+        if not hasattr(self, "_fix_engine"):
+            self._fix_engine = FixSuggestionEngine()
 
-        for i, issue in enumerate(issues):
-            suggestion = self._generate_single_fix(issue, i)
-            if suggestion:
-                suggestions.append(suggestion)
-
-        return suggestions
-
-    def _generate_single_fix(
-        self, issue: QualityIssue, index: int
-    ) -> FixSuggestion | None:
-        """単一問題に対する修正提案生成"""
-        if issue.issue_type == "type_error":
-            return FixSuggestion(
-                issue_id=f"fix_{index}",
-                fix_type="add_type_validation",
-                description="関数の引数に型チェックを追加",
-                code_template=self.error_patterns["type_error_concatenation"][
-                    "fix_template"
-                ],
-                insertion_point="function_start",
-                confidence_score=0.9,
-                estimated_effort="5分",
-            )
-        elif issue.issue_type == "test_assertion":
-            # エラーメッセージから期待値と実際値を抽出
-            actual, expected = self._extract_assertion_values(issue.error_message or "")
-            return FixSuggestion(
-                issue_id=f"fix_{index}",
-                fix_type="fix_error_message",
-                description="エラーメッセージを期待値に合わせて修正",
-                code_template=f'raise TypeError("{expected}")',
-                insertion_point="error_message_replace",
-                confidence_score=0.8,
-                estimated_effort="3分",
-            )
-        elif issue.issue_type == "import_error":
-            module_name = self._extract_module_name(issue.error_message or "")
-            return FixSuggestion(
-                issue_id=f"fix_{index}",
-                fix_type="install_dependency",
-                description=f"必要なモジュール {module_name} をインストール",
-                code_template=f"uv add {module_name}",
-                insertion_point="command_line",
-                confidence_score=0.7,
-                estimated_effort="2分",
-            )
-
-        return None
-
-    def _extract_assertion_values(self, error_message: str) -> tuple[str, str]:
-        """アサーションエラーから期待値と実際値を抽出"""
-        # "Regex: '期待値' Input: '実際値'" パターンを解析
-        regex_match = re.search(r"Regex: '([^']+)'.*Input: '([^']+)'", error_message)
-        if regex_match:
-            expected = regex_match.group(1)
-            actual = regex_match.group(2)
-            return actual, expected
-        return "", ""
-
-    def _extract_module_name(self, error_message: str) -> str:
-        """インポートエラーからモジュール名を抽出"""
-        match = re.search(r"No module named '([^']+)'", error_message)
-        return match.group(1) if match else "unknown"
+        return self._fix_engine.generate_suggestions(issues)
 
     def assess_code_quality(self, file_path: Path) -> QualityAssessment:
         """コード品質の包括的評価"""
@@ -443,6 +408,465 @@ class AIQualityChecker:
             base_score = int(base_score * (0.3 + 0.7 * success_rate))
 
         return max(0, min(100, base_score))
+
+
+class FixSuggestionEngine:
+    """修正提案生成エンジン"""
+
+    def __init__(self) -> None:
+        self.fix_patterns: dict[
+            str, Callable[[QualityIssue, int], FixSuggestion | None]
+        ] = {}
+        self.python_patterns = PythonFixPatterns()
+        self._load_builtin_patterns()
+
+    def _load_builtin_patterns(self) -> None:
+        """組み込み修正パターンの読み込み"""
+        self.fix_patterns.update(
+            {
+                "type_error": self.python_patterns.fix_type_error_concatenation,
+                "test_assertion": self.python_patterns.fix_assertion_error_regex,
+                "import_error": self.python_patterns.fix_import_error,
+                "missing_type_hints": self.python_patterns.fix_missing_type_hints,
+                "missing_docstrings": self.python_patterns.fix_missing_docstrings,
+                "missing_error_handling": self.python_patterns.fix_missing_error_handling,
+            }
+        )
+
+    def generate_suggestions(self, issues: list[QualityIssue]) -> list[FixSuggestion]:
+        """問題リストに対する修正提案を生成"""
+        suggestions: list[FixSuggestion] = []
+
+        for i, issue in enumerate(issues):
+            # 問題タイプに対応する修正パターンを検索
+            pattern_func = self.fix_patterns.get(issue.issue_type)
+            if pattern_func:
+                try:
+                    suggestion = pattern_func(issue, i)
+                    if suggestion:
+                        suggestions.append(suggestion)
+                except Exception as e:
+                    print(f"⚠️ 修正提案生成エラー ({issue.issue_type}): {e}")
+
+        # 優先順位でソート
+        suggestions.sort(key=lambda x: x.priority)
+        return suggestions
+
+    def register_fix_pattern(
+        self,
+        error_type: str,
+        fix_generator: Callable[[QualityIssue, int], FixSuggestion | None],
+    ) -> None:
+        """新しい修正パターンを登録"""
+        self.fix_patterns[error_type] = fix_generator
+
+    def prioritize_suggestions(
+        self, suggestions: list[FixSuggestion]
+    ) -> list[FixSuggestion]:
+        """修正提案の優先順位付けと依存関係解決"""
+        # 依存関係を考慮したトポロジカルソート
+        sorted_suggestions: list[FixSuggestion] = []
+        remaining = suggestions.copy()
+
+        while remaining:
+            # 依存関係のない修正を探す
+            independent = []
+            for suggestion in remaining:
+                if not suggestion.dependencies:
+                    independent.append(suggestion)
+                else:
+                    # 依存する修正が既に処理済みかチェック
+                    applied_ids = {s.issue_id for s in sorted_suggestions}
+                    if all(dep in applied_ids for dep in suggestion.dependencies):
+                        independent.append(suggestion)
+
+            if not independent:
+                # 循環依存または解決不可能な依存関係
+                print("⚠️ 循環依存または解決不可能な依存関係を検出")
+                sorted_suggestions.extend(remaining)
+                break
+
+            # 優先順位でソート
+            independent.sort(key=lambda x: x.priority)
+            sorted_suggestions.extend(independent)
+
+            # 処理済みを除去
+            for suggestion in independent:
+                remaining.remove(suggestion)
+
+        return sorted_suggestions
+
+
+class PythonFixPatterns:
+    """Python特有の問題に対する修正パターン"""
+
+    def fix_type_error_concatenation(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """型エラー（文字列連結）の修正"""
+        if "can only concatenate str" not in (issue.error_message or ""):
+            return None
+
+        # 関数名を推定
+        test_name = issue.context.get("test_name", "") if issue.context else ""
+        function_name = self._extract_function_name_from_test(test_name)
+
+        return FixSuggestion(
+            issue_id=f"type_fix_{index}",
+            fix_type="add_type_validation",
+            description=f"関数 {function_name} に引数型チェックを追加",
+            code_template=f"""def {function_name}(a: Number, b: Number) -> Number:
+    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise TypeError("引数は数値である必要があります")
+    return a + b  # 実際の演算に置き換え""",
+            insertion_point="function_replace",
+            confidence_score=0.9,
+            estimated_effort="5分",
+            file_path=issue.file_path,
+            priority=1,
+            dependencies=None,
+        )
+
+    def fix_assertion_error_regex(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """正規表現アサーションエラーの修正"""
+        if "Regex pattern did not match" not in (issue.error_message or ""):
+            return None
+
+        # エラーメッセージから期待値と実際値を抽出
+        expected, actual = self._extract_assertion_values(issue.error_message or "")
+
+        if not expected:
+            return None
+
+        return FixSuggestion(
+            issue_id=f"assertion_fix_{index}",
+            fix_type="fix_error_message",
+            description="テストエラーメッセージを期待値に合わせて修正",
+            code_template=f'raise TypeError("{expected}")',
+            insertion_point="error_message_replace",
+            confidence_score=0.8,
+            estimated_effort="3分",
+            file_path=issue.file_path,
+            priority=2,
+            dependencies=None,
+        )
+
+    def fix_import_error(self, issue: QualityIssue, index: int) -> FixSuggestion | None:
+        """インポートエラーの修正"""
+        if "No module named" not in (issue.error_message or ""):
+            return None
+
+        module_name = self._extract_module_name(issue.error_message or "")
+
+        return FixSuggestion(
+            issue_id=f"import_fix_{index}",
+            fix_type="install_dependency",
+            description=f"必要なモジュール {module_name} をインストール",
+            code_template=f"uv add {module_name}",
+            insertion_point="command_line",
+            confidence_score=0.7,
+            estimated_effort="2分",
+            file_path=issue.file_path,
+            priority=1,  # 依存関係エラーは最優先
+            dependencies=None,
+        )
+
+    def fix_missing_type_hints(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """型ヒント不足の修正"""
+        if issue.issue_type != "missing_type_hints":
+            return None
+
+        return FixSuggestion(
+            issue_id=f"type_hints_fix_{index}",
+            fix_type="add_type_hints",
+            description="関数に型ヒントを追加",
+            code_template="""# 関数定義例:
+def function_name(param1: Type1, param2: Type2) -> ReturnType:
+    \"\"\"関数の説明\"\"\"
+    pass""",
+            insertion_point="function_signature_update",
+            confidence_score=0.6,
+            estimated_effort="10分",
+            file_path=issue.file_path,
+            priority=3,
+            dependencies=None,
+        )
+
+    def fix_missing_docstrings(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """docstring不足の修正"""
+        if issue.issue_type != "missing_docstrings":
+            return None
+
+        return FixSuggestion(
+            issue_id=f"docstring_fix_{index}",
+            fix_type="add_docstrings",
+            description="関数にGoogle Style docstringを追加",
+            code_template='''"""
+関数の簡潔な説明
+
+Args:
+    param1: パラメータ1の説明
+    param2: パラメータ2の説明
+
+Returns:
+    戻り値の説明
+
+Raises:
+    ExceptionType: 例外の説明
+"""''',
+            insertion_point="function_docstring",
+            confidence_score=0.7,
+            estimated_effort="8分",
+            file_path=issue.file_path,
+            priority=4,
+            dependencies=None,
+        )
+
+    def fix_missing_error_handling(
+        self, issue: QualityIssue, index: int
+    ) -> FixSuggestion | None:
+        """エラーハンドリング不足の修正"""
+        if issue.issue_type != "missing_error_handling":
+            return None
+
+        return FixSuggestion(
+            issue_id=f"error_handling_fix_{index}",
+            fix_type="add_error_handling",
+            description="適切なエラーハンドリングを追加",
+            code_template="""try:
+    # 危険な処理
+    result = risky_operation()
+except SpecificException as e:
+    # 特定の例外処理
+    logger.error(f"エラーが発生: {e}")
+    raise
+except Exception as e:
+    # 一般的な例外処理
+    logger.error(f"予期しないエラー: {e}")
+    raise""",
+            insertion_point="wrap_with_try_catch",
+            confidence_score=0.5,
+            estimated_effort="15分",
+            file_path=issue.file_path,
+            priority=3,
+            dependencies=None,
+        )
+
+    def _extract_function_name_from_test(self, test_name: str) -> str:
+        """テスト名から関数名を推定"""
+        if "::" in test_name:
+            test_method = test_name.split("::")[-1]
+            if test_method.startswith("test_"):
+                # test_add_function -> add
+                function_name = test_method[5:].split("_")[0]
+                return function_name
+        return "unknown_function"
+
+    def _extract_assertion_values(self, error_message: str) -> tuple[str, str]:
+        """アサーションエラーから期待値と実際値を抽出"""
+        import re
+
+        regex_match = re.search(r"Regex: '([^']+)'.*Input: '([^']+)'", error_message)
+        if regex_match:
+            expected = regex_match.group(1)
+            actual = regex_match.group(2)
+            return expected, actual
+        return "", ""
+
+    def _extract_module_name(self, error_message: str) -> str:
+        """インポートエラーからモジュール名を抽出"""
+        import re
+
+        match = re.search(r"No module named '([^']+)'", error_message)
+        return match.group(1) if match else "unknown"
+
+
+class FixApplicationSystem:
+    """修正案の適用とシミュレーション"""
+
+    def __init__(self) -> None:
+        self.applied_fixes: list[str] = []
+
+    def simulate_fix(self, fix: FixSuggestion, current_code: str) -> SimulationResult:
+        """修正案適用のシミュレーション"""
+        try:
+            simulated_code = self._apply_fix_to_code(fix, current_code)
+            syntax_valid = self._validate_syntax(simulated_code)
+
+            return SimulationResult(
+                success=True,
+                simulated_code=simulated_code,
+                syntax_valid=syntax_valid,
+                estimated_impact=f"ファイル {fix.file_path} の {fix.insertion_point} を変更",
+                warnings=[] if syntax_valid else ["構文エラーの可能性があります"],
+            )
+
+        except Exception as e:
+            return SimulationResult(
+                success=False,
+                simulated_code=current_code,
+                syntax_valid=False,
+                estimated_impact="シミュレーション失敗",
+                warnings=[f"エラー: {str(e)}"],
+            )
+
+    def apply_fix_suggestions(
+        self, fixes: list[FixSuggestion], target_file: Path
+    ) -> ApplicationResult:
+        """修正案の実際の適用"""
+        if not target_file.exists():
+            return ApplicationResult(
+                applied_fixes=[],
+                failed_fixes=[f.issue_id for f in fixes],
+                final_code="",
+                test_results=None,
+            )
+
+        current_code = target_file.read_text(encoding="utf-8")
+        applied_fixes = []
+        failed_fixes = []
+
+        for fix in fixes:
+            try:
+                simulation = self.simulate_fix(fix, current_code)
+                if simulation.success and simulation.syntax_valid:
+                    current_code = simulation.simulated_code
+                    applied_fixes.append(fix.issue_id)
+                    print(f"✅ 修正適用成功: {fix.description}")
+                else:
+                    failed_fixes.append(fix.issue_id)
+                    print(f"❌ 修正適用失敗: {fix.description}")
+                    for warning in simulation.warnings:
+                        print(f"   ⚠️ {warning}")
+
+            except Exception as e:
+                failed_fixes.append(fix.issue_id)
+                print(f"❌ 修正適用エラー ({fix.issue_id}): {e}")
+
+        # 修正後のコードをファイルに保存
+        if applied_fixes:
+            backup_path = target_file.with_suffix(target_file.suffix + ".backup")
+            backup_path.write_text(
+                target_file.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            target_file.write_text(current_code, encoding="utf-8")
+            print(f"📁 修正後ファイル保存: {target_file}")
+            print(f"💾 バックアップ作成: {backup_path}")
+
+        return ApplicationResult(
+            applied_fixes=applied_fixes,
+            failed_fixes=failed_fixes,
+            final_code=current_code,
+            test_results=None,
+        )
+
+    def validate_fix_effectiveness(
+        self, applied_fixes: list[str], test_file: Path
+    ) -> dict[str, Any]:
+        """修正の有効性検証（テスト再実行）"""
+        if not test_file.exists():
+            return {
+                "validation_successful": False,
+                "error": "テストファイルが見つかりません",
+            }
+
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                ["uv", "run", "pytest", str(test_file), "-v"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=test_file.parent,
+            )
+
+            output = result.stdout + result.stderr
+            failed_count = output.count("FAILED")
+            passed_count = output.count("PASSED")
+
+            return {
+                "validation_successful": result.returncode == 0,
+                "applied_fixes": applied_fixes,
+                "test_output": output,
+                "passed_count": passed_count,
+                "failed_count": failed_count,
+                "improvement": failed_count == 0,
+            }
+
+        except Exception as e:
+            return {
+                "validation_successful": False,
+                "error": f"テスト実行エラー: {str(e)}",
+            }
+
+    def _apply_fix_to_code(self, fix: FixSuggestion, code: str) -> str:
+        """コードに修正を適用（シミュレーション用）"""
+        if fix.insertion_point == "function_replace":
+            # 簡易的な関数置換（実際はより複雑な解析が必要）
+            return self._replace_function_in_code(code, fix.code_template)
+        elif fix.insertion_point == "error_message_replace":
+            # エラーメッセージの置換
+            return self._replace_error_message(code, fix.code_template)
+        elif fix.insertion_point == "command_line":
+            # コマンドライン実行（実際には別途実行）
+            return code
+        else:
+            # その他の修正タイプは元のコードを返す
+            return code
+
+    def _replace_function_in_code(self, code: str, new_function: str) -> str:
+        """コード内の関数を置換（簡易実装）"""
+        # 実際の実装では、ASTパースが必要
+        # ここでは概念実証として簡易実装
+        lines = code.split("\n")
+        modified_lines = []
+        in_target_function = False
+        indent_level = 0
+
+        for line in lines:
+            if line.strip().startswith("def ") and any(
+                func in line for func in ["add", "subtract", "multiply", "divide"]
+            ):
+                in_target_function = True
+                indent_level = len(line) - len(line.lstrip())
+                modified_lines.append(new_function)
+                continue
+
+            if in_target_function:
+                if line.strip() and not line.startswith(" " * (indent_level + 1)):
+                    in_target_function = False
+                    modified_lines.append(line)
+                # 関数内の行はスキップ
+            else:
+                modified_lines.append(line)
+
+        return "\n".join(modified_lines)
+
+    def _replace_error_message(self, code: str, new_message: str) -> str:
+        """エラーメッセージを置換"""
+        # TypeError を含む行を探して置換
+        lines = code.split("\n")
+        for i, line in enumerate(lines):
+            if "raise TypeError(" in line:
+                indent = len(line) - len(line.lstrip())
+                lines[i] = " " * indent + new_message
+                break
+        return "\n".join(lines)
+
+    def _validate_syntax(self, code: str) -> bool:
+        """Python構文の妥当性チェック"""
+        try:
+            compile(code, "<string>", "exec")
+            return True
+        except SyntaxError:
+            return False
 
 
 def queen_worker() -> None:
@@ -1631,6 +2055,75 @@ if __name__ == "__main__":
     print("   python examples/poc/enhanced_feature_development.py queen --review")
 
 
+def test_fix_suggestion_system() -> None:
+    """修正提案システムのテスト機能"""
+    print("🔧 修正提案システムのテスト実行中...")
+
+    ai_checker = AIQualityChecker()
+    fix_app_system = FixApplicationSystem()
+
+    # テスト用のサンプル問題を生成
+    test_issues = [
+        QualityIssue(
+            issue_type="type_error",
+            severity="high",
+            description="文字列連結でtype errorが発生",
+            error_message="can only concatenate str (not 'int') to str",
+            context={"test_name": "test_add_function"},
+        ),
+        QualityIssue(
+            issue_type="missing_type_hints",
+            severity="medium",
+            description="型ヒントが不足しています",
+            file_path="examples/poc/test_file.py",
+        ),
+        QualityIssue(
+            issue_type="missing_docstrings",
+            severity="low",
+            description="docstringが不足しています",
+            file_path="examples/poc/test_file.py",
+        ),
+    ]
+
+    print(f"📋 テスト問題数: {len(test_issues)}件")
+    for i, issue in enumerate(test_issues, 1):
+        print(f"   {i}. [{issue.severity.upper()}] {issue.description}")
+
+    # 修正提案生成のテスト
+    print("\n🤖 修正提案生成テスト...")
+    suggestions = ai_checker.generate_fix_suggestions(test_issues)
+
+    print(f"✅ 生成された修正提案: {len(suggestions)}件")
+    for i, suggestion in enumerate(suggestions, 1):
+        print(f"   {i}. {suggestion.description}")
+        print(f"      修正タイプ: {suggestion.fix_type}")
+        print(f"      信頼度: {suggestion.confidence_score:.1%}")
+        print(f"      推定工数: {suggestion.estimated_effort}")
+        print(f"      優先度: {suggestion.priority}")
+
+    # 優先順位付けテスト
+    if hasattr(ai_checker, "_fix_engine"):
+        print("\n📊 優先順位付けテスト...")
+        prioritized = ai_checker._fix_engine.prioritize_suggestions(suggestions)
+        print("優先順位付け後:")
+        for i, suggestion in enumerate(prioritized, 1):
+            print(f"   {i}. [P{suggestion.priority}] {suggestion.description}")
+
+    # シミュレーション機能テスト
+    print("\n🎯 修正シミュレーションテスト...")
+    test_code = """def add(a, b):
+    return a + b"""
+
+    if suggestions:
+        simulation = fix_app_system.simulate_fix(suggestions[0], test_code)
+        print(f"シミュレーション成功: {simulation.success}")
+        print(f"構文チェック: {simulation.syntax_valid}")
+        if simulation.warnings:
+            print(f"警告: {', '.join(simulation.warnings)}")
+
+    print("\n✅ 修正提案システムテスト完了")
+
+
 def test_ai_quality_checker() -> None:
     """AI品質チェッカーのテスト機能"""
     print("🧪 AI品質チェッカーのテスト実行中...")
@@ -1714,6 +2207,9 @@ def main() -> None:
         print("  4. AI品質チェックテスト:")
         print("     python examples/poc/enhanced_feature_development.py test-ai")
         print("")
+        print("  5. 修正提案システムテスト:")
+        print("     python examples/poc/enhanced_feature_development.py test-fix")
+        print("")
         print("📋 完全なワークフロー:")
         print(
             "  Queen (タスク作成) → Developer (実装) → Queen (AI品質レビュー) → 承認/修正指示"
@@ -1728,9 +2224,11 @@ def main() -> None:
         developer_worker()
     elif worker_type == "test-ai":
         test_ai_quality_checker()
+    elif worker_type == "test-fix":
+        test_fix_suggestion_system()
     else:
         print(f"❌ 不正なworker type: {worker_type}")
-        print("正しい値: queen, developer, test-ai")
+        print("正しい値: queen, developer, test-ai, test-fix")
         sys.exit(1)
 
 
