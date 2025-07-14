@@ -30,7 +30,13 @@ install: ## Install dependencies
 dev: install ## Quick development setup
 	@echo "$(BLUE)Setting up development environment...$(RESET)"
 	@$(MAKE) git-hooks
+	@echo "$(BLUE)Running initial quality check...$(RESET)"
+	@$(MAKE) quality
 	@echo "$(GREEN)Development environment ready!$(RESET)"
+	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "  1. Create a feature branch: git checkout -b feat/your-feature"
+	@echo "  2. Make your changes and commit with descriptive messages"
+	@echo "  3. Run 'make pr-ready' before creating a pull request"
 
 clean: ## Clean build artifacts and cache
 	@echo "$(BLUE)Cleaning artifacts...$(RESET)"
@@ -85,27 +91,63 @@ quality-fix: ## Auto-fix issues where possible
 pr-ready: quality test ## Ensure code is ready for PR submission
 	@echo "$(GREEN)Code is ready for PR submission!$(RESET)"
 
-git-hooks: ## Setup pre-commit hooks
-	@echo "$(BLUE)Setting up git hooks...$(RESET)"
-	@if [ ! -f .git/hooks/pre-commit ]; then \
-		echo "#!/bin/bash" > .git/hooks/pre-commit; \
-		echo "make quality" >> .git/hooks/pre-commit; \
+git-hooks: ## Setup git pre-commit hooks from .git-hooks folder
+	@echo "🔗 Git pre-commit hookを設定中..."
+	@mkdir -p .git/hooks
+	@if [ -f .git-hooks/pre-commit ]; then \
+		cp .git-hooks/pre-commit .git/hooks/pre-commit; \
 		chmod +x .git/hooks/pre-commit; \
-		echo "$(GREEN)Pre-commit hook installed!$(RESET)"; \
+		echo "✅ Pre-commit hook設定完了 (.git-hooks/pre-commit から)"; \
 	else \
-		echo "$(YELLOW)Pre-commit hook already exists$(RESET)"; \
+		echo "⚠️  .git-hooks/pre-commit が見つかりません。フォールバック版を作成します..."; \
+		echo '#!/bin/bash' > .git/hooks/pre-commit; \
+		echo 'set -e' >> .git/hooks/pre-commit; \
+		echo 'echo "🪝 Pre-commit フック実行中..."' >> .git/hooks/pre-commit; \
+		echo 'current_branch=$$(git symbolic-ref --short HEAD 2>/dev/null || echo "")' >> .git/hooks/pre-commit; \
+		echo 'if [ "$$current_branch" = "main" ]; then' >> .git/hooks/pre-commit; \
+		echo '  echo "❌ エラー: mainブランチへの直接コミットは禁止されています"' >> .git/hooks/pre-commit; \
+		echo '  exit 1' >> .git/hooks/pre-commit; \
+		echo 'fi' >> .git/hooks/pre-commit; \
+		echo 'make quality' >> .git/hooks/pre-commit; \
+		echo 'make test' >> .git/hooks/pre-commit; \
+		echo 'echo "✅ Pre-commit チェック完了"' >> .git/hooks/pre-commit; \
+		chmod +x .git/hooks/pre-commit; \
+		echo "✅ Pre-commit hook設定完了 (フォールバック版)"; \
 	fi
+	@echo "$(GREEN)Git hooks setup completed!$(RESET)"
 
 env-info: ## Show environment information
 	@echo "$(BLUE)Environment Information:$(RESET)"
 	@echo "Python version: $$(python3 --version)"
 	@echo "Pip version: $$(pip3 --version)"
 	@echo "Current directory: $$(pwd)"
-	@echo "Git status:"
+	@echo "Current branch: $$(git branch --show-current 2>/dev/null || echo 'Not a git repository')"
+	@echo ""
+	@echo "$(BLUE)Git Hooks Status:$(RESET)"
+	@if [ -f .git/hooks/pre-commit ]; then \
+		echo "✅ Pre-commit hook: Installed"; \
+		if [ -x .git/hooks/pre-commit ]; then \
+			echo "✅ Pre-commit hook: Executable"; \
+		else \
+			echo "❌ Pre-commit hook: Not executable"; \
+		fi; \
+	else \
+		echo "❌ Pre-commit hook: Not installed"; \
+	fi
+	@if [ -f .git-hooks/pre-commit ]; then \
+		echo "✅ Enhanced pre-commit: Available (.git-hooks/pre-commit)"; \
+	else \
+		echo "⚠️  Enhanced pre-commit: Not found (.git-hooks/pre-commit)"; \
+	fi
+	@echo ""
+	@echo "$(BLUE)Git status:$(RESET)"
 	@git status --short || echo "Not a git repository"
 	@echo ""
-	@echo "$(BLUE)Installed packages:$(RESET)"
-	@pip3 list | grep -E "(ruff|mypy|black|pytest)" || echo "Development packages not installed"
+	@echo "$(BLUE)Development Tools:$(RESET)"
+	@if command -v ruff >/dev/null 2>&1; then echo "✅ ruff: $$(ruff --version)"; else echo "❌ ruff: Not found"; fi
+	@if command -v mypy >/dev/null 2>&1; then echo "✅ mypy: $$(mypy --version)"; else echo "❌ mypy: Not found"; fi
+	@if command -v black >/dev/null 2>&1; then echo "✅ black: $$(black --version)"; else echo "❌ black: Not found"; fi
+	@if command -v pytest >/dev/null 2>&1; then echo "✅ pytest: $$(pytest --version)"; else echo "❌ pytest: Not found"; fi
 
 # Hive-specific commands
 hive-start: ## Start Small Hive (Phase 1)
