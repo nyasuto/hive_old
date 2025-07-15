@@ -586,9 +586,7 @@ Automated Quality Calculator - 自動協調システムで生成
 自動協調システムにより生成された高品質な計算機能
 """
 
-from typing import Union{type_import}
-
-Number = Union[int, float]
+Number = int | float
 
 
 def add(a: Number, b: Number) -> Number:{docstring_add}
