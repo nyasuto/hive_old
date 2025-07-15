@@ -31,8 +31,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 基本的な使用方法:
+  hive bootstrap web-app "タスク管理アプリ"
   hive send backend "新しいAPIエンドポイントを実装してください"
   hive who-am-i
+  hive my-role
+  hive remind-me
   hive status
   hive broadcast "プロジェクトの進捗を報告してください"
   hive urgent queen "緊急：サーバーがダウンしています"
@@ -62,6 +65,17 @@ def main():
     urgent_parser.add_argument("recipient", help="送信先Worker名")
     urgent_parser.add_argument("message", help="緊急メッセージ")
     
+    # bootstrap コマンド
+    bootstrap_parser = subparsers.add_parser("bootstrap", help="プロジェクトをブートストラップ")
+    bootstrap_parser.add_argument("project_type", help="プロジェクトタイプ (web-app, api-only, data-analysis, simple-site)")
+    bootstrap_parser.add_argument("project_name", help="プロジェクト名")
+    
+    # my-role コマンド
+    subparsers.add_parser("my-role", help="完全な役割定義を表示")
+    
+    # remind-me コマンド
+    subparsers.add_parser("remind-me", help="現在の役割とタスクを確認")
+    
     # 引数がない場合はヘルプを表示
     if len(sys.argv) == 1:
         parser.print_help()
@@ -77,13 +91,19 @@ def main():
         if args.command == "send":
             cli.send_message(args.recipient, args.message)
         elif args.command == "who-am-i":
-            cli.who_am_i()
+            cli.who_am_i_detailed()
         elif args.command == "status":
             cli.status()
         elif args.command == "broadcast":
             cli.broadcast_message(args.message)
         elif args.command == "urgent":
             cli.urgent_message(args.recipient, args.message)
+        elif args.command == "bootstrap":
+            cli.bootstrap_project(args.project_type, args.project_name)
+        elif args.command == "my-role":
+            cli.show_my_role()
+        elif args.command == "remind-me":
+            cli.remind_me()
         else:
             parser.print_help()
             sys.exit(1)

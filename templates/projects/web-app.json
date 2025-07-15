@@ -1,0 +1,57 @@
+{
+  "name": "web-app",
+  "description": "Full-stack web application development",
+  "variables": {
+    "PROJECT_TYPE": "フルスタックWebアプリケーション",
+    "PROJECT_TECH_STACK": "React + Node.js + PostgreSQL",
+    "PROJECT_FRONTEND_FRAMEWORK": "React with TypeScript",
+    "PROJECT_BACKEND_LANGUAGE": "Node.js",
+    "PROJECT_BACKEND_FRAMEWORK": "Express.js",
+    "PROJECT_DATABASE": "PostgreSQL",
+    "PROJECT_CLOUD_PROVIDER": "AWS",
+    "PROJECT_CONTAINER_PLATFORM": "Docker",
+    "PROJECT_TEST_FRAMEWORK": "Jest + React Testing Library",
+    "PROJECT_ARCHITECTURE": "レイヤードアーキテクチャ",
+    "PROJECT_PERFORMANCE": "レスポンス時間 < 200ms",
+    "PROJECT_API_SPEC": "OpenAPI 3.0",
+    "PROJECT_DESIGN_SYSTEM": "Material Design",
+    "PROJECT_TARGET_DEVICES": "デスクトップ・スマートフォン",
+    "PROJECT_MONITORING_TOOLS": "CloudWatch + Grafana",
+    "PROJECT_FEATURES": "ユーザー認証・データ管理・レスポンシブUI",
+    "PROJECT_QUALITY_STANDARDS": "テストカバレッジ 80%以上",
+    "PROJECT_TEST_TARGETS": "フロントエンド・API・データベース",
+    "PROJECT_DEADLINE": "8週間後"
+  },
+  "initial_tasks": {
+    "queen": [
+      "プロジェクト要件の詳細確認",
+      "開発スケジュールの策定",
+      "各Workerへの初期タスク配布"
+    ],
+    "architect": [
+      "システム全体アーキテクチャの設計",
+      "データベーススキーマの設計",
+      "API仕様の策定"
+    ],
+    "frontend": [
+      "UI/UXプロトタイプの作成",
+      "フロントエンド環境のセットアップ",
+      "基本的なコンポーネントの実装"
+    ],
+    "backend": [
+      "バックエンド環境のセットアップ",
+      "データベースの初期設定",
+      "認証APIの実装"
+    ],
+    "devops": [
+      "開発環境の構築",
+      "CI/CDパイプラインの設定",
+      "クラウドインフラの初期設定"
+    ],
+    "tester": [
+      "テスト戦略の策定",
+      "テスト環境の構築",
+      "自動テストの初期設定"
+    ]
+  }
+}

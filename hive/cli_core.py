@@ -242,6 +242,188 @@ class HiveCLI:
         print(f"🚨 緊急メッセージ: {self.current_worker} → {recipient}")
         self.send_message(recipient, message, priority="urgent")
 
+    def bootstrap_project(self, project_type: str, project_name: str) -> None:
+        """プロジェクトをブートストラップ"""
+        print(f"🚀 プロジェクトブートストラップ: {project_type} - {project_name}")
+
+        # プロジェクトテンプレートを読み込み
+        template_path = (
+            self.project_root / "templates" / "projects" / f"{project_type}.json"
+        )
+        if not template_path.exists():
+            raise ValueError(
+                f"プロジェクトテンプレート '{project_type}' が見つかりません"
+            )
+
+        with open(template_path, encoding="utf-8") as f:
+            template = json.load(f)
+
+        # プロジェクト固有の変数を設定
+        variables = template["variables"].copy()
+        variables["PROJECT_NAME"] = project_name
+
+        # .hiveディレクトリの作成
+        hive_dir = self.project_root / ".hive"
+        hive_dir.mkdir(exist_ok=True)
+
+        # workers ディレクトリの作成
+        workers_dir = hive_dir / "workers"
+        workers_dir.mkdir(exist_ok=True)
+
+        # 各Workerのディレクトリとファイルを作成
+        for worker in self.VALID_WORKERS:
+            worker_dir = workers_dir / worker
+            worker_dir.mkdir(exist_ok=True)
+
+            # ROLEファイルの生成
+            self._generate_role_file(worker, variables)
+
+            # 初期タスクファイルの生成
+            if worker in template["initial_tasks"]:
+                self._generate_tasks_file(worker, template["initial_tasks"][worker])
+
+        # プロジェクト設定ファイルの作成
+        self._generate_project_config(template, project_name)
+
+        print(f"✅ プロジェクト '{project_name}' のブートストラップが完了しました")
+        print("📁 設定ファイル: .hive/")
+        print("📋 各Workerの役割: .hive/workers/<worker>/ROLE.md")
+        print("📝 初期タスク: .hive/workers/<worker>/tasks.md")
+
+    def who_am_i_detailed(self) -> None:
+        """詳細な役割情報を表示"""
+        print(f"🐝 現在のWorker: {self.current_worker}")
+
+        # ROLEファイルの確認
+        role_file = (
+            self.project_root / ".hive" / "workers" / self.current_worker / "ROLE.md"
+        )
+        if role_file.exists():
+            print(f"📋 役割定義: {role_file}")
+            # 役割の要約を表示
+            with open(role_file, encoding="utf-8") as f:
+                content = f.read()
+                # 基本的な役割セクションを抽出
+                lines = content.split("\n")
+                in_basic_role = False
+                for line in lines:
+                    if line.startswith("## 🎯 基本的な役割"):
+                        in_basic_role = True
+                    elif line.startswith("## ") and in_basic_role:
+                        break
+                    elif in_basic_role and line.strip():
+                        print(f"   {line}")
+        else:
+            print("⚠️ 役割定義ファイルが見つかりません")
+            print(
+                "   プロジェクトをブートストラップしてください: hive bootstrap <type> <name>"
+            )
+
+    def show_my_role(self) -> None:
+        """完全な役割定義を表示"""
+        role_file = (
+            self.project_root / ".hive" / "workers" / self.current_worker / "ROLE.md"
+        )
+        if role_file.exists():
+            with open(role_file, encoding="utf-8") as f:
+                content = f.read()
+                print(content)
+        else:
+            print("⚠️ 役割定義ファイルが見つかりません")
+            print(
+                "   プロジェクトをブートストラップしてください: hive bootstrap <type> <name>"
+            )
+
+    def remind_me(self) -> None:
+        """現在の役割とタスクを確認"""
+        print(f"🐝 現在のWorker: {self.current_worker}")
+
+        # 役割の要約
+        role_file = (
+            self.project_root / ".hive" / "workers" / self.current_worker / "ROLE.md"
+        )
+        if role_file.exists():
+            with open(role_file, encoding="utf-8") as f:
+                content = f.read()
+                lines = content.split("\n")
+                for line in lines:
+                    if line.startswith("### 主な責務"):
+                        print("\n📋 主な責務:")
+                        break
+                in_duties = False
+                for line in lines:
+                    if line.startswith("### 主な責務"):
+                        in_duties = True
+                    elif line.startswith("### ") and in_duties:
+                        break
+                    elif in_duties and line.strip().startswith("- "):
+                        print(f"   {line}")
+
+        # 現在のタスク
+        tasks_file = (
+            self.project_root / ".hive" / "workers" / self.current_worker / "tasks.md"
+        )
+        if tasks_file.exists():
+            print("\n📝 現在のタスク:")
+            with open(tasks_file, encoding="utf-8") as f:
+                content = f.read()
+                print(content)
+        else:
+            print("\n📝 現在のタスク: まだ設定されていません")
+
+    def _generate_role_file(self, worker: str, variables: dict[str, str]) -> None:
+        """Workerの役割ファイルを生成"""
+        template_path = self.project_root / "templates" / "roles" / f"{worker}.md"
+        if not template_path.exists():
+            print(f"⚠️ 役割テンプレート '{worker}' が見つかりません")
+            return
+
+        with open(template_path, encoding="utf-8") as f:
+            template_content = f.read()
+
+        # 変数の置換
+        for var_name, var_value in variables.items():
+            template_content = template_content.replace(
+                f"{{{{{var_name}}}}}", var_value
+            )
+
+        # ファイルに書き込み
+        role_file = self.project_root / ".hive" / "workers" / worker / "ROLE.md"
+        with open(role_file, "w", encoding="utf-8") as f:
+            f.write(template_content)
+
+    def _generate_tasks_file(self, worker: str, tasks: list[str]) -> None:
+        """Workerの初期タスクファイルを生成"""
+        tasks_content = f"# {worker.title()} Worker - 初期タスク\n\n"
+        tasks_content += "## 🎯 現在のタスク\n\n"
+
+        for i, task in enumerate(tasks, 1):
+            tasks_content += f"{i}. {task}\n"
+
+        tasks_content += "\n## ✅ 完了したタスク\n\n"
+        tasks_content += "（まだありません）\n"
+
+        tasks_file = self.project_root / ".hive" / "workers" / worker / "tasks.md"
+        with open(tasks_file, "w", encoding="utf-8") as f:
+            f.write(tasks_content)
+
+    def _generate_project_config(
+        self, template: dict[str, Any], project_name: str
+    ) -> None:
+        """プロジェクト設定ファイルを生成"""
+        config = {
+            "project_name": project_name,
+            "project_type": template["name"],
+            "project_description": template["description"],
+            "variables": template["variables"],
+            "created_at": datetime.now().isoformat(),
+            "workers": self.VALID_WORKERS,
+        }
+
+        config_file = self.project_root / ".hive" / "config.json"
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
     def _save_message_to_file(
         self, recipient: str, message: str, priority: str
     ) -> None:
