@@ -1,382 +1,460 @@
-# 🐝 Hive - Claude Code Multi-Agent System
+# 🐝 Hive - Template-Driven Claude Code Collaboration System
 
 ## 🚀 プロジェクト概要
 
-**Hive**は、Claude Codeを複数並列実行し、各インスタンスに専門的な役割を与えて協調的にタスクを遂行するマルチエージェントシステムです。蜂の巣（Hive）のように、各Worker（エージェント）が専門性を活かしながらQueen（中央管理）の下で組織的に働き、美しいHoney（成果物）を生み出します。
+**Hive**は、Claude Code インスタンス間でリアルタイム通信を実現し、テンプレートベースの役割定義により長期間の協調作業を支援するマルチエージェント協調システムです。
 
-tmuxとComb（ファイルベース通信システム）を使用してAIチームを組織化し、大規模プロジェクトの効率的な開発を実現します。
+**核心機能**：
+- **1コマンド通信**: `hive send backend "メッセージ"`
+- **テンプレート初期化**: `hive bootstrap web-app "プロジェクト名"`
+- **役割保持**: `hive who-am-i` で常に自分の役割を確認
+- **即時通信**: メッセージが瞬間的に相手の画面に表示
 
-## 🏠 Hiveの構造
+## 🎯 設計哲学
 
-### エージェント構成（The Colony）
+### **シンプルさと確実性**
+- **学習コスト最小**: 基本コマンド5つで完結
+- **即時配信**: 複雑な受信管理は不要
+- **確実な通信**: 構文エラーによる通信失敗を排除
+
+### **役割の一貫性**
+- **テンプレート駆動**: プロジェクトタイプに応じた役割定義
+- **長期間の保持**: ロールファイルによる役割忘却防止
+- **専門性の活用**: 各Workerが得意分野に集中
+
+### **段階的成長**
+- **Phase 1**: 基本通信と役割定義
+- **Phase 2**: 履歴管理と高度機能
+- **Phase 3**: 学習・最適化機能
+
+## 🏠 Hive構成
+
+### **Worker編成**
 ```
 Human Beekeeper (あなた)
-└── Hive Session: "hive"
-    ├── Queen Worker       (pane 0) - プロジェクト管理・調整
-    ├── Architect Worker   (pane 1) - システム設計・アーキテクチャ
-    ├── Frontend Worker    (pane 2) - UI/UX開発・フロントエンド
-    ├── Backend Worker     (pane 3) - API/DB開発・バックエンド
-    ├── DevOps Worker      (pane 4) - インフラ・CI/CD・運用
-    └── Tester Worker      (pane 5) - テスト・品質保証
+└── tmux session: "hive"
+    ├── Queen          (pane 0) - プロジェクト管理・統括
+    ├── Architect      (pane 1) - システム設計・技術判断
+    ├── Frontend       (pane 2) - UI/UX・フロントエンド開発
+    ├── Backend        (pane 3) - API/DB・バックエンド開発
+    ├── DevOps         (pane 4) - インフラ・運用・デプロイ
+    └── Tester         (pane 5) - 品質保証・テスト
 ```
 
-### Comb Architecture（通信システム）
+### **通信システム**
 ```
-Comb（ファイルベース通信）
-├── .hive/
-│   ├── nectar/              # 入力データ・要件
-│   │   ├── pending/         # 未着手タスク
-│   │   ├── active/          # 実行中タスク  
-│   │   └── completed/       # 完了タスク
-│   ├── comb/               # Worker間通信
-│   │   ├── messages/        # メッセージ交換
-│   │   ├── shared/          # 共有リソース
-│   │   └── cells/           # 通信セル
-│   ├── honey/              # 成果物
-│   │   ├── code/            # 生成されたコード
-│   │   ├── docs/            # ドキュメント
-│   │   └── reports/         # レポート・分析結果
-│   └── logs/               # 活動ログ
-└── project/               # 実際の開発プロジェクト
+全通信は hive CLI 経由:
+├── hive send <worker> <message>    # 基本通信
+├── hive urgent <worker> <message>  # 緊急通信
+├── hive broadcast <message>        # 全体通知
+└── hive who-am-i                  # 役割確認
 ```
 
 ## 📋 システム要件
 
-### 必須環境
-- **OS**: macOS, Linux (tmux対応)
-- **Python**: 3.9+ 
-- **Claude Code**: 最新版
+### **必須環境**
 - **tmux**: 3.0+
-- **Shell**: bash/zsh
+- **Claude Code**: 最新版
+- **Python**: 3.9+ (CLI実行用)
+- **OS**: macOS, Linux
 
-### 推奨環境
-- **プラン**: Claude Pro ($20/月) または Claude for Work
-- **メモリ**: 8GB以上
-- **ターミナル**: 大画面推奨 (複数pane表示)
+### **インストール**
+```bash
+# 1. Hive のクローン
+git clone <repository-url> hive
+cd hive
 
-## 🎯 開発ロードマップ
+# 2. CLI のインストール
+chmod +x bin/hive
+export PATH="$PWD/bin:$PATH"
 
-### Phase 1: Small Colony (最小実行可能Hive)
-**目標**: 基本的な2-Worker協調システム
-**期間**: 1-2週間
-
-#### 必須機能
-- [ ] tmuxによる2つのClaude Code Workerの起動
-- [ ] Combによる基本的なNectar（タスク）交換機能  
-- [ ] Queen ↔ Developer Worker の基本ワークフロー
-- [ ] シンプルなNectarテンプレート
-- [ ] 基本的なHoney（成果物）収集機能
-
-#### 成果物
-- `start-small-hive.sh` - 基本Hive起動スクリプト
-- `nectar-template.json` - タスク定義テンプレート
-- `collect-honey.sh` - 成果物収集スクリプト
-- `docs/quickstart-guide.md` - 基本使用方法
-
-### Phase 2: Full Colony (完全なHive体制)
-**目標**: 6-Worker体制の構築
-**期間**: 3-4週間
-
-#### 拡張機能
-- [ ] 6-Worker並列実行
-- [ ] 専門化されたWorkerプロンプト
-- [ ] 複雑なNectar分解機能
-- [ ] Worker間の依存関係管理
-- [ ] Queenによる自動進捗チェック機能
-
-### Phase 3: Intelligent Hive (自律的協調システム)
-**目標**: 自律的な協調と最適化
-**期間**: 5-8週間
-
-#### 高度機能
-- [ ] リアルタイムComb同期
-- [ ] 自動コンフリクト解決
-- [ ] Hiveパフォーマンス分析・最適化
-- [ ] Webベース監視ダッシュボード
-- [ ] 機械学習による効率改善
-
-## 🛠️ 実装仕様
-
-### Nectar管理システム（タスク管理）
-
-#### Nectarの構造
-```json
-{
-  "nectar_id": "nectar-{timestamp}-{random}",
-  "title": "タスクタイトル",
-  "description": "詳細な作業内容",
-  "assigned_to": "backend_worker",
-  "created_by": "queen_worker", 
-  "priority": "high|medium|low",
-  "status": "pending|active|completed|failed",
-  "dependencies": ["nectar-id-1", "nectar-id-2"],
-  "expected_honey": [
-    "期待される成果物1",
-    "期待される成果物2"
-  ],
-  "estimated_time": 4,
-  "created_at": "2025-07-13T10:00:00Z",
-  "deadline": "2025-07-14T18:00:00Z"
-}
+# 3. 動作確認
+hive --help
 ```
 
-#### Hiveワークフロー
-1. **Nectar Creation**: Queen が大きなタスクを分解
-2. **Nectar Distribution**: 各Workerの専門性に基づいて配布
-3. **Worker Processing**: Workerが自律的にNectarを処理
-4. **Progress Reports**: 定期的な状況報告
-5. **Honey Collection**: 成果物の品質チェックと収集
+## 🚀 プロジェクト開始
 
-### Comb通信システム（Worker間通信）
+### **クイックスタート**
+```bash
+# 1. プロジェクト初期化
+hive init "my-project"
 
-#### Comb Cellメッセージ形式
-```json
-{
-  "from": "backend_worker",
-  "to": "frontend_worker", 
-  "cell_type": "request|response|notification|error",
-  "subject": "API仕様の確認",
-  "content": "ユーザー認証APIの仕様を共有します...",
-  "attachments": ["api-spec.json"],
-  "timestamp": "2025-07-13T10:30:00Z",
-  "requires_response": true
-}
+# 2. tmux session作成
+tmux new-session -d -s hive
+# 必要な数のpaneを作成
+
+# 3. 各paneでClaude Code起動
+# pane 0: claude --dangerously-skip-permissions  (Queen)
+# pane 1: claude --dangerously-skip-permissions  (Architect)
+# pane 2: claude --dangerously-skip-permissions  (Frontend)
+# pane 3: claude --dangerously-skip-permissions  (Backend)
+# pane 4: claude --dangerously-skip-permissions  (DevOps)
+# pane 5: claude --dangerously-skip-permissions  (Tester)
+
+# 4. テンプレートベース初期化
+hive bootstrap web-app "タスク管理アプリ"
 ```
 
-#### 通信パターン
-- **Direct Communication**: 特定Worker間での技術相談
-- **Queen Broadcast**: Queen から全Workerへの重要情報共有
-- **Status Updates**: 進捗・完了報告
-- **Emergency Signals**: 問題発生時の緊急通知
+### **利用可能なプロジェクトテンプレート**
+```bash
+# フルスタックWebアプリケーション
+hive bootstrap web-app "タスク管理アプリ"
+
+# REST API専用開発
+hive bootstrap api-only "ユーザー管理API"
+
+# データ分析プロジェクト
+hive bootstrap data-analysis "売上データ分析"
+
+# シンプルな静的サイト
+hive bootstrap simple-site "会社ホームページ"
+```
+
+## 🛠️ コマンドリファレンス
+
+### **基本通信**
+```bash
+# メッセージ送信
+hive send <recipient> "<message>"
+
+# 実例
+hive send backend "ユーザー認証APIを実装してください"
+hive send frontend "ログイン画面のUIを作成してください"
+hive send queen "データベース設計が完了しました"
+```
+
+### **特殊通信**
+```bash
+# 緊急メッセージ（赤色強調表示）
+hive urgent <recipient> "<message>"
+hive urgent queen "本番サーバーでエラーが発生しています"
+
+# 全体通知
+hive broadcast "<message>"
+hive broadcast "本日の作業を開始します"
+hive broadcast "コードレビューの時間です"
+```
+
+### **役割管理**
+```bash
+# 自分の役割確認
+hive who-am-i              # 役割の要約表示
+hive my-role               # 詳細な役割説明表示
+hive remind-me             # 役割 + 現在のタスク
+
+# システム状況確認
+hive status                # 全Worker状況
+hive who                   # アクティブWorker一覧
+```
+
+### **Worker識別子**
+```
+queen      - Queen Worker (プロジェクト管理・統括)
+architect  - Architect Worker (システム設計・技術判断)
+frontend   - Frontend Worker (UI/UX・フロントエンド開発)
+backend    - Backend Worker (API/DB・バックエンド開発)
+devops     - DevOps Worker (インフラ・運用・デプロイ)
+tester     - Tester Worker (品質保証・テスト)
+all        - 全Worker（broadcastと同じ）
+```
 
 ## 📁 プロジェクト構造
 
 ```
 hive/
-├── README.md                        # このファイル
-├── queen/                          # 中央管理システム
-│   ├── coordinator.py              # 全体調整
-│   ├── task_distributor.py         # タスク配布
-│   ├── status_monitor.py           # 状況監視
-│   └── honey_collector.py          # 成果物収集
-├── workers/                        # Workerテンプレート・設定
-│   ├── prompts/                    # Worker別プロンプト
-│   │   ├── queen_worker.md
-│   │   ├── architect_worker.md
-│   │   ├── frontend_worker.md
-│   │   ├── backend_worker.md
-│   │   ├── devops_worker.md
-│   │   └── tester_worker.md
-│   └── configs/                    # Worker設定
-├── comb/                           # 通信システム
-│   ├── api.py                      # Worker間API
-│   ├── file_handler.py             # ファイル操作
-│   ├── message_router.py           # メッセージルーティング
-│   └── sync_manager.py             # 同期管理
-├── scripts/                        # 自動化スクリプト
-│   ├── start-hive.sh              # Hive起動
-│   ├── wake-workers.sh            # Worker起動
-│   ├── distribute-nectar.sh       # タスク配布
-│   ├── check-comb.sh              # 通信確認
-│   ├── collect-honey.sh           # 成果物収集
-│   └── shutdown-hive.sh           # Hive終了
-├── tools/                          # ユーティリティ
-│   ├── cli/                        # コマンドライン
-│   ├── monitor/                    # 監視ツール
-│   ├── analyzer.py                 # 分析ツール
-│   └── dashboard/                  # Webダッシュボード
+├── bin/
+│   └── hive                        # メインCLIスクリプト
 ├── templates/                      # テンプレート集
-│   ├── nectar-templates/           # タスクテンプレート
-│   ├── project-templates/          # プロジェクトテンプレート
-│   └── honey-formats/              # 成果物フォーマット
-├── docs/                           # ドキュメント
-│   ├── setup-guide.md             # セットアップガイド
-│   ├── worker-roles.md            # Worker役割定義
-│   ├── comb-api.md                # 通信API仕様
-│   └── troubleshooting.md         # トラブルシューティング
-└── examples/                       # 使用例
-    ├── web-app-hive/              # Webアプリ開発例
-    ├── api-development-hive/       # API開発例
-    └── data-analysis-hive/         # データ分析例
+│   └── roles/                      # Worker役割テンプレート
+│       ├── queen.md               # Queen役割定義
+│       ├── architect.md           # Architect役割定義
+│       ├── frontend.md            # Frontend役割定義
+│       ├── backend.md             # Backend役割定義
+│       ├── devops.md              # DevOps役割定義
+│       └── tester.md              # Tester役割定義
+├── .hive/                         # 実行時データ
+│   ├── config.json                # Hive設定
+│   ├── workers.json               # Worker-paneマッピング
+│   ├── workers/                   # Worker個別データ
+│   │   ├── queen/
+│   │   │   ├── ROLE.md           # 役割定義（常時参照）
+│   │   │   ├── tasks.md          # 現在のタスク
+│   │   │   └── context.md        # プロジェクト文脈
+│   │   ├── backend/
+│   │   │   ├── ROLE.md
+│   │   │   └── ...
+│   │   └── ...
+│   └── logs/                      # 通信ログ
+├── src/
+├── docs/
+└── tests/
+└── README.md                      # このファイル
 ```
 
-## 🎬 使用方法
+## 🎭 役割定義システム
 
-### 🚀 クイックスタート
+### **ロールファイル（ROLE.md）**
+各Workerには専用のロールファイルが自動生成され、以下の情報が含まれます：
 
-**💡 最新機能（Issue #48, #49, #50実装完了）を含む詳細ガイド: [PoC実行ガイド](docs/poc-guide.md)**
+```markdown
+# 🐝 Backend Worker - Role Definition
 
-#### 方法1: 自動協調システム（推奨・最新）
+## 🎯 基本的な役割
+- API開発・設計
+- データベース設計・最適化
+- 認証・認可システム
+- 外部API連携
+
+## 🚫 担当外の領域
+- フロントエンド開発（Frontend担当）
+- UI/UX設計（Frontend担当）
+- インフラ・デプロイ（DevOps担当）
+
+## 🛠️ 使用技術
+- Node.js, TypeScript
+- Express.js, PostgreSQL
+- JWT認証
+
+## 👥 主な連携相手
+- Frontend Worker（API仕様共有）
+- Architect Worker（設計相談）
+- DevOps Worker（環境設定）
+```
+
+### **役割忘却の防止**
+長時間の作業中に役割を忘れないよう、以下のコマンドで確認できます：
 
 ```bash
-# 1. リポジトリのクローン
-git clone https://github.com/nyasuto/hive.git
-cd hive
+# 自分の役割を思い出す
+hive who-am-i
+# 出力例: 🐝 あなたは **Backend Worker** です
+#         - API開発・設計を担当
+#         - データベース設計・最適化を担当
+#         - 認証・認可システムを担当
 
-# 2. 依存関係のインストール
-make install
+# 詳細な役割説明を確認
+hive my-role
+# 出力: ROLE.mdの全文表示
 
-# 3. 完全自動化されたAI品質保証システムを体験
-python examples/poc/automated_worker_coordination.py auto
+# 現在のタスクと役割を確認
+hive remind-me
+# 出力: 役割要約 + 現在のタスクリスト
 ```
 
-#### 方法2: AI品質チェック付き手動協調
+## 🎬 実際の使用例
 
+### **プロジェクト開始フロー**
 ```bash
-# 1. セットアップ
-make install
+# 1. Webアプリプロジェクトの初期化
+hive bootstrap web-app "タスク管理アプリ"
 
-# 2. tmuxセッション準備
-./scripts/start-small-hive.sh
+# 2. Queen からプロジェクト開始宣言
+hive broadcast "タスク管理アプリプロジェクトを開始します"
 
-# 3. AI品質チェック付き開発サイクル
-# 左pane（Queen）
-python examples/poc/enhanced_feature_development.py queen
+# 3. 各Workerが役割を確認
+hive who-am-i
 
-# 右pane（Developer）  
-python examples/poc/enhanced_feature_development.py developer
-
-# 左pane（Queen）でAI品質レビュー
-python examples/poc/enhanced_feature_development.py queen --review
+# 4. Queen から初期タスクの配布
+hive send architect "システム全体の設計をお願いします"
+hive send backend "ユーザー認証APIの実装をお願いします"
+hive send frontend "ログイン画面のUIを作成してください"
 ```
 
-#### 従来機能
-
+### **典型的な協調作業**
 ```bash
-# 4. Combの状況確認
-./scripts/check-comb.sh
+# Architect → Backend（設計相談）
+hive send backend "データベーススキーマについて相談したいです"
 
-# 5. Honeyの収集
-./scripts/collect-honey.sh
+# Backend → Frontend（API仕様共有）
+hive send frontend "認証APIの仕様を共有します"
 
-# 6. Hiveの終了
-./scripts/shutdown-hive.sh
+# Frontend → Queen（進捗報告）
+hive send queen "ログイン画面のプロトタイプが完成しました"
+
+# Backend → DevOps（環境相談）
+hive send devops "PostgreSQLの設定について相談があります"
+
+# 問題発生時の緊急報告
+hive urgent queen "データベース接続エラーが発生しています"
 ```
 
-### 典型的なワークフロー
+### **役割確認の活用**
+```bash
+# 作業中に迷った時
+hive who-am-i
+# → 自分の専門分野を思い出す
 
-1. **Hive初期化**
-   ```bash
-   ./scripts/init-hive.sh "新しいWebアプリプロジェクト"
-   ```
+# 担当外の質問を受けた時
+hive my-role
+# → 担当外であることを確認して適切にリダイレクト
 
-2. **Planning Phase（計画フェーズ）**
-   - Queen: 要件整理とNectar分解
-   - Architect: 技術選定とシステム設計
-
-3. **Development Phase（開発フェーズ）**
-   - Frontend Worker: UI/UX実装
-   - Backend Worker: API/データベース開発
-   - DevOps Worker: インフラ構築
-
-4. **Quality Assurance Phase（品質保証フェーズ）**  
-   - Tester Worker: 品質保証
-   - DevOps Worker: 本番デプロイ
-   - Queen: 最終確認とHoney収集
+# 新しいタスクを受けた時
+hive remind-me
+# → 現在のタスクとの整合性を確認
+```
 
 ## 🔧 カスタマイズ
 
-### 新しいWorkerの追加
+### **新しいWorkerの追加**
 ```bash
-# 1. Workerプロンプトの作成
-cp workers/prompts/template.md workers/prompts/ml_engineer_worker.md
+# 新Worker用pane作成
+tmux new-window -t hive -n ml-engineer
 
-# 2. tmux設定の更新  
-vim scripts/start-hive.sh
+# Claude Code起動後、Workerを追加
+hive add-worker ml-engineer "Machine Learning Engineer"
 
-# 3. Queen調整ツールの更新
-vim queen/coordinator.py
+# 新しいWorkerとの通信開始
+hive send ml-engineer "データ分析をお願いします"
 ```
 
-### プロジェクトテンプレートの作成
-```bash
-# 新しいHiveタイプの追加
-mkdir examples/mobile-app-hive
-cp -r examples/web-app-hive/* examples/mobile-app-hive/
-# カスタマイズ...
+### **カスタムプロジェクトテンプレート**
+```yaml
+# templates/projects/mobile-app.yaml
+project_type: "mobile-app"
+description: "モバイルアプリケーション開発"
+tech_stack: "React Native + Firebase"
+
+workers:
+  queen:
+    template: "queen"
+    project_specifics:
+      - "アプリストア申請管理"
+      - "ユーザーフィードバック対応"
+    first_tasks:
+      - "アプリ要件定義"
+      - "開発スケジュール策定"
+  
+  mobile-dev:
+    template: "mobile-dev"
+    project_specifics:
+      - "React Native開発"
+      - "iOS/Android両対応"
+    first_tasks:
+      - "プロジェクト環境セットアップ"
+      - "基本画面構成の実装"
 ```
 
-## 📊 Hive Analytics（分析・監視）
+## 💡 効果的な使い方
 
-### Hiveパフォーマンス指標
-- **Honey Production Rate**: 時間内完了タスクの割合
-- **Comb Efficiency**: Worker間通信の有効性
-- **Worker Error Rate**: 失敗タスクの発生頻度
-- **Honey Quality Score**: 生成された成果物の品質
-
-### 分析ツール
+### **良いメッセージの書き方**
 ```bash
-# 日次Hive活動サマリー
-python tools/analyzer.py --report=daily
+# ✅ 具体的で行動を促す
+hive send backend "ユーザー認証APIを /api/auth/login エンドポイントで実装してください"
 
-# Worker別パフォーマンス
-python tools/analyzer.py --worker=backend_worker --period=week
+# ✅ 簡潔で理解しやすい
+hive send frontend "ログイン画面のレスポンシブデザインをお願いします"
 
-# Combボトルネック分析
-python tools/analyzer.py --comb-analysis
-
-# Honey品質レポート
-python tools/analyzer.py --honey-quality
+# ✅ 感謝と励ましを込めて
+hive send tester "テストお疲れ様です。修正版をデプロイしました"
 ```
 
-## ⚠️ 注意事項・制限
+### **避けるべきメッセージ**
+```bash
+# ❌ 曖昧すぎる
+hive send backend "よろしく"
 
-### コスト管理
-- **推奨**: Claude Pro ($20/月) 以上のプラン
-- **注意**: 複数Worker並列実行でAPI使用量増加
-- **監視**: 定期的な`/clear`実行でトークン使用量管理
+# ❌ 担当外の指示
+hive send backend "UIの色を変更してください"  # Frontend担当
 
-### 技術的制限
-- tmux環境でのClaude Code動作が前提
-- Combファイル競合状態の可能性（同時書き込み）
-- ネットワーク不安定時の通信エラー
+# ❌ 感情的すぎる
+hive urgent all "なんでエラーになるんだ！"
+```
 
-### セキュリティ
-- `--dangerously-skip-permissions`の使用は自己責任
-- 重要なHoneyは別途バックアップ推奨
-- 外部API呼び出し時の認証情報管理
+### **役割の効果的な活用**
+```bash
+# 専門外の質問を受けた時
+hive who-am-i  # 自分の担当を確認
+hive send frontend "UI関連は Frontend Worker が詳しいです"
 
-## 🤝 コントリビューション
+# 新しいタスクを受けた時
+hive remind-me  # 現在のタスクと整合性を確認
+hive send queen "現在のタスクとの優先順位を確認したいです"
+```
 
-### 貢献方法
-1. Issueでの問題報告・機能提案
-2. Pull Requestでの改善提案
-3. ドキュメントの改善
-4. 新しいWorkerタイプの追加
-5. Hive使用例の共有
+## 📊 Phase 1 成功目標
 
-### 開発ガイドライン
-- Hiveのアナロジーを大切にしたコード
-- エラーハンドリングの徹底
-- Worker間の協調を重視した設計
-- ドキュメントの継続的更新
+### **技術的成功基準**
+- [ ] メッセージ送信成功率 95%以上
+- [ ] 役割認識の維持（定期確認で測定）
+- [ ] Worker間の適切な連携（専門分野の遵守）
+- [ ] プロジェクト完成率 80%以上
 
-## 📈 Hiveの進化予定
+### **協調的成功基準**
+- [ ] Claude Code同士の自然な会話
+- [ ] 専門性を活かした高品質な成果物
+- [ ] 効率的なタスク分担と進行
+- [ ] 問題発生時の迅速な情報共有
 
-### 近期目標 (3ヶ月)
-- [ ] Web UI Queen Dashboard の開発
-- [ ] Docker化による環境構築簡素化
-- [ ] Worker学習機能（過去のHoney経験活用）
+### **プロジェクト例**
+- **Webアプリ**: シンプルなTODO管理アプリ
+- **API**: 基本的なユーザー管理API
+- **データ分析**: 売上データの可視化
+- **静的サイト**: 会社紹介ページ
 
-### 中期目標 (6ヶ月)
-- [ ] 他のAIモデル（GPT-4、Gemini）Worker統合
-- [ ] リアルタイムComb協調開発機能
-- [ ] 自動テスト・デプロイメント機能
+## ⚠️ 注意事項・運用Tips
 
-### 長期目標 (1年)
-- [ ] AIエージェント市場との連携
-- [ ] 大規模開発プロジェクトでの実績構築
-- [ ] オープンソースHiveコミュニティの形成
+### **コスト管理**
+- 複数Claude Code並列実行でAPI使用量増加
+- 長時間の会話は定期的に `/clear` でリセット
+- 役割確認コマンドは適度に使用（頻繁すぎない）
 
-## 🐝 コミュニティ・サポート
+### **効果的な運用**
+- **明確な指示**: 何をしてほしいか具体的に伝える
+- **定期的な確認**: `hive status` でWorker状況をチェック
+- **役割の尊重**: 専門外の作業を無理に依頼しない
+- **感謝の表現**: 協力への感謝を忘れずに
 
+### **トラブルシューティング**
+```bash
+# メッセージが届かない
+hive status                    # Worker状況確認
+tmux list-panes               # pane状況確認
+
+# 役割を忘れた時
+hive who-am-i                 # 簡潔な役割確認
+hive my-role                  # 詳細な役割確認
+
+# CLI動作不良
+hive --help                   # ヘルプ確認
+hive status --debug           # デバッグ情報
+```
+
+## 🌱 将来の発展
+
+### **Phase 2: 履歴・分析機能（3-4週間後）**
+- `hive history` - メッセージ履歴確認
+- `hive search` - 過去のやり取り検索
+- ファイル添付機能
+- 通信パターン分析
+
+### **Phase 3: 学習・最適化機能（2-3ヶ月後）**
+- Worker間協調パターンの学習
+- 効率的なタスク分担の提案
+- 自動的な役割調整
+- プロジェクト成功パターンの蓄積
+
+### **Phase 4: エンタープライズ機能（6ヶ月後）**
+- Web UI管理画面
+- 大規模チーム対応
+- 外部システム連携
+- セキュリティ強化
+
+## 🤝 コミュニティ
+
+### **サポート・フィードバック**
 - **GitHub Issues**: バグ報告・機能要求
-- **Discussions**: Hive運用の質問・アイデア共有
-- **Discord**: リアルタイム相談 (準備中)
-- **Wiki**: Hive運用ベストプラクティス集
+- **Discussions**: 使用方法・成功事例の共有
+- **Examples**: 実プロジェクトでの活用例
+- **Templates**: カスタムテンプレートの共有
+
+### **コントリビューション歓迎**
+- CLI機能の改善
+- 新しいプロジェクトテンプレート
+- Worker役割定義の改善
+- ドキュメント・使用例の追加
 
 ---
 
-**🍯 Sweet Development with Hive!**
+**🍯 Template-Driven, Role-Aware Collaboration!**
 
-このシステムはClaude Codeの実験的な使用方法です。Anthropicの利用規約を遵守し、責任を持って美しいHoneyを生み出してください。
+テンプレートベースの役割定義により、各Claude Codeが専門性を保ちながら美しく協調する、新しいAIチーム開発を体験してください。
