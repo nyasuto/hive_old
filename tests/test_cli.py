@@ -534,3 +534,136 @@ class TestBootstrapFunctionality:
                 assert config["variables"]["TEST_VAR"] == "test_value"
                 assert "created_at" in config
                 assert config["workers"] == self.cli.VALID_WORKERS
+
+
+class TestTmuxIntegration:
+    """Tmux統合機能のテストクラス"""
+
+    def setup_method(self) -> None:
+        """テスト前のセットアップ"""
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.cli = HiveCLI()
+
+    def teardown_method(self) -> None:
+        """テスト後のクリーンアップ"""
+        import shutil
+
+        shutil.rmtree(self.test_dir, ignore_errors=True)
+
+    def test_tmux_status_no_session(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """tmux状態表示テスト（セッションなし）"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch.object(
+                self.cli.tmux_integration, "get_session_status"
+            ) as mock_status:
+                mock_status.return_value = {
+                    "session_exists": False,
+                    "session_name": "hive",
+                    "in_tmux": False,
+                    "workers": {},
+                    "unmapped_panes": [],
+                }
+
+                self.cli.tmux_status()
+                captured = capsys.readouterr()
+
+                assert "Hive Tmux Status" in captured.out
+                assert "Hiveセッションが見つかりません" in captured.out
+
+    def test_tmux_status_with_session(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """tmux状態表示テスト（セッションあり）"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch.object(
+                self.cli.tmux_integration, "get_session_status"
+            ) as mock_status:
+                mock_status.return_value = {
+                    "session_exists": True,
+                    "session_name": "hive",
+                    "in_tmux": True,
+                    "workers": {
+                        "queen": {
+                            "pane_index": 0,
+                            "pane_id": "%1",
+                            "is_active": True,
+                            "mapped": True,
+                        },
+                        "architect": {
+                            "pane_index": 1,
+                            "pane_id": None,
+                            "is_active": False,
+                            "mapped": False,
+                        },
+                    },
+                    "unmapped_panes": [
+                        {
+                            "pane_id": "%3",
+                            "pane_index": 3,
+                            "pane_title": "Unmapped Pane",
+                        }
+                    ],
+                }
+
+                self.cli.tmux_status()
+                captured = capsys.readouterr()
+
+                assert "Hive Tmux Status" in captured.out
+                assert "Worker-Pane Mappings" in captured.out
+                assert "queen" in captured.out
+                assert "architect" in captured.out
+                assert "マッピングされていないpane" in captured.out
+
+    def test_save_tmux_mapping_success(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """tmuxマッピング保存テスト（成功）"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch.object(
+                self.cli.tmux_integration, "save_current_mapping"
+            ) as mock_save:
+                self.cli.save_tmux_mapping()
+                captured = capsys.readouterr()
+
+                assert "tmuxマッピングを保存しました" in captured.out
+                mock_save.assert_called_once()
+
+    def test_save_tmux_mapping_error(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """tmuxマッピング保存テスト（エラー）"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch.object(
+                self.cli.tmux_integration, "save_current_mapping"
+            ) as mock_save:
+                mock_save.side_effect = Exception("Test error")
+
+                self.cli.save_tmux_mapping()
+                captured = capsys.readouterr()
+
+                assert "マッピング保存エラー" in captured.out
+
+    def test_enhanced_message_sending(self) -> None:
+        """拡張されたメッセージ送信テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch.object(
+                self.cli.tmux_integration, "is_in_tmux", return_value=True
+            ):
+                with patch.object(
+                    self.cli.tmux_integration, "send_message_to_pane"
+                ) as mock_send:
+                    with patch.object(self.cli, "_save_message_to_file") as mock_save:
+                        mock_send.return_value = True
+
+                        self.cli.send_message("backend", "テストメッセージ")
+
+                        mock_send.assert_called_once()
+                        mock_save.assert_called_once()
+
+    def test_enhanced_worker_detection(self) -> None:
+        """拡張されたworker検出テスト"""
+        with patch("hive.cli_core.HiveTmuxIntegration") as mock_tmux_class:
+            mock_tmux_instance = mock_tmux_class.return_value
+            mock_tmux_instance.get_current_worker.return_value = "backend"
+
+            # 新しいCLIインスタンスを作成してworker検出をテスト
+            cli = HiveCLI()
+
+            assert cli.current_worker == "backend"
+            mock_tmux_instance.get_current_worker.assert_called()

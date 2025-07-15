@@ -1,0 +1,41 @@
+{
+  "session": "hive",
+  "description": "Hive Worker-Pane Mapping Configuration",
+  "workers": {
+    "queen": {
+      "pane": 0,
+      "title": "Queen Worker",
+      "description": "Project management and coordination"
+    },
+    "architect": {
+      "pane": 1,
+      "title": "Architect Worker",
+      "description": "System design and architecture"
+    },
+    "frontend": {
+      "pane": 2,
+      "title": "Frontend Worker",
+      "description": "UI/UX development"
+    },
+    "backend": {
+      "pane": 3,
+      "title": "Backend Worker",
+      "description": "Server-side development"
+    },
+    "devops": {
+      "pane": 4,
+      "title": "DevOps Worker",
+      "description": "Infrastructure and deployment"
+    },
+    "tester": {
+      "pane": 5,
+      "title": "Tester Worker",
+      "description": "Quality assurance and testing"
+    }
+  },
+  "auto_detection": {
+    "enabled": true,
+    "fallback_to_title_matching": true,
+    "create_missing_panes": false
+  }
+}
