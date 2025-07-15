@@ -778,7 +778,6 @@ if __name__ == "__main__":
 
         return base_test.format(iteration=iteration, advanced_tests=advanced_tests)
 
-
 async def run_automated_coordination_demo() -> CoordinationResult:
     """自動協調デモの実行"""
     print("🚀 自動協調システムデモ開始")
