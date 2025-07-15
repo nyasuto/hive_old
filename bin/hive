@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""
+Hive CLI - Command Line Interface for Hive Multi-Agent System
+新しいCLIベースのアーキテクチャ実装
+
+基本コマンド:
+  hive send <recipient> "<message>"     - メッセージ送信
+  hive who-am-i                         - 現在のWorker名を表示
+  hive status                           - Hiveの状態確認
+  hive broadcast "<message>"            - 全Worker宛てにメッセージ送信
+  hive urgent <recipient> "<message>"   - 緊急メッセージ送信
+"""
+
+import argparse
+import sys
+import os
+from pathlib import Path
+
+# プロジェクトルートを追加
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from hive.cli_core import HiveCLI
+
+
+def main():
+    """メイン実行関数"""
+    parser = argparse.ArgumentParser(
+        prog="hive",
+        description="Hive Multi-Agent System CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+基本的な使用方法:
+  hive send backend "新しいAPIエンドポイントを実装してください"
+  hive who-am-i
+  hive status
+  hive broadcast "プロジェクトの進捗を報告してください"
+  hive urgent queen "緊急：サーバーがダウンしています"
+        """,
+    )
+    
+    # サブコマンドの定義
+    subparsers = parser.add_subparsers(dest="command", help="利用可能なコマンド")
+    
+    # send コマンド
+    send_parser = subparsers.add_parser("send", help="特定のWorkerにメッセージを送信")
+    send_parser.add_argument("recipient", help="送信先Worker名 (queen, architect, frontend, backend, devops, tester)")
+    send_parser.add_argument("message", help="送信するメッセージ")
+    
+    # who-am-i コマンド
+    subparsers.add_parser("who-am-i", help="現在のWorker名を表示")
+    
+    # status コマンド
+    subparsers.add_parser("status", help="Hiveの状態確認")
+    
+    # broadcast コマンド
+    broadcast_parser = subparsers.add_parser("broadcast", help="全Workerにメッセージを送信")
+    broadcast_parser.add_argument("message", help="送信するメッセージ")
+    
+    # urgent コマンド
+    urgent_parser = subparsers.add_parser("urgent", help="緊急メッセージを送信")
+    urgent_parser.add_argument("recipient", help="送信先Worker名")
+    urgent_parser.add_argument("message", help="緊急メッセージ")
+    
+    # 引数がない場合はヘルプを表示
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+    
+    args = parser.parse_args()
+    
+    # CLIインスタンスの作成
+    cli = HiveCLI()
+    
+    # コマンドの実行
+    try:
+        if args.command == "send":
+            cli.send_message(args.recipient, args.message)
+        elif args.command == "who-am-i":
+            cli.who_am_i()
+        elif args.command == "status":
+            cli.status()
+        elif args.command == "broadcast":
+            cli.broadcast_message(args.message)
+        elif args.command == "urgent":
+            cli.urgent_message(args.recipient, args.message)
+        else:
+            parser.print_help()
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ エラー: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
