@@ -257,9 +257,79 @@ class HiveCLI:
         print(f"🚨 緊急メッセージ: {self.current_worker} → {recipient}")
         self.send_message(recipient, message, priority="urgent")
 
+    def init_project(self, project_name: str, project_type: str = "web-app") -> None:
+        """新しいプロジェクトを初期化"""
+        print(f"🚀 新しいプロジェクトを初期化: {project_name} ({project_type})")
+
+        # .hiveディレクトリが既に存在する場合の確認
+        hive_dir = self.project_root / ".hive"
+        if hive_dir.exists():
+            response = input(
+                "⚠️ .hiveディレクトリが既に存在します。上書きしますか？ (y/N): "
+            )
+            if response.lower() not in ["y", "yes"]:
+                print("❌ 初期化をキャンセルしました")
+                return
+
+        # プロジェクトテンプレートを読み込み
+        template_path = (
+            self.project_root / "templates" / "projects" / f"{project_type}.json"
+        )
+        if not template_path.exists():
+            raise ValueError(
+                f"プロジェクトテンプレート '{project_type}' が見つかりません"
+            )
+
+        with open(template_path, encoding="utf-8") as f:
+            template = json.load(f)
+
+        # プロジェクト固有の変数を設定
+        variables = template["variables"].copy()
+        variables["PROJECT_NAME"] = project_name
+
+        # .hiveディレクトリの作成
+        hive_dir.mkdir(exist_ok=True)
+
+        # workers ディレクトリの作成
+        workers_dir = hive_dir / "workers"
+        workers_dir.mkdir(exist_ok=True)
+
+        # 各Workerのディレクトリとファイルを作成
+        for worker in self.VALID_WORKERS:
+            worker_dir = workers_dir / worker
+            worker_dir.mkdir(exist_ok=True)
+
+            # ROLEファイルの生成
+            self._generate_role_file(worker, variables)
+
+            # 初期タスクファイルの生成
+            if worker in template["initial_tasks"]:
+                self._generate_tasks_file(worker, template["initial_tasks"][worker])
+
+            # context.mdファイルの生成
+            self._generate_context_file(worker, variables)
+
+        # プロジェクト設定ファイルの作成
+        self._generate_project_config(template, project_name)
+
+        # workers.jsonファイルの生成
+        self._generate_workers_json()
+
+        # tmuxマッピングの初期化
+        self._initialize_tmux_mapping()
+
+        print(f"✅ プロジェクト '{project_name}' の初期化が完了しました")
+        print("📁 設定ファイル: .hive/")
+        print("📋 各Workerの役割: .hive/workers/<worker>/ROLE.md")
+        print("📝 初期タスク: .hive/workers/<worker>/tasks.md")
+        print("📄 Worker設定: .hive/workers.json")
+        print("🔗 コンテキスト: .hive/workers/<worker>/context.md")
+        print("🎛️  tmuxマッピング: .hive/tmux/workers.json")
+
     def bootstrap_project(self, project_type: str, project_name: str) -> None:
-        """プロジェクトをブートストラップ"""
+        """プロジェクトをブートストラップ（従来機能）"""
         print(f"🚀 プロジェクトブートストラップ: {project_type} - {project_name}")
+        print("💡 ヒント: 新しいプロジェクトには 'hive init' を使用してください")
 
         # プロジェクトテンプレートを読み込み
         template_path = (
@@ -439,6 +509,77 @@ class HiveCLI:
         with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
 
+    def _generate_context_file(self, worker: str, variables: dict[str, str]) -> None:
+        """Workerのコンテキストファイルを生成"""
+        context_content = f"""# {worker.title()} Worker - プロジェクトコンテキスト
+
+## 🎯 プロジェクト概要
+- **プロジェクト名**: {variables.get("PROJECT_NAME", "Unknown")}
+- **プロジェクトタイプ**: {variables.get("PROJECT_TYPE", "Unknown")}
+- **技術スタック**: {variables.get("PROJECT_TECH_STACK", "Unknown")}
+
+## 🤝 連携する他のWorkers
+- **Queen Worker**: プロジェクト管理・調整
+- **Architect Worker**: システム設計・技術判断
+- **Frontend Worker**: UI/UX開発
+- **Backend Worker**: サーバーサイド開発
+- **DevOps Worker**: インフラ・運用
+- **Tester Worker**: 品質保証・テスト
+
+## 📚 プロジェクト固有情報
+{variables.get("PROJECT_DESCRIPTION", "プロジェクトの説明がありません")}
+
+## 🔄 現在のフェーズ
+初期設定フェーズ - プロジェクトの基盤構築中
+
+## 📝 重要なメモ
+- このファイルは {worker} Workerの作業コンテキストを保持します
+- プロジェクトの進行に応じて更新してください
+- 他のWorkerとの連携情報を記録してください
+
+## 🔗 関連リソース
+- プロジェクト設定: `.hive/config.json`
+- Worker設定: `.hive/workers.json`
+- 役割定義: `.hive/workers/{worker}/ROLE.md`
+- タスク管理: `.hive/workers/{worker}/tasks.md`
+"""
+
+        context_file = self.project_root / ".hive" / "workers" / worker / "context.md"
+        with open(context_file, "w", encoding="utf-8") as f:
+            f.write(context_content)
+
+    def _generate_workers_json(self) -> None:
+        """workers.json設定ファイルを生成"""
+        workers_config: dict[str, Any] = {
+            "version": "1.0",
+            "description": "Hive Workers Configuration",
+            "workers": {},
+        }
+
+        for worker in self.VALID_WORKERS:
+            workers_config["workers"][worker] = {
+                "name": worker,
+                "title": f"{worker.title()} Worker",
+                "active": True,
+                "role_file": f".hive/workers/{worker}/ROLE.md",
+                "tasks_file": f".hive/workers/{worker}/tasks.md",
+                "context_file": f".hive/workers/{worker}/context.md",
+                "communication": {"priority": "normal", "channels": ["tmux", "file"]},
+            }
+
+        workers_file = self.project_root / ".hive" / "workers.json"
+        with open(workers_file, "w", encoding="utf-8") as f:
+            json.dump(workers_config, f, ensure_ascii=False, indent=2)
+
+    def _initialize_tmux_mapping(self) -> None:
+        """tmuxマッピングを初期化"""
+        try:
+            # tmux統合機能を使用してマッピングを保存
+            self.tmux_integration.save_current_mapping()
+        except Exception:
+            # tmux環境でない場合は警告を出さずにスキップ
+            pass
+
     def tmux_status(self) -> None:
         """詳細なtmux状態を表示"""
         status = self.tmux_integration.get_session_status()
@@ -481,6 +622,87 @@ class HiveCLI:
             print("   設定ファイル: .hive/tmux/workers.json")
         except Exception as e:
             print(f"⚠️ マッピング保存エラー: {e}")
+
+    def verify_project_config(self) -> None:
+        """プロジェクト設定を検証"""
+        print("🔍 プロジェクト設定を検証中...")
+
+        issues = []
+        hive_dir = self.project_root / ".hive"
+
+        # 基本ディレクトリの存在確認
+        if not hive_dir.exists():
+            issues.append("⚠️ .hiveディレクトリが存在しません")
+
+        # 必須ファイルの存在確認
+        required_files: list[tuple[str, str]] = [
+            (".hive/config.json", "プロジェクト設定"),
+            (".hive/workers.json", "Worker設定"),
+        ]
+
+        for file_path, description in required_files:
+            full_path = self.project_root / file_path
+            if not full_path.exists():
+                issues.append(f"⚠️ {description}ファイルが存在しません: {file_path}")
+
+        # 各Workerディレクトリの存在確認
+        workers_dir = hive_dir / "workers"
+        if workers_dir.exists():
+            for worker in self.VALID_WORKERS:
+                worker_dir = workers_dir / worker
+                if not worker_dir.exists():
+                    issues.append(f"⚠️ {worker} Workerディレクトリが存在しません")
+                    continue
+
+                # Worker必須ファイルの確認
+                worker_files: list[tuple[Path, str]] = [
+                    (worker_dir / "ROLE.md", "役割定義"),
+                    (worker_dir / "tasks.md", "タスク管理"),
+                    (worker_dir / "context.md", "コンテキスト"),
+                ]
+
+                for file_path_obj, description in worker_files:
+                    if not file_path_obj.exists():
+                        issues.append(
+                            f"⚠️ {worker} Workerの{description}ファイルが存在しません: {file_path_obj}"
+                        )
+
+        if issues:
+            print(f"❌ {len(issues)}個の問題が見つかりました:")
+            for issue in issues:
+                print(f"   {issue}")
+
+            response = input("\n🔧 問題を自動修復しますか？ (y/N): ")
+            if response.lower() in ["y", "yes"]:
+                self._repair_project_config()
+        else:
+            print("✅ プロジェクト設定に問題はありません")
+
+    def _repair_project_config(self) -> None:
+        """プロジェクト設定を修復"""
+        print("🔧 プロジェクト設定を修復中...")
+
+        # 現在の設定を読み込み（存在する場合）
+        config_file = self.project_root / ".hive" / "config.json"
+        if config_file.exists():
+            try:
+                with open(config_file, encoding="utf-8") as f:
+                    current_config = json.load(f)
+                project_name = current_config.get("project_name", "Unknown Project")
+                project_type = current_config.get("project_type", "web-app")
+            except Exception:
+                project_name = "Unknown Project"
+                project_type = "web-app"
+        else:
+            project_name = "Unknown Project"
+            project_type = "web-app"
+
+        # プロジェクトを再初期化
+        try:
+            self.init_project(project_name, project_type)
+            print("✅ プロジェクト設定の修復が完了しました")
+        except Exception as e:
+            print(f"❌ 修復に失敗しました: {e}")
 
     def _save_message_to_file(
         self, recipient: str, message: str, priority: str
