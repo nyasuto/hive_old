@@ -202,20 +202,47 @@ hive/
 
 ## 🎬 使用方法
 
-### クイックスタート
+### 🚀 クイックスタート
+
+**💡 最新機能（Issue #48, #49, #50実装完了）を含む詳細ガイド: [PoC実行ガイド](docs/poc-guide.md)**
+
+#### 方法1: 自動協調システム（推奨・最新）
 
 ```bash
-# 1. Hiveのクローンと初期化
-git clone <repository-url> hive
+# 1. リポジトリのクローン
+git clone https://github.com/nyasuto/hive.git
 cd hive
-chmod +x scripts/*.sh
 
-# 2. 小さなHiveの起動
-./scripts/start-hive.sh --size=small
+# 2. 依存関係のインストール
+make install
 
-# 3. サンプルプロジェクトの実行
-./scripts/run-example.sh web-app-hive
+# 3. 完全自動化されたAI品質保証システムを体験
+python examples/poc/automated_worker_coordination.py auto
+```
 
+#### 方法2: AI品質チェック付き手動協調
+
+```bash
+# 1. セットアップ
+make install
+
+# 2. tmuxセッション準備
+./scripts/start-small-hive.sh
+
+# 3. AI品質チェック付き開発サイクル
+# 左pane（Queen）
+python examples/poc/enhanced_feature_development.py queen
+
+# 右pane（Developer）  
+python examples/poc/enhanced_feature_development.py developer
+
+# 左pane（Queen）でAI品質レビュー
+python examples/poc/enhanced_feature_development.py queen --review
+```
+
+#### 従来機能
+
+```bash
 # 4. Combの状況確認
 ./scripts/check-comb.sh
 

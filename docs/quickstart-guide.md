@@ -46,67 +46,94 @@ tmux list-sessions
 ./scripts/start-small-hive.sh
 ```
 
-## 🎯 最初にやってみること（4分）
+## 🎯 最初にやってみること（5分）
 
 **💡 ここからはtmuxセッション内での操作です。左右のpaneを切り替えながら作業します。**
 
-### 1. Worker間の通信テスト
+### オプション1: 🚀 自動協調システム（推奨・最新機能）
+
+**完全自動化されたAI品質保証付き開発サイクルを体験：**
+
+```bash
+# 自動協調システムの実行（どのpaneからでもOK）
+python examples/poc/automated_worker_coordination.py auto
+```
+
+**🎯 期待する結果：** 
+- 3回の反復で品質スコア 70 → 85 → 95 に自動改善
+- AI品質チェックと修正提案が自動実行
+- 約4.5秒で完全自動化されたWorker協調完了
+
+**複数シナリオのテスト：**
+```bash
+python examples/poc/automated_worker_coordination.py test
+```
+
+### オプション2: 🤝 手動協調システム（学習目的）
+
+**AI品質チェック機能付きのWorker協調を手動で体験：**
 
 **👈 左pane（Queen Worker）での操作：**
 
 ```bash
-python examples/quickstart/01_basic_communication.py queen
+# タスク作成
+python examples/poc/enhanced_feature_development.py queen
 ```
 
 **👉 右pane（Developer Worker）での操作：**
 
-`Alt + →` でDeveloper Workerのpaneに移動し（または`Ctrl+B` → 右矢印）：
+`Alt + →` でDeveloper Workerのpaneに移動し：
 
 ```bash
+# 実装作業
+python examples/poc/enhanced_feature_development.py developer
+```
+
+**👈 左pane（Queen Worker）に戻って：**
+
+```bash
+# AI品質レビュー実行
+python examples/poc/enhanced_feature_development.py queen --review
+```
+
+**🎯 期待する結果：** 
+- Queen Worker: AI品質チェック付きタスク管理完了
+- Developer Worker: 自己品質チェック付き実装完了
+- AI による品質スコア評価と修正提案の確認
+
+### オプション3: 🧪 個別機能テスト
+
+**AI機能の個別テスト：**
+
+```bash
+# AI品質チェック機能テスト
+python examples/poc/enhanced_feature_development.py test-ai
+
+# 自動修正提案システムテスト
+python examples/poc/enhanced_feature_development.py test-fix
+
+# 協調システム監視
+python examples/poc/automated_worker_coordination.py monitor
+```
+
+**🎯 期待する結果：** 
+- ✅ AI品質チェック機能の動作確認
+- ✅ 修正提案生成機能の確認  
+- ✅ Worker間通信の監視機能確認
+
+### 従来機能（基本通信テスト）
+
+**基本的なWorker間通信をテストしたい場合：**
+
+```bash
+# 左pane
+python examples/quickstart/01_basic_communication.py queen
+
+# 右pane  
 python examples/quickstart/01_basic_communication.py developer
 ```
 
-**🎯 期待する結果：** 
-- Queen Worker: "メッセージを送信しました" と表示
-- Developer Worker: "受信メッセージ: 1件" と表示され、メッセージ内容が確認できる
-
-### 2. タスク管理機能のテスト
-
-**👈 左pane（Queen Worker）での操作：**
-
-```bash
-python examples/quickstart/02_task_management.py queen
-```
-
-**👉 右pane（Developer Worker）での操作：**
-
-```bash
-python examples/quickstart/02_task_management.py developer
-```
-
-**🎯 期待する結果：** 
-- Queen Worker: タスク作成、進捗記録、技術決定の記録が完了
-- Developer Worker: タスク受信、作業実施、完了報告が完了
-
-### 3. 成果物の確認
-
-**🖥️ 新しいターミナルを開いて確認：**
-
-```bash
-# Hiveディレクトリに移動（必要に応じて）
-cd /path/to/hive
-
-# 包括的な結果確認
-python examples/quickstart/03_check_results.py
-```
-
-**🎯 期待する結果：** 
-- ✅ Combシステム正常動作確認
-- ✅ 作業ログファイルの生成確認
-- ✅ メッセージファイルの送受信確認
-- ✅ 通信ログ（Markdown）の生成確認
-
-**💡 ヒント：** 生成されたファイルには、Worker間のやり取りが人間が読めるMarkdown形式で記録されています！
+**💡 ヒント：** 新機能（オプション1）から始めることを強く推奨します！
 
 ## 🔧 基本操作
 
@@ -131,65 +158,87 @@ python examples/quickstart/03_check_results.py
 ./scripts/shutdown-hive.sh
 ```
 
-## 🎬 実用例：簡単なWebアプリ作成
+## 🎬 実用例：AI品質保証付きWebアプリ開発
 
-### Queen Worker (左pane)
-```python
-from comb import CombAPI
+### 方法1: 🚀 完全自動化（推奨）
 
-queen = CombAPI("queen")
-
-# プロジェクト開始
-task_id = queen.start_task(
-    "Flask Hello World アプリ",
-    task_type="feature",
-    workers=["queen", "developer"]
-)
-
-# Developer Workerに指示
-queen.send_message(
-    to_worker="developer",
-    content={
-        "task": "簡単なFlask Webアプリを作成",
-        "requirements": [
-            "Hello World ページ",
-            "ポート5000で起動",
-            "簡単なHTML テンプレート"
-        ]
-    },
-    message_type="request",
-    priority="medium"
-)
+```bash
+# カスタムタスクで自動協調実行
+python examples/poc/automated_worker_coordination.py auto
 ```
 
-### Developer Worker (右pane)
+**自動で実行される内容：**
+- Queen: 高品質なタスク指示とAI品質レビュー
+- Developer: 要件に基づく実装と自己品質チェック
+- 3回の反復で品質スコア自動改善
+- 修正提案の自動生成と適用
+
+### 方法2: 🤝 手動協調（学習・カスタマイズ用）
+
+### Queen Worker (左pane) - AI品質チェック付き
 ```python
-from comb import CombAPI
-
-dev = CombAPI("developer")
-
-# タスク受信
-messages = dev.receive_messages()
-for msg in messages:
-    print(f"新しいタスク: {msg.content}")
-
-# 実装作業（実際のコード作成）
-# app.py を作成...
-# templates/index.html を作成...
-
-# 進捗報告
-dev.add_progress(
-    "Flask アプリ基本構造作成完了",
-    "HTML テンプレート実装中"
-)
-
-# 完了報告
-dev.send_response(msg, {
-    "status": "completed",
-    "files_created": ["app.py", "templates/index.html"],
-    "next_steps": ["テスト実行", "エラーチェック"]
-})
+# Enhanced PoCを使用
+python examples/poc/enhanced_feature_development.py queen
 ```
+
+**実行されること：**
+- タスク作成と要件定義
+- 品質基準の設定（型ヒント、docstring、エラーハンドリング）
+- AI品質チェック機能の準備
+
+### Developer Worker (右pane) - 自動修正対応
+```python
+# Enhanced PoCを使用
+python examples/poc/enhanced_feature_development.py developer
+```
+
+**実行されること：**
+- 要件に基づくFlask アプリ実装
+- 自己品質チェック実行
+- 完了報告の送信
+
+### Queen Worker (左pane) - AI品質レビュー
+```python
+# AI品質レビュー実行
+python examples/poc/enhanced_feature_development.py queen --review
+```
+
+**実行されること：**
+- AI による包括的品質評価（スコア算出）
+- 問題の自動検出（型ヒント不足、docstring不足等）
+- 修正提案の自動生成
+- 改善必要事項のフィードバック
+
+### 生成される成果物例
+
+```python
+# examples/poc/quality_calculator.py (自動生成)
+from typing import Union
+
+Number = Union[int, float]
+
+def add(a: Number, b: Number) -> Number:
+    """
+    加算を実行します
+    
+    Args:
+        a: 第一オペランド（数値）
+        b: 第二オペランド（数値）
+    
+    Returns:
+        Number: a + b の計算結果
+    """
+    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise TypeError("引数は数値である必要があります")
+    return a + b
+```
+
+**🎯 品質保証された成果物の特徴：**
+- ✅ 完全な型アノテーション
+- ✅ Google Style docstrings
+- ✅ 適切なエラーハンドリング
+- ✅ 包括的なテストスイート
+- ✅ AI による品質スコア90点以上
 
 ## ⚠️ よくある問題と解決方法
 
@@ -236,26 +285,48 @@ python examples/quickstart/01_basic_communication.py
 
 ## 📚 次のステップ
 
+### 🚀 新機能をさらに活用する
+- **[PoC実行ガイド](poc-guide.md)** - 全機能の詳細解説（推奨）
+- **自動協調システム**: より複雑なプロジェクトでのテスト
+- **AI品質チェック**: カスタム品質基準の設定
+- **修正提案システム**: 独自のエラーパターン追加
+
 ### 詳細を学ぶ
 - [セットアップガイド](setup-guide.md) - 詳細な環境構築
 - [Comb API仕様](comb-api.md) - 通信システムの詳細
 - [トラブルシューティング](troubleshooting.md) - 問題解決
-- [クイックスタートサンプル](../examples/quickstart/README.md) - スクリプトの詳細説明
+- [Enhanced PoC仕様](../examples/poc/enhanced_feature_development.py) - AI機能詳細
 
 ### 実践してみる
-- [Web アプリ開発例](../examples/web-app-hive/) - Flask/FastAPI
-- [API 開発例](../examples/api-development-hive/) - REST API
-- [データ分析例](../examples/data-analysis-hive/) - Pandas/Jupyter
+```bash
+# AI品質保証付きプロジェクト開発
+python examples/poc/enhanced_feature_development.py queen
+python examples/poc/enhanced_feature_development.py developer  
+python examples/poc/enhanced_feature_development.py queen --review
+
+# 完全自動化プロジェクト
+python examples/poc/automated_worker_coordination.py auto
+
+# 複数難易度でのテスト
+python examples/poc/automated_worker_coordination.py test
+```
 
 ### システムを拡張する
 ```bash
-# 完全なHive (6 Workers) を試す
-./scripts/start-hive.sh --size=full
+# カスタム協調設定
+# automated_worker_coordination.py をコピーして設定変更
 
-# カスタムWorkerの追加
-cp workers/prompts/developer_worker.md workers/prompts/my_worker.md
-# プロンプトを編集...
+# カスタム品質基準
+# enhanced_feature_development.py の quality_standards をカスタマイズ
+
+# 独自の修正パターン追加
+# PythonFixPatterns クラスに新しいパターンメソッド追加
 ```
+
+### Phase 2 機能（準備中）
+- **Colony管理システム**: 複数Workerの自動スケーリング
+- **分散実行基盤**: 大規模プロジェクト対応
+- **リアルタイム監視ダッシュボード**: Web UI での進捗確認
 
 ## 🎉 成功！
 
