@@ -1621,10 +1621,7 @@ Quality Calculator Module - High-quality mathematical operations
 Created by Hive Developer Worker with Quality Assurance
 """
 
-from typing import Union
-
-
-Number = Union[int, float]
+Number = int | float
 
 
 def add(a: Number, b: Number) -> Number:

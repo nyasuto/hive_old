@@ -118,9 +118,8 @@ Calculator Module - Simple mathematical operations
 Created by Hive Developer Worker
 """
 
-from typing import Union
 
-Number = Union[int, float]
+Number = int | float
 
 
 def add(a: Number, b: Number) -> Number:

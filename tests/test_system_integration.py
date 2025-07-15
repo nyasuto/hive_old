@@ -138,7 +138,6 @@ JWT-based authentication system with bcrypt password hashing
 import jwt
 import bcrypt
 from datetime import datetime, timedelta
-from typing import Optional
 
 class AuthManager:
     def __init__(self, secret_key: str):
@@ -162,7 +161,7 @@ class AuthManager:
         }
         return jwt.encode(payload, self.secret_key, algorithm='HS256')
 
-    def verify_token(self, token: str) -> Optional[dict]:
+    def verify_token(self, token: str) -> dict | None:
         """Verify and decode JWT token"""
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=['HS256'])
@@ -265,7 +264,7 @@ Verify plain password against bcrypt hash.
 #### `generate_token(user_id: int, expires_in: int = 3600) -> str`
 Generate JWT token with user ID and expiration.
 
-#### `verify_token(token: str) -> Optional[dict]`
+#### `verify_token(token: str) -> dict | None`
 Verify and decode JWT token, returning payload or None.
 
 ## Security Considerations
