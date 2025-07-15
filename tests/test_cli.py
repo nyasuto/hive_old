@@ -667,3 +667,210 @@ class TestTmuxIntegration:
 
             assert cli.current_worker == "backend"
             mock_tmux_instance.get_current_worker.assert_called()
+
+
+class TestProjectInitialization:
+    """プロジェクト初期化機能のテストクラス"""
+
+    def setup_method(self) -> None:
+        """テスト前のセットアップ"""
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.cli = HiveCLI()
+
+    def teardown_method(self) -> None:
+        """テスト後のクリーンアップ"""
+        import shutil
+
+        shutil.rmtree(self.test_dir, ignore_errors=True)
+
+    def test_init_project_new(self) -> None:
+        """新規プロジェクト初期化テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch("builtins.input", return_value="y"):
+                # テンプレートディレクトリの作成
+                templates_dir = self.test_dir / "templates"
+                templates_dir.mkdir()
+                projects_dir = templates_dir / "projects"
+                projects_dir.mkdir()
+                roles_dir = templates_dir / "roles"
+                roles_dir.mkdir()
+
+                # プロジェクトテンプレートの作成
+                test_template = {
+                    "name": "web-app",
+                    "description": "Test web app",
+                    "variables": {
+                        "PROJECT_TYPE": "テストアプリ",
+                        "PROJECT_TECH_STACK": "React + Node.js",
+                    },
+                    "initial_tasks": {
+                        "queen": ["要件確認", "スケジュール作成"],
+                        "backend": ["環境構築", "API実装"],
+                    },
+                }
+
+                with open(projects_dir / "web-app.json", "w", encoding="utf-8") as f:
+                    json.dump(test_template, f, ensure_ascii=False, indent=2)
+
+                # 役割テンプレートの作成
+                for worker in self.cli.VALID_WORKERS:
+                    with open(roles_dir / f"{worker}.md", "w", encoding="utf-8") as f:
+                        f.write(
+                            f"# {worker.title()} Worker\n\n{{{{PROJECT_NAME}}}} - {{{{PROJECT_TYPE}}}}"
+                        )
+
+                self.cli.init_project("テストプロジェクト", "web-app")
+
+                # 生成されたファイルの確認
+                hive_dir = self.test_dir / ".hive"
+                assert hive_dir.exists()
+
+                # config.json確認
+                config_file = hive_dir / "config.json"
+                assert config_file.exists()
+                with open(config_file, encoding="utf-8") as f:
+                    config = json.load(f)
+                    assert config["project_name"] == "テストプロジェクト"
+
+                # workers.json確認
+                workers_file = hive_dir / "workers.json"
+                assert workers_file.exists()
+                with open(workers_file, encoding="utf-8") as f:
+                    workers_config = json.load(f)
+                    assert "workers" in workers_config
+                    assert "queen" in workers_config["workers"]
+
+                # Workerディレクトリ確認
+                workers_dir = hive_dir / "workers"
+                assert workers_dir.exists()
+
+                for worker in self.cli.VALID_WORKERS:
+                    worker_dir = workers_dir / worker
+                    assert worker_dir.exists()
+
+                    # 各Workerの必須ファイル確認
+                    role_file = worker_dir / "ROLE.md"
+                    assert role_file.exists()
+
+                    context_file = worker_dir / "context.md"
+                    assert context_file.exists()
+
+                    # context.mdの内容確認
+                    with open(context_file, encoding="utf-8") as f:
+                        context_content = f.read()
+                        assert "テストプロジェクト" in context_content
+                        assert "プロジェクトコンテキスト" in context_content
+
+    def test_init_project_existing_directory(self) -> None:
+        """既存ディレクトリでの初期化テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            # 既存の.hiveディレクトリを作成
+            hive_dir = self.test_dir / ".hive"
+            hive_dir.mkdir()
+
+            with patch("builtins.input", return_value="n"):
+                self.cli.init_project("テストプロジェクト", "web-app")
+                # キャンセルされるため、追加のファイルは作成されない
+
+    def test_verify_project_config_valid(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """有効なプロジェクト設定の検証テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            # 完全な.hive構造を作成
+            hive_dir = self.test_dir / ".hive"
+            hive_dir.mkdir()
+
+            # config.json作成
+            config = {"project_name": "test", "project_type": "web-app"}
+            with open(hive_dir / "config.json", "w", encoding="utf-8") as f:
+                json.dump(config, f)
+
+            # workers.json作成
+            workers_config = {"version": "1.0", "workers": {}}
+            with open(hive_dir / "workers.json", "w", encoding="utf-8") as f:
+                json.dump(workers_config, f)
+
+            # workersディレクトリ作成
+            workers_dir = hive_dir / "workers"
+            workers_dir.mkdir()
+
+            for worker in self.cli.VALID_WORKERS:
+                worker_dir = workers_dir / worker
+                worker_dir.mkdir()
+                (worker_dir / "ROLE.md").write_text("# Role")
+                (worker_dir / "tasks.md").write_text("# Tasks")
+                (worker_dir / "context.md").write_text("# Context")
+
+            self.cli.verify_project_config()
+            captured = capsys.readouterr()
+            assert "プロジェクト設定に問題はありません" in captured.out
+
+    def test_verify_project_config_invalid(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """無効なプロジェクト設定の検証テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            with patch("builtins.input", return_value="n"):
+                # 空のディレクトリで検証
+                self.cli.verify_project_config()
+                captured = capsys.readouterr()
+                assert "問題が見つかりました" in captured.out
+                assert ".hiveディレクトリが存在しません" in captured.out
+
+    def test_generate_context_file(self) -> None:
+        """context.mdファイル生成テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            # Workerディレクトリの作成
+            worker_dir = self.test_dir / ".hive" / "workers" / "queen"
+            worker_dir.mkdir(parents=True)
+
+            variables = {
+                "PROJECT_NAME": "テストプロジェクト",
+                "PROJECT_TYPE": "ウェブアプリ",
+                "PROJECT_TECH_STACK": "React + Node.js",
+                "PROJECT_DESCRIPTION": "テスト用のプロジェクトです",
+            }
+
+            self.cli._generate_context_file("queen", variables)
+
+            # 生成されたファイルの確認
+            context_file = worker_dir / "context.md"
+            assert context_file.exists()
+
+            with open(context_file, encoding="utf-8") as f:
+                content = f.read()
+                assert "テストプロジェクト" in content
+                assert "ウェブアプリ" in content
+                assert "React + Node.js" in content
+                assert "テスト用のプロジェクトです" in content
+                assert "Queen Worker - プロジェクトコンテキスト" in content
+
+    def test_generate_workers_json(self) -> None:
+        """workers.json生成テスト"""
+        with patch.object(self.cli, "project_root", self.test_dir):
+            # .hiveディレクトリの作成
+            hive_dir = self.test_dir / ".hive"
+            hive_dir.mkdir()
+
+            self.cli._generate_workers_json()
+
+            # 生成されたファイルの確認
+            workers_file = hive_dir / "workers.json"
+            assert workers_file.exists()
+
+            with open(workers_file, encoding="utf-8") as f:
+                workers_config = json.load(f)
+                assert workers_config["version"] == "1.0"
+                assert "workers" in workers_config
+                assert len(workers_config["workers"]) == len(self.cli.VALID_WORKERS)
+
+                # 各Workerの設定確認
+                for worker in self.cli.VALID_WORKERS:
+                    assert worker in workers_config["workers"]
+                    worker_config = workers_config["workers"][worker]
+                    assert worker_config["name"] == worker
+                    assert worker_config["active"] is True
+                    assert "role_file" in worker_config
+                    assert "tasks_file" in worker_config
+                    assert "context_file" in worker_config

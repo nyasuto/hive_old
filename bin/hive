@@ -31,6 +31,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 基本的な使用方法:
+  hive init "新しいプロジェクト" --type web-app
   hive bootstrap web-app "タスク管理アプリ"
   hive send backend "新しいAPIエンドポイントを実装してください"
   hive who-am-i
@@ -39,6 +40,7 @@ def main():
   hive status
   hive tmux-status
   hive save-tmux-mapping
+  hive verify-config
   hive broadcast "プロジェクトの進捗を報告してください"
   hive urgent queen "緊急：サーバーがダウンしています"
         """,
@@ -67,6 +69,13 @@ def main():
     urgent_parser.add_argument("recipient", help="送信先Worker名")
     urgent_parser.add_argument("message", help="緊急メッセージ")
     
+    # init コマンド
+    init_parser = subparsers.add_parser("init", help="新しいプロジェクトを初期化")
+    init_parser.add_argument("project_name", help="プロジェクト名")
+    init_parser.add_argument("--type", "-t", default="web-app", 
+                           choices=["web-app", "api-only", "data-analysis", "simple-site"],
+                           help="プロジェクトタイプ (デフォルト: web-app)")
+    
     # bootstrap コマンド
     bootstrap_parser = subparsers.add_parser("bootstrap", help="プロジェクトをブートストラップ")
     bootstrap_parser.add_argument("project_type", help="プロジェクトタイプ (web-app, api-only, data-analysis, simple-site)")
@@ -83,6 +92,9 @@ def main():
     
     # save-tmux-mapping コマンド
     subparsers.add_parser("save-tmux-mapping", help="現在のtmuxマッピングを保存")
+    
+    # verify-config コマンド
+    subparsers.add_parser("verify-config", help="プロジェクト設定を検証・修復")
     
     # 引数がない場合はヘルプを表示
     if len(sys.argv) == 1:
@@ -106,6 +118,8 @@ def main():
             cli.broadcast_message(args.message)
         elif args.command == "urgent":
             cli.urgent_message(args.recipient, args.message)
+        elif args.command == "init":
+            cli.init_project(args.project_name, args.type)
         elif args.command == "bootstrap":
             cli.bootstrap_project(args.project_type, args.project_name)
         elif args.command == "my-role":
@@ -116,6 +130,8 @@ def main():
             cli.tmux_status()
         elif args.command == "save-tmux-mapping":
             cli.save_tmux_mapping()
+        elif args.command == "verify-config":
+            cli.verify_project_config()
         else:
             parser.print_help()
             sys.exit(1)
