@@ -1,0 +1,57 @@
+{
+  "name": "api-only",
+  "description": "REST API development focused project",
+  "variables": {
+    "PROJECT_TYPE": "REST API開発",
+    "PROJECT_TECH_STACK": "Node.js + Express + PostgreSQL",
+    "PROJECT_FRONTEND_FRAMEWORK": "N/A (API専用)",
+    "PROJECT_BACKEND_LANGUAGE": "Node.js",
+    "PROJECT_BACKEND_FRAMEWORK": "Express.js",
+    "PROJECT_DATABASE": "PostgreSQL",
+    "PROJECT_CLOUD_PROVIDER": "AWS",
+    "PROJECT_CONTAINER_PLATFORM": "Docker",
+    "PROJECT_TEST_FRAMEWORK": "Jest + Supertest",
+    "PROJECT_ARCHITECTURE": "レイヤードアーキテクチャ + Clean Architecture",
+    "PROJECT_PERFORMANCE": "レスポンス時間 < 100ms",
+    "PROJECT_API_SPEC": "OpenAPI 3.0",
+    "PROJECT_DESIGN_SYSTEM": "N/A (API専用)",
+    "PROJECT_TARGET_DEVICES": "N/A (API専用)",
+    "PROJECT_MONITORING_TOOLS": "CloudWatch + Grafana",
+    "PROJECT_FEATURES": "認証・データCRUD・バリデーション・レート制限",
+    "PROJECT_QUALITY_STANDARDS": "テストカバレッジ 90%以上",
+    "PROJECT_TEST_TARGETS": "API・ビジネスロジック・データベース",
+    "PROJECT_DEADLINE": "6週間後"
+  },
+  "initial_tasks": {
+    "queen": [
+      "API要件の詳細確認",
+      "開発スケジュールの策定",
+      "API仕様レビュー体制の確立"
+    ],
+    "architect": [
+      "API全体アーキテクチャの設計",
+      "データベーススキーマの設計",
+      "エンドポイント設計とドキュメント作成"
+    ],
+    "frontend": [
+      "APIドキュメントの作成支援",
+      "API仕様の可視化",
+      "開発者向けAPIクライアントの作成"
+    ],
+    "backend": [
+      "バックエンド環境のセットアップ",
+      "認証・認可システムの実装",
+      "CRUDエンドポイントの実装"
+    ],
+    "devops": [
+      "API開発環境の構築",
+      "CI/CDパイプラインの設定",
+      "APIゲートウェイの設定"
+    ],
+    "tester": [
+      "APIテスト戦略の策定",
+      "自動APIテストの実装",
+      "負荷テストの設定"
+    ]
+  }
+}
