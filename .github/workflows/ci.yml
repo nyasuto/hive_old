@@ -27,7 +27,7 @@ jobs:
 
     - name: Run quality checks
       run: |
-        make quality
+        make quality-check
 
   test:
     runs-on: ubuntu-latest
