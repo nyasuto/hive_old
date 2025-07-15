@@ -96,7 +96,7 @@ class TestLockInfo:
 class TestSyncManager:
     """SyncManagerメインクラステスト"""
 
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def sync_manager(self) -> Generator[SyncManager, None, None]:
         """SyncManager インスタンス"""
         import shutil
@@ -292,7 +292,7 @@ class TestSyncManager:
 class TestEdgeCases:
     """エッジケース・異常系テスト"""
 
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def sync_manager(self) -> Generator[SyncManager, None, None]:
         """テスト用SyncManager"""
         import shutil

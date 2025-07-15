@@ -618,7 +618,7 @@ class TestQueenCoordinator:
     @patch("queen.coordinator.CombAPI")
     @patch("queen.coordinator.TaskDistributor")
     @patch("queen.coordinator.StatusMonitor")
-    @pytest.mark.asyncio  # type: ignore
+    @pytest.mark.asyncio
     async def test_save_coordination_report(
         self, mock_status_monitor: Any, mock_task_distributor: Any, mock_comb_api: Any
     ) -> None:
@@ -748,7 +748,7 @@ class TestQueenCoordinator:
     @patch("queen.coordinator.CombAPI")
     @patch("queen.coordinator.TaskDistributor")
     @patch("queen.coordinator.StatusMonitor")
-    @pytest.mark.asyncio  # type: ignore
+    @pytest.mark.asyncio
     async def test_send_urgent_notification(
         self, mock_status_monitor: Any, mock_task_distributor: Any, mock_comb_api: Any
     ) -> None:
@@ -786,7 +786,7 @@ class TestQueenCoordinator:
     @patch("queen.coordinator.CombAPI")
     @patch("queen.coordinator.TaskDistributor")
     @patch("queen.coordinator.StatusMonitor")
-    @pytest.mark.asyncio  # type: ignore
+    @pytest.mark.asyncio
     async def test_notify_emergency_status(
         self, mock_status_monitor: Any, mock_task_distributor: Any, mock_comb_api: Any
     ) -> None:
