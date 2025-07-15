@@ -37,6 +37,8 @@ def main():
   hive my-role
   hive remind-me
   hive status
+  hive tmux-status
+  hive save-tmux-mapping
   hive broadcast "プロジェクトの進捗を報告してください"
   hive urgent queen "緊急：サーバーがダウンしています"
         """,
@@ -76,6 +78,12 @@ def main():
     # remind-me コマンド
     subparsers.add_parser("remind-me", help="現在の役割とタスクを確認")
     
+    # tmux-status コマンド
+    subparsers.add_parser("tmux-status", help="詳細なtmux状態を表示")
+    
+    # save-tmux-mapping コマンド
+    subparsers.add_parser("save-tmux-mapping", help="現在のtmuxマッピングを保存")
+    
     # 引数がない場合はヘルプを表示
     if len(sys.argv) == 1:
         parser.print_help()
@@ -104,6 +112,10 @@ def main():
             cli.show_my_role()
         elif args.command == "remind-me":
             cli.remind_me()
+        elif args.command == "tmux-status":
+            cli.tmux_status()
+        elif args.command == "save-tmux-mapping":
+            cli.save_tmux_mapping()
         else:
             parser.print_help()
             sys.exit(1)

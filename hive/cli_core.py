@@ -16,6 +16,8 @@ try:
 except ImportError:
     libtmux = None  # type: ignore
 
+from .tmux_integration import HiveTmuxIntegration
+
 
 @dataclass
 class WorkerInfo:
@@ -47,23 +49,16 @@ class HiveCLI:
     def __init__(self) -> None:
         """初期化"""
         self.project_root = Path(__file__).parent.parent
+        self.tmux_integration = HiveTmuxIntegration(self.project_root)
         self.current_worker = self._detect_current_worker()
         self.tmux_session = self._get_tmux_session()
 
     def _detect_current_worker(self) -> str:
         """現在のWorkerを検出"""
-        # tmux pane名から判定
-        if libtmux and self._is_in_tmux():
-            try:
-                current_pane = self._get_current_tmux_pane()
-                if current_pane:
-                    # pane名からworker名を抽出
-                    pane_name = current_pane.get("pane_title", "")
-                    for worker in self.VALID_WORKERS:
-                        if worker in pane_name.lower():
-                            return worker
-            except Exception:
-                pass
+        # tmux統合機能を使用して現在のworkerを検出
+        tmux_worker = self.tmux_integration.get_current_worker()
+        if tmux_worker and tmux_worker in self.VALID_WORKERS:
+            return tmux_worker
 
         # 環境変数から判定
         worker_from_env = os.environ.get("HIVE_WORKER_NAME")
@@ -75,7 +70,7 @@ class HiveCLI:
 
     def _is_in_tmux(self) -> bool:
         """tmux環境内かどうか判定"""
-        return "TMUX" in os.environ
+        return self.tmux_integration.is_in_tmux()
 
     def _get_tmux_session(self) -> Any | None:
         """tmuxセッションを取得"""
@@ -209,14 +204,34 @@ class HiveCLI:
         # 基本情報
         print(f"📁 プロジェクトルート: {self.project_root}")
         print(f"🔄 現在のWorker: {self.current_worker}")
-        print(f"🖥️  tmux環境: {'✅' if self._is_in_tmux() else '❌'}")
+        print(f"🖥️  tmux環境: {'✅' if self.tmux_integration.is_in_tmux() else '❌'}")
 
-        # Workerの状態
-        workers = self._get_all_workers()
-        print(f"\n👥 Workers ({len(workers)}):")
-        for worker in workers:
-            status_icon = "🟢" if worker.active else "⚪"
-            print(f"   {status_icon} {worker.name} (pane: {worker.pane_id})")
+        # Tmux状態の詳細
+        tmux_status = self.tmux_integration.get_session_status()
+        print(f"🐝 Hiveセッション: {'✅' if tmux_status['session_exists'] else '❌'}")
+
+        if tmux_status["session_exists"]:
+            print(f"\n👥 Workers ({len(tmux_status['workers'])}):")
+            for worker_name, worker_info in tmux_status["workers"].items():
+                status_icon = "🟢" if worker_info["is_active"] else "⚪"
+                mapped_icon = "✅" if worker_info["mapped"] else "❌"
+                print(
+                    f"   {status_icon} {worker_name} (pane: {worker_info['pane_index']}) {mapped_icon}"
+                )
+
+            if tmux_status["unmapped_panes"]:
+                print(
+                    f"\n⚠️ マッピングされていないpane ({len(tmux_status['unmapped_panes'])}):"
+                )
+                for pane in tmux_status["unmapped_panes"]:
+                    print(f"   ❓ {pane['pane_title']} (pane: {pane['pane_index']})")
+        else:
+            # フォールバック: 旧来の方法でWorker状態を表示
+            workers = self._get_all_workers()
+            print(f"\n👥 Workers ({len(workers)}):")
+            for worker in workers:
+                status_icon = "🟢" if worker.active else "⚪"
+                print(f"   {status_icon} {worker.name} (pane: {worker.pane_id})")
 
         # メッセージ統計
         self._show_message_statistics()
@@ -424,6 +439,49 @@ class HiveCLI:
         with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
 
+    def tmux_status(self) -> None:
+        """詳細なtmux状態を表示"""
+        status = self.tmux_integration.get_session_status()
+
+        print("🐝 Hive Tmux Status")
+        print("=" * 50)
+
+        print(f"🖥️  tmux環境: {'✅' if status['in_tmux'] else '❌'}")
+        print(
+            f"🐝 セッション '{status['session_name']}': {'✅' if status['session_exists'] else '❌'}"
+        )
+
+        if status["session_exists"]:
+            print("\n👥 Worker-Pane Mappings:")
+            for worker_name, worker_info in status["workers"].items():
+                mapped_icon = "✅" if worker_info["mapped"] else "❌"
+                active_icon = "🟢" if worker_info["is_active"] else "⚪"
+                pane_id = worker_info["pane_id"] or "N/A"
+                print(
+                    f"   {mapped_icon} {active_icon} {worker_name:<10} -> pane:{worker_info['pane_index']} ({pane_id})"
+                )
+
+            if status["unmapped_panes"]:
+                print("\n⚠️ マッピングされていないpane:")
+                for pane in status["unmapped_panes"]:
+                    print(
+                        f"   ❓ {pane['pane_title']} (pane:{pane['pane_index']}, id:{pane['pane_id']})"
+                    )
+        else:
+            print("\n⚠️  Hiveセッションが見つかりません")
+            print(
+                "   ヒント: 'tmux new-session -s hive' でセッションを作成してください"
+            )
+
+    def save_tmux_mapping(self) -> None:
+        """現在のtmuxマッピングを保存"""
+        try:
+            self.tmux_integration.save_current_mapping()
+            print("✅ tmuxマッピングを保存しました")
+            print("   設定ファイル: .hive/tmux/workers.json")
+        except Exception as e:
+            print(f"⚠️ マッピング保存エラー: {e}")
+
     def _save_message_to_file(
         self, recipient: str, message: str, priority: str
     ) -> None:
@@ -455,28 +513,17 @@ class HiveCLI:
 
     def _send_to_tmux_pane(self, recipient: str, message: str, priority: str) -> None:
         """tmux paneにメッセージを送信"""
-        if not self._is_in_tmux():
+        if not self.tmux_integration.is_in_tmux():
             return
 
         try:
-            # priorityに応じたプレフィックス
-            prefix = "🚨 [緊急] " if priority == "urgent" else "📬 "
+            # 新しいtmux統合機能を使用
+            success = self.tmux_integration.send_message_to_pane(
+                recipient, f"{self.current_worker}: {message}", priority
+            )
 
-            # tmux paneを探して送信
-            workers = self._get_all_workers()
-            for worker in workers:
-                if worker.name == recipient and worker.pane_id != "virtual":
-                    # コマンドを構築
-                    cmd = (
-                        f'echo "{prefix}{self.current_worker} → {recipient}: {message}"'
-                    )
-
-                    # tmux send-keys を使用
-                    subprocess.run(
-                        ["tmux", "send-keys", "-t", worker.pane_id, cmd, "Enter"],
-                        check=False,
-                    )
-                    break
+            if not success:
+                print(f"⚠️ tmuxメッセージ送信失敗: {recipient} (pane not found)")
 
         except Exception as e:
             print(f"⚠️ tmux送信エラー: {e}")
