@@ -26,12 +26,13 @@ from comb import CombAPI, MessagePriority, MessageType  # noqa: E402
 
 # Enhanced PoCから既存クラスをインポート
 sys.path.insert(0, str(Path(__file__).parent))
-from enhanced_feature_development import (  # noqa: E402
-    AIQualityChecker,
-    FixSuggestionEngine,
-    QualityAssessment,
-    QualityIssue,
-)
+if True:  # pragma: no cover
+    from enhanced_feature_development import (  # noqa: E402  # type: ignore[import]
+        AIQualityChecker,
+        FixSuggestionEngine,
+        QualityAssessment,
+        QualityIssue,
+    )
 
 
 @dataclass
@@ -503,7 +504,7 @@ class EnhancedDeveloperProxy:
 
     async def execute_task_with_improvement_context(self, task_message: dict) -> dict:
         """
-        改善コンテキストを考慮したタスク実行
+        改善コンテキストを考慮したタスク実行（実際のファイル生成）
 
         Args:
             task_message: タスクメッセージ
@@ -514,28 +515,50 @@ class EnhancedDeveloperProxy:
         iteration_context = task_message.get("iteration_context", {})
         previous_issues = iteration_context.get("previous_issues", [])
 
-        # 前回の問題を考慮した実装シミュレーション
+        # 前回の問題を考慮した実装
         if previous_issues:
             print(f"   📚 前回の問題を考慮: {len(previous_issues)}件の改善点")
             for issue in previous_issues:
                 print(f"      - {issue['type']}: {issue['description']}")
 
-        # 実装結果をシミュレート
-        await asyncio.sleep(0.5)  # 実装時間をシミュレート
+        # 実際のファイル生成
+        impl_file = Path("examples/poc/automated_quality_calculator.py")
+        test_file = Path("examples/poc/test_automated_quality_calculator.py")
 
         # 反復番号に応じて品質を向上させる
         current_iteration = iteration_context.get("current_iteration", 1)
+
+        # 実装ファイルの生成
+        impl_content = self._generate_implementation_code(
+            current_iteration, previous_issues
+        )
+        test_content = self._generate_test_code(current_iteration, previous_issues)
+
+        # ファイル書き込み
+        impl_file.parent.mkdir(parents=True, exist_ok=True)
+        impl_file.write_text(impl_content, encoding="utf-8")
+        test_file.write_text(test_content, encoding="utf-8")
+
+        print(f"   ✅ 実装ファイル生成: {impl_file}")
+        print(f"   ✅ テストファイル生成: {test_file}")
+
+        # 実装時間をシミュレート
+        await asyncio.sleep(0.5)
+
+        # 品質スコア計算
         base_quality = min(70 + (current_iteration - 1) * 15, 95)
 
         result = {
             "implementation_status": "completed",
-            "deliverables": [
-                "examples/poc/quality_calculator.py",
-                "examples/poc/test_quality_calculator.py",
-            ],
+            "deliverables": [str(impl_file), str(test_file)],
             "simulated_quality_score": base_quality,
             "improvements_applied": len(previous_issues),
             "iteration_context": iteration_context,
+            "files_created": {
+                "implementation": str(impl_file),
+                "tests": str(test_file),
+                "timestamp": time.time(),
+            },
         }
 
         # 完了報告を送信
@@ -550,6 +573,211 @@ class EnhancedDeveloperProxy:
             print(f"Developer 完了報告送信エラー: {e}")
 
         return result
+
+    def _generate_implementation_code(
+        self, iteration: int, previous_issues: list
+    ) -> str:
+        """反復に応じた実装コード生成"""
+        # 基本的な実装
+        base_code = '''"""
+Automated Quality Calculator - 自動協調システムで生成
+反復回数: {iteration}回目
+
+自動協調システムにより生成された高品質な計算機能
+"""
+
+from typing import Union{type_import}
+
+Number = Union[int, float]
+
+
+def add(a: Number, b: Number) -> Number:{docstring_add}
+    {type_check}return a + b
+
+
+def subtract(a: Number, b: Number) -> Number:{docstring_subtract}
+    {type_check}return a - b
+
+
+def multiply(a: Number, b: Number) -> Number:{docstring_multiply}
+    {type_check}return a * b
+
+
+def divide(a: Number, b: Number) -> Number:{docstring_divide}
+    {type_check}if b == 0:
+        raise ZeroDivisionError("ゼロで除算することはできません")
+    return a / b
+
+
+if __name__ == "__main__":
+    print("🤖 自動協調システム生成 - 品質計算機能テスト")
+    print(f"反復: {iteration}回目")
+    print("=" * 50)
+
+    try:
+        print(f"add(5, 3) = {{add(5, 3)}}")
+        print(f"subtract(10, 4) = {{subtract(10, 4)}}")
+        print(f"multiply(6, 7) = {{multiply(6, 7)}}")
+        print(f"divide(15, 3) = {{divide(15, 3)}}")
+        print("✅ 全ての基本計算が正常に動作しました")
+
+        # エラーケーステスト
+        try:
+            divide(10, 0)
+        except ZeroDivisionError as e:
+            print(f"✅ ゼロ除算エラー正常検出: {{e}}")
+
+    except Exception as e:
+        print(f"❌ エラーが発生: {{e}}")
+'''
+
+        # 反復に応じて機能を追加
+        additions = {
+            "type_import": "",
+            "docstring_add": "",
+            "docstring_subtract": "",
+            "docstring_multiply": "",
+            "docstring_divide": "",
+            "type_check": "",
+        }
+
+        # 反復1以降: 型チェック追加
+        if iteration >= 1:
+            issue_types = [issue.get("type", "") for issue in previous_issues]
+
+            if "missing_type_hints" in issue_types or iteration >= 2:
+                # docstring追加
+                additions["docstring_add"] = '''
+    """
+    加算を実行します
+
+    Args:
+        a: 第一オペランド
+        b: 第二オペランド
+
+    Returns:
+        Number: 計算結果
+    """'''
+                additions["docstring_subtract"] = '''
+    """減算を実行します"""'''
+                additions["docstring_multiply"] = '''
+    """乗算を実行します"""'''
+                additions["docstring_divide"] = '''
+    """
+    除算を実行します
+
+    Raises:
+        ZeroDivisionError: ゼロ除算の場合
+    """'''
+
+            if "type_error" in issue_types or iteration >= 3:
+                # 型チェック追加
+                additions[
+                    "type_check"
+                ] = """if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise TypeError("引数は数値である必要があります")
+    """
+
+        return base_code.format(iteration=iteration, **additions)
+
+    def _generate_test_code(self, iteration: int, previous_issues: list) -> str:
+        """反復に応じたテストコード生成"""
+        base_test = '''"""
+Automated Quality Calculator Tests - 自動協調システムで生成
+反復回数: {iteration}回目
+
+自動協調システムにより生成された包括的テストスイート
+"""
+
+import sys
+from pathlib import Path
+import pytest
+
+# プロジェクトルートを追加
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from examples.poc.automated_quality_calculator import add, subtract, multiply, divide
+
+
+class TestCalculatorFunctions:
+    """計算機能の包括的テスト（反復{iteration}回目生成）"""
+
+    def test_add_basic(self):
+        """基本的な加算テスト"""
+        assert add(2, 3) == 5
+        assert add(0, 0) == 0
+        assert add(-1, 1) == 0
+
+    def test_subtract_basic(self):
+        """基本的な減算テスト"""
+        assert subtract(5, 3) == 2
+        assert subtract(0, 0) == 0
+        assert subtract(1, 1) == 0
+
+    def test_multiply_basic(self):
+        """基本的な乗算テスト"""
+        assert multiply(4, 5) == 20
+        assert multiply(0, 100) == 0
+        assert multiply(-2, 3) == -6
+
+    def test_divide_basic(self):
+        """基本的な除算テスト"""
+        assert divide(10, 2) == 5.0
+        assert divide(7, 2) == 3.5
+
+    def test_divide_zero_error(self):
+        """ゼロ除算エラーテスト"""
+        with pytest.raises(ZeroDivisionError):
+            divide(10, 0)
+
+{advanced_tests}
+
+if __name__ == "__main__":
+    print("🧪 自動協調システム生成テスト実行")
+    print(f"反復: {iteration}回目")
+    print("=" * 50)
+
+    test_calc = TestCalculatorFunctions()
+
+    try:
+        test_calc.test_add_basic()
+        test_calc.test_subtract_basic()
+        test_calc.test_multiply_basic()
+        test_calc.test_divide_basic()
+        test_calc.test_divide_zero_error()
+        print("✅ 全てのテストが正常に完了しました")
+
+    except Exception as e:
+        print(f"❌ テスト実行中にエラー: {{e}}")
+'''
+
+        # 反復に応じて高度なテストを追加
+        advanced_tests = ""
+        if iteration >= 2:
+            advanced_tests += '''
+    def test_add_floats(self):
+        """浮動小数点数の加算テスト"""
+        assert add(0.1, 0.2) == pytest.approx(0.3)
+        assert add(2.5, 3.7) == pytest.approx(6.2)
+
+    def test_negative_numbers(self):
+        """負の数のテスト"""
+        assert add(-5, -3) == -8
+        assert subtract(-5, -3) == -2
+        assert multiply(-4, -5) == 20'''
+
+        if iteration >= 3:
+            advanced_tests += '''
+
+    def test_type_validation(self):
+        """型チェックテスト"""
+        with pytest.raises(TypeError):
+            add("5", 3)
+        with pytest.raises(TypeError):
+            divide(10, "2")'''
+
+        return base_test.format(iteration=iteration, advanced_tests=advanced_tests)
 
 
 async def run_automated_coordination_demo() -> CoordinationResult:

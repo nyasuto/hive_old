@@ -103,6 +103,7 @@ module = [
     "coloredlogs.*",
     "watchdog.*",
     "pytest.*",
+    "enhanced_feature_development",
 ]
 ignore_missing_imports = true
 
