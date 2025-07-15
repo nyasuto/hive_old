@@ -13,7 +13,7 @@ from typing import Any
 try:
     import libtmux
 except ImportError:
-    libtmux = None  # type: ignore
+    libtmux = None
 
 
 @dataclass

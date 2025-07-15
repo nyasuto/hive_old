@@ -14,7 +14,7 @@ from typing import Any
 try:
     import libtmux
 except ImportError:
-    libtmux = None  # type: ignore
+    libtmux = None
 
 from .tmux_integration import HiveTmuxIntegration
 
