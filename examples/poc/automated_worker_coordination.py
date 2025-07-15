@@ -26,12 +26,13 @@ from comb import CombAPI, MessagePriority, MessageType  # noqa: E402
 
 # Enhanced PoCから既存クラスをインポート
 sys.path.insert(0, str(Path(__file__).parent))
-from enhanced_feature_development import (  # noqa: E402
-    AIQualityChecker,
-    FixSuggestionEngine,
-    QualityAssessment,
-    QualityIssue,
-)
+if True:  # pragma: no cover
+    from enhanced_feature_development import (  # noqa: E402  # type: ignore[import]
+        AIQualityChecker,
+        FixSuggestionEngine,
+        QualityAssessment,
+        QualityIssue,
+    )
 
 
 @dataclass
@@ -777,6 +778,7 @@ if __name__ == "__main__":
             divide(10, "2")'''
 
         return base_test.format(iteration=iteration, advanced_tests=advanced_tests)
+
 
 async def run_automated_coordination_demo() -> CoordinationResult:
     """自動協調デモの実行"""
