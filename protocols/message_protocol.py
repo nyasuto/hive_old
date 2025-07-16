@@ -95,8 +95,12 @@ class MessageHeader:
         return {
             "message_id": self.message_id,
             "protocol_version": self.protocol_version,
-            "message_type": self.message_type.value,
-            "priority": self.priority.value,
+            "message_type": self.message_type.value
+            if isinstance(self.message_type, MessageType)
+            else self.message_type,
+            "priority": self.priority.value
+            if isinstance(self.priority, MessagePriority)
+            else self.priority,
             "timestamp": self.timestamp,
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
@@ -254,6 +258,10 @@ class MessageProtocol:
         """
         now = time.time()
         expires_at = now + ttl_seconds if ttl_seconds else None
+
+        # message_typeを適切に変換
+        if isinstance(message_type, str):
+            message_type = MessageType(message_type)
 
         header = MessageHeader(
             message_id=str(uuid.uuid4()),
