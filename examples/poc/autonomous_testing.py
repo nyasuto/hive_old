@@ -169,7 +169,7 @@ class CodeAnalyzer:
         complexity = 1  # 基本パス
 
         for child in ast.walk(node):
-            if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
+            if isinstance(child, ast.If | ast.While | ast.For | ast.AsyncFor):
                 complexity += 1
             elif isinstance(child, ast.ExceptHandler):
                 complexity += 1
@@ -348,7 +348,7 @@ class TestGenerator:
             # 完整なテストクラス生成
             test_class = f'''class Test{func_name.title()}:
     """Test cases for {func_name} function"""
-    
+
 {chr(10).join(test_methods)}'''
 
             return {
@@ -401,7 +401,7 @@ class TestGenerator:
             # 完整なテストクラス生成
             test_class = f'''class Test{class_name}:
     """Test cases for {class_name} class"""
-    
+
 {chr(10).join(test_methods)}'''
 
             return {
@@ -445,16 +445,16 @@ class TestGenerator:
         for case_type, cases in edge_case_groups.items():
             test_content = f'''class TestEdgeCases{case_type.title()}:
     """Edge case tests for {case_type} scenarios"""
-    
+
     def test_{case_type}_scenarios(self):
         """Test various {case_type} edge cases"""
         # TODO: Implement comprehensive {case_type} testing
         edge_cases = {cases[:5]}  # First 5 cases
-        
+
         for case in edge_cases:
             # Test case: {{case["description"]}}
             pass
-        
+
         assert True  # Placeholder'''
 
             edge_tests.append(
@@ -802,7 +802,7 @@ async def main():
         print("🤖 Starting autonomous test generation cycle...")
 
         # 非同期で実行開始
-        agent_task = asyncio.create_task(agent.start_autonomous_cycle())
+        asyncio.create_task(agent.start_autonomous_cycle())
 
         # 5分間実行
         await asyncio.sleep(300)

@@ -647,7 +647,7 @@ async def demo_comb_autonomous_agent():
 
     try:
         # 短時間のデモ実行
-        demo_task = asyncio.create_task(agent.start_autonomous_cycle())
+        asyncio.create_task(agent.start_autonomous_cycle())
 
         # 2分間実行
         await asyncio.sleep(120)

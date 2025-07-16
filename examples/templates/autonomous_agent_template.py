@@ -447,7 +447,7 @@ async def demo_autonomous_agent():
 
     try:
         # 短時間のデモ実行
-        demo_task = asyncio.create_task(agent.start_autonomous_cycle())
+        asyncio.create_task(agent.start_autonomous_cycle())
 
         # 3サイクル後に停止
         await asyncio.sleep(90)  # 3 * 30秒

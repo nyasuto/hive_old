@@ -238,7 +238,7 @@ class QueenTestingCoordinator:
         complexity = 1
 
         for child in ast.walk(node):
-            if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
+            if isinstance(child, ast.If | ast.While | ast.For | ast.AsyncFor):
                 complexity += 1
             elif isinstance(child, ast.ExceptHandler):
                 complexity += 1

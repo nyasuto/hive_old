@@ -107,7 +107,7 @@ class QueenWorkerCoordinator:
 
         objective = input_data["objective"]
         template = input_data["template"]
-        context = input_data["context"]
+        # context = input_data["context"]  # 現在未使用
 
         # 目的分析
         plan = {
@@ -306,7 +306,7 @@ class QueenWorkerCoordinator:
         """プロジェクト完了処理"""
 
         deliverables = content.get("deliverables", {})
-        summary = content.get("summary", "")
+        # summary = content.get("summary", "")  # 現在未使用
 
         # プロジェクト終了処理
         project = self.active_projects[project_id]
@@ -536,7 +536,7 @@ class DeveloperWorker:
     ) -> dict[str, Any]:
         """個別ステップ実行"""
         action = step["action"]
-        description = step["description"]
+        # description = step["description"]  # 現在未使用
 
         # 実際の実装 (簡易版)
         if action == "initial_implementation":

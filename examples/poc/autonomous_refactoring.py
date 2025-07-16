@@ -147,7 +147,7 @@ class CodeQualityAnalyzer:
                     tree = ast.parse(f.read())
 
                 for node in ast.walk(tree):
-                    if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                    if isinstance(node, ast.FunctionDef | ast.ClassDef):
                         total_functions += 1
 
                         # docstringの存在チェック
@@ -403,7 +403,7 @@ class CodeRefactoringEngine:
         """型アノテーション追加"""
         try:
             # mypyを使用して型エラーを特定
-            result = subprocess.run(
+            subprocess.run(
                 ["python", "-m", "mypy", ".", "--ignore-missing-imports"],
                 capture_output=True,
                 text=True,
@@ -526,7 +526,7 @@ from {import_path} import {", ".join(functions + classes)}
             for class_name in classes:
                 test_content += f'''class Test{class_name}:
     """Test {class_name} class"""
-    
+
     def test_init(self):
         """Test {class_name} initialization"""
         # TODO: Implement actual test logic
@@ -676,7 +676,7 @@ async def main():
         print("🤖 Starting autonomous refactoring cycle...")
 
         # 非同期で実行開始
-        agent_task = asyncio.create_task(agent.start_autonomous_cycle())
+        asyncio.create_task(agent.start_autonomous_cycle())
 
         # 5分間実行
         await asyncio.sleep(300)
