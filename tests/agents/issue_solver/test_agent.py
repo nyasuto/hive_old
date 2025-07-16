@@ -88,7 +88,9 @@ class TestIssueSolverAgent:
             assert "resolution_result" in result
             assert "validation_result" in result
 
-    @pytest.mark.skip(reason="Test expectations need update after #87 refactoring - will fix in #89")
+    @pytest.mark.skip(
+        reason="Test expectations need update after #87 refactoring - will fix in #89"
+    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
@@ -135,7 +137,9 @@ class TestIssueSolverAgent:
         assert result["investigation_result"]["issue_summary"]["type"] == "bug"
         assert result["investigation_result"]["issue_summary"]["complexity"] == "medium"
 
-    @pytest.mark.skip(reason="Test expectations need update after #87 refactoring - will fix in #89")
+    @pytest.mark.skip(
+        reason="Test expectations need update after #87 refactoring - will fix in #89"
+    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
@@ -217,7 +221,9 @@ class TestIssueSolverAgent:
         assert result["success"] is False
         assert "Prompt parsing failed" in result["error"]["message"]
 
-    @pytest.mark.skip(reason="Test expectations need update after #87 refactoring - will fix in #89")
+    @pytest.mark.skip(
+        reason="Test expectations need update after #87 refactoring - will fix in #89"
+    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
