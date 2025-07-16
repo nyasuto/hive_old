@@ -8,10 +8,12 @@ from datetime import datetime
 from typing import Any
 
 from ..base import BaseCoordinator
-from ..mixins import ErrorHandlingMixin, WorkLogMixin, ValidationMixin
+from ..mixins import ErrorHandlingMixin, ValidationMixin, WorkLogMixin
 
 
-class IssueSolverCoordinator(BaseCoordinator, WorkLogMixin, ErrorHandlingMixin, ValidationMixin):
+class IssueSolverCoordinator(
+    BaseCoordinator, WorkLogMixin, ErrorHandlingMixin, ValidationMixin
+):
     """Issue解決専用Coordinator"""
 
     def __init__(self, worker_id: str = "issue_solver_coordinator"):
