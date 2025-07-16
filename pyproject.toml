@@ -119,6 +119,10 @@ warn_unused_ignores = false
 module = "tests.*"
 disallow_untyped_decorators = false
 
+[[tool.mypy.overrides]]
+module = "examples.*"
+ignore_errors = true
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"
