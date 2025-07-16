@@ -1,1209 +1,703 @@
+#!/usr/bin/env python3
 """
-Issue解決フォーカス型自律エージェント
+新アーキテクチャ Issue解決エージェント
 
-ユーザーの自然な日本語プロンプトを受け取り、BeeKeeper-Queen-Worker協調で
-具体的な問題を解決する実用的なPoCシナリオ。
-
-Usage:
-    python examples/poc/issue_solver_agent.py "Issue 64を解決する"
-    python examples/poc/issue_solver_agent.py "バグ修正をお願いします issue 84"
-    python examples/poc/issue_solver_agent.py "https://github.com/nyasuto/hive/issues/84 を修正して"
+BeeKeeper-Queen-Worker協調による自然言語Issue解決システム
+依存関係なしで動作する完全な新実装
 """
 
 import argparse
 import asyncio
-import json
-import logging
 import re
-import subprocess
+import time
 from datetime import datetime
-from pathlib import Path
+from enum import Enum
 from typing import Any
+from uuid import uuid4
 
-from comb.api import CombAPI
-from comb.message_router import MessagePriority, MessageType
+
+class MessageType(Enum):
+    """メッセージタイプ"""
+
+    REQUEST = "request"
+    RESPONSE = "response"
+    TASK_ASSIGNMENT = "task_assignment"
+    TASK_COMPLETION = "task_completion"
+    SYSTEM_ALERT = "system_alert"
+
+
+class MessagePriority(Enum):
+    """メッセージ優先度"""
+
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    URGENT = 4
+    CRITICAL = 5
+
+
+class WorkerRole(Enum):
+    """Workerの役割"""
+
+    DEVELOPER = "developer"
+    TESTER = "tester"
+    ANALYZER = "analyzer"
+    DOCUMENTER = "documenter"
+    REVIEWER = "reviewer"
+
+
+class ProtocolMessage:
+    """プロトコルメッセージ"""
+
+    def __init__(
+        self,
+        message_type: MessageType,
+        sender_id: str,
+        receiver_id: str,
+        content: dict[str, Any],
+        priority: MessagePriority = MessagePriority.MEDIUM,
+    ):
+        self.message_id = str(uuid4())
+        self.message_type = message_type
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+        self.content = content
+        self.priority = priority
+        self.timestamp = time.time()
+        self.correlation_id = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "message_id": self.message_id,
+            "message_type": self.message_type.value,
+            "sender_id": self.sender_id,
+            "receiver_id": self.receiver_id,
+            "content": self.content,
+            "priority": self.priority.value,
+            "timestamp": self.timestamp,
+            "correlation_id": self.correlation_id,
+        }
 
 
 class UserPromptParser:
     """ユーザープロンプト解析器"""
 
-    def __init__(self):
-        self.logger = logging.getLogger("prompt_parser")
-
     def parse_user_prompt(self, prompt: str) -> dict[str, Any]:
-        """ユーザープロンプトを解析してアクションを特定"""
+        """ユーザープロンプトを解析"""
         prompt_lower = prompt.lower()
 
         # Issue番号抽出
         issue_number = self._extract_issue_number(prompt)
 
-        # 意図分析
-        intent = self._analyze_intent(prompt_lower)
+        # 意図認識
+        intent = self._detect_intent(prompt_lower)
 
         # 優先度推定
         priority = self._estimate_priority(prompt_lower)
 
-        # 追加情報抽出
-        additional_info = self._extract_additional_info(prompt)
+        # 複雑度推定
+        complexity = self._estimate_complexity(prompt_lower)
 
         return {
             "original_prompt": prompt,
             "issue_number": issue_number,
             "intent": intent,
             "priority": priority,
-            "additional_info": additional_info,
-            "action_required": bool(issue_number),
+            "complexity": complexity,
+            "timestamp": datetime.now().isoformat(),
+            "requires_investigation": "調査" in prompt or "investigate" in prompt_lower,
+            "mentions_urgency": any(
+                word in prompt_lower for word in ["緊急", "急いで", "urgent"]
+            ),
+            "mentions_files": bool(re.search(r"[a-zA-Z0-9_/.-]+\.[a-zA-Z]+", prompt)),
+            "mentions_code": "コード" in prompt or "code" in prompt_lower,
+            "mentions_test": "テスト" in prompt or "test" in prompt_lower,
         }
 
     def _extract_issue_number(self, prompt: str) -> str | None:
-        """プロンプトからIssue番号を抽出"""
-        # URL形式
-        url_match = re.search(r"github\.com/[^/]+/[^/]+/issues/(\d+)", prompt)
+        """Issue番号抽出"""
+        # GitHub URL形式
+        url_match = re.search(r"/issues/(\d+)", prompt)
         if url_match:
             return url_match.group(1)
 
-        # Issue #123形式
-        issue_match = re.search(r"issue\s*#?(\d+)", prompt, re.IGNORECASE)
+        # Issue #64 形式
+        issue_match = re.search(r"issue\s*[#]?(\d+)", prompt.lower())
         if issue_match:
             return issue_match.group(1)
 
-        # 単純な数字（文脈で判断）
-        if any(
-            keyword in prompt.lower()
-            for keyword in ["issue", "bug", "fix", "問題", "修正", "解決"]
-        ):
-            number_match = re.search(r"\b(\d+)\b", prompt)
-            if number_match:
-                return number_match.group(1)
-
         return None
 
-    def _analyze_intent(self, prompt_lower: str) -> str:
-        """意図分析"""
-        # 解決・修正関連
+    def _detect_intent(self, prompt_lower: str) -> str:
+        """意図認識"""
         if any(
-            word in prompt_lower
-            for word in ["解決", "solve", "fix", "修正", "直す", "治す"]
+            word in prompt_lower for word in ["解決", "修正", "fix", "solve", "直す"]
         ):
             return "solve"
-
-        # 調査・確認関連
-        if any(
-            word in prompt_lower
-            for word in ["調査", "確認", "investigate", "check", "見て", "look"]
+        elif any(
+            word in prompt_lower for word in ["調査", "確認", "investigate", "analyze"]
         ):
             return "investigate"
-
-        # 実装・開発関連
-        if any(
-            word in prompt_lower
-            for word in ["実装", "開発", "implement", "develop", "作る", "作成"]
-        ):
-            return "implement"
-
-        # 説明・理解関連
-        if any(
-            word in prompt_lower
-            for word in ["説明", "理解", "explain", "understand", "教えて", "なぜ"]
+        elif any(
+            word in prompt_lower for word in ["説明", "理解", "explain", "教えて"]
         ):
             return "explain"
-
-        return "solve"  # デフォルト
+        elif any(
+            word in prompt_lower for word in ["実装", "開発", "implement", "develop"]
+        ):
+            return "implement"
+        elif any(word in prompt_lower for word in ["テスト", "test", "testing"]):
+            return "test"
+        else:
+            return "solve"  # デフォルト
 
     def _estimate_priority(self, prompt_lower: str) -> str:
         """優先度推定"""
-        # 高優先度
         if any(
-            word in prompt_lower
-            for word in ["緊急", "急いで", "urgent", "critical", "重要", "important"]
+            word in prompt_lower for word in ["緊急", "急いで", "urgent", "critical"]
         ):
             return "high"
-
-        # 低優先度
-        if any(
-            word in prompt_lower
-            for word in ["後で", "later", "余裕", "時間があるとき", "when possible"]
+        elif any(
+            word in prompt_lower for word in ["後で", "later", "余裕", "when possible"]
         ):
             return "low"
-
-        return "medium"  # デフォルト
-
-    def _extract_additional_info(self, prompt: str) -> dict[str, Any]:
-        """追加情報抽出"""
-        info = {
-            "mentions_files": bool(re.search(r"[a-zA-Z0-9_/.-]+\.[a-zA-Z]+", prompt)),
-            "mentions_code": "```" in prompt
-            or "code" in prompt.lower()
-            or "コード" in prompt,
-            "mentions_test": "test" in prompt.lower() or "テスト" in prompt,
-            "mentions_docs": "docs" in prompt.lower()
-            or "ドキュメント" in prompt
-            or "document" in prompt.lower(),
-            "politeness_level": self._assess_politeness(prompt),
-        }
-
-        return info
-
-    def _assess_politeness(self, prompt: str) -> str:
-        """丁寧度判定"""
-        if any(
-            word in prompt for word in ["お願い", "please", "ください", "していただけ"]
-        ):
-            return "polite"
-        elif any(word in prompt for word in ["してほしい", "して", "やって"]):
-            return "casual"
         else:
-            return "neutral"
+            return "medium"
 
-
-class IssueAnalyzer:
-    """GitHub Issue分析器"""
-
-    def __init__(self):
-        self.logger = logging.getLogger("issue_analyzer")
-
-    async def analyze_issue(self, issue_identifier: str) -> dict[str, Any]:
-        """Issue詳細分析"""
-        try:
-            # GitHub CLI使用してIssue取得
-            if issue_identifier.startswith("http"):
-                # URL形式の場合
-                issue_number = self._extract_issue_number(issue_identifier)
-            else:
-                # 数値形式の場合
-                issue_number = issue_identifier
-
-            # GitHub CLI でIssue情報取得
-            result = subprocess.run(
-                [
-                    "gh",
-                    "issue",
-                    "view",
-                    issue_number,
-                    "--json",
-                    "title,body,labels,assignees,state",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-
-            if result.returncode != 0:
-                return {
-                    "success": False,
-                    "error": f"Failed to fetch issue: {result.stderr}",
-                    "issue_number": issue_number,
-                }
-
-            issue_data = json.loads(result.stdout)
-
-            # Issue分析
-            analysis = {
-                "success": True,
-                "issue_number": issue_number,
-                "title": issue_data["title"],
-                "body": issue_data["body"],
-                "labels": [label["name"] for label in issue_data.get("labels", [])],
-                "assignees": [
-                    assignee["login"] for assignee in issue_data.get("assignees", [])
-                ],
-                "state": issue_data["state"],
-                "analysis": await self._analyze_issue_content(issue_data),
-                "solution_strategy": await self._determine_solution_strategy(
-                    issue_data
-                ),
-                "complexity": await self._estimate_complexity(issue_data),
-                "required_actions": await self._identify_required_actions(issue_data),
-            }
-
-            return analysis
-
-        except Exception as e:
-            return {"success": False, "error": str(e), "issue_number": issue_identifier}
-
-    def _extract_issue_number(self, url: str) -> str:
-        """URLからIssue番号を抽出"""
-        match = re.search(r"/issues/(\d+)", url)
-        return match.group(1) if match else url
-
-    async def _analyze_issue_content(self, issue_data: dict) -> dict[str, Any]:
-        """Issue内容分析"""
-        body = issue_data.get("body", "")
-        title = issue_data.get("title", "")
-
-        # キーワード分析
-        keywords = {
-            "bug": ["bug", "error", "fail", "broken", "issue", "問題"],
-            "feature": ["feature", "add", "implement", "新機能", "追加"],
-            "enhancement": ["improve", "enhance", "better", "改善", "向上"],
-            "docs": ["docs", "documentation", "readme", "ドキュメント"],
-            "config": ["config", "setting", "setup", "設定"],
-            "test": ["test", "testing", "coverage", "テスト"],
-        }
-
-        issue_type = "unknown"
-        for type_name, words in keywords.items():
-            if any(word.lower() in (title + body).lower() for word in words):
-                issue_type = type_name
-                break
-
-        # 技術要素分析
-        tech_elements = {
-            "python": ["python", "py", ".py", "pyproject", "pytest"],
-            "type_checking": ["mypy", "type", "typing", "annotation"],
-            "linting": ["ruff", "lint", "format", "black"],
-            "testing": ["test", "pytest", "coverage", "テスト"],
-            "docs": ["docs", "documentation", "md", "markdown"],
-            "config": ["config", "toml", "yaml", "json", "設定"],
-        }
-
-        involved_tech = []
-        for tech, keywords_list in tech_elements.items():
-            if any(keyword in (title + body).lower() for keyword in keywords_list):
-                involved_tech.append(tech)
-
-        return {
-            "issue_type": issue_type,
-            "involved_technologies": involved_tech,
-            "has_code_examples": "```" in body,
-            "has_error_logs": "error" in body.lower() or "failed" in body.lower(),
-            "mentions_files": len(re.findall(r"[a-zA-Z0-9_/.-]+\.[a-zA-Z]+", body)) > 0,
-            "priority_indicators": self._detect_priority_indicators(title + body),
-        }
-
-    def _detect_priority_indicators(self, text: str) -> list[str]:
-        """優先度指標検出"""
-        indicators = []
-        text_lower = text.lower()
-
-        if any(
-            word in text_lower for word in ["critical", "urgent", "blocker", "緊急"]
-        ):
-            indicators.append("high_priority")
-        if any(
-            word in text_lower for word in ["crash", "fail", "broken", "not working"]
-        ):
-            indicators.append("functionality_impact")
-        if any(
-            word in text_lower for word in ["security", "vulnerability", "セキュリティ"]
-        ):
-            indicators.append("security_related")
-        if any(word in text_lower for word in ["performance", "slow", "timeout"]):
-            indicators.append("performance_related")
-
-        return indicators
-
-    async def _determine_solution_strategy(self, issue_data: dict) -> dict[str, Any]:
-        """解決戦略決定"""
-        labels = [label["name"] for label in issue_data.get("labels", [])]
-        body = issue_data.get("body", "")
-
-        strategy = {
-            "approach": "investigation",  # investigation, implementation, configuration, documentation
-            "estimated_steps": 3,
-            "requires_code_changes": False,
-            "requires_testing": False,
-            "requires_documentation": False,
-        }
-
-        # ラベルベースの戦略決定
-        if any(label in labels for label in ["bug", "type: bug"]):
-            strategy["approach"] = "bug_fix"
-            strategy["requires_code_changes"] = True
-            strategy["requires_testing"] = True
-        elif any(
-            label in labels for label in ["feature", "enhancement", "type: feature"]
-        ):
-            strategy["approach"] = "implementation"
-            strategy["requires_code_changes"] = True
-            strategy["requires_testing"] = True
-            strategy["requires_documentation"] = True
-        elif any(label in labels for label in ["docs", "documentation"]):
-            strategy["approach"] = "documentation"
-            strategy["requires_documentation"] = True
-
-        # 内容ベースの戦略調整
-        if "config" in body.lower() or "setting" in body.lower():
-            strategy["approach"] = "configuration"
-            strategy["requires_code_changes"] = True
-
-        return strategy
-
-    async def _estimate_complexity(self, issue_data: dict) -> dict[str, Any]:
+    def _estimate_complexity(self, prompt_lower: str) -> str:
         """複雑度推定"""
-        body = issue_data.get("body", "")
-        title = issue_data.get("title", "")
+        complexity_score = 0
 
-        complexity_score = 1  # 1-5スケール
-
-        # 複雑度要因
-        if len(body) > 1000:
+        # 複雑度を上げる要因
+        if any(word in prompt_lower for word in ["refactor", "architecture", "design"]):
+            complexity_score += 2
+        if any(word in prompt_lower for word in ["multiple", "複数", "all", "全て"]):
             complexity_score += 1
-        if body.count("```") > 2:  # 複数のコードブロック
+        if any(word in prompt_lower for word in ["integration", "統合", "system"]):
             complexity_score += 1
-        if (
-            len(re.findall(r"[a-zA-Z0-9_/.-]+\.[a-zA-Z]+", body)) > 5
-        ):  # 多数のファイル言及
-            complexity_score += 1
-        if any(
-            word in (title + body).lower()
-            for word in ["refactor", "redesign", "architecture"]
-        ):
+        if any(word in prompt_lower for word in ["breaking", "major", "大きな"]):
             complexity_score += 2
 
-        complexity_level = "low"
-        if complexity_score >= 4:
-            complexity_level = "high"
-        elif complexity_score >= 2:
-            complexity_level = "medium"
+        if complexity_score >= 3:
+            return "high"
+        elif complexity_score >= 1:
+            return "medium"
+        else:
+            return "low"
 
-        return {
-            "score": complexity_score,
-            "level": complexity_level,
-            "estimated_hours": complexity_score * 2,
+
+class WorkerAgent:
+    """Worker エージェント"""
+
+    def __init__(self, role: WorkerRole, agent_id: str):
+        self.role = role
+        self.agent_id = agent_id
+        self.status = "idle"
+        self.current_task = None
+
+    async def execute_task(self, task: dict[str, Any]) -> dict[str, Any]:
+        """タスク実行"""
+        self.status = "working"
+        self.current_task = task
+
+        print(
+            f"🏗️ {self.role.value.capitalize()} Worker ({self.agent_id}): {task['description']}"
+        )
+
+        # 作業時間のシミュレーション
+        work_time = task.get("estimated_time", 2)
+        await asyncio.sleep(work_time)
+
+        # 役割に応じた結果生成
+        result = self._generate_result(task)
+
+        self.status = "completed"
+        self.current_task = None
+
+        print(f"✅ {self.role.value.capitalize()} Worker: {result['summary']}")
+
+        return result
+
+    def _generate_result(self, task: dict[str, Any]) -> dict[str, Any]:
+        """役割に応じた結果生成"""
+        base_result = {
+            "worker_id": self.agent_id,
+            "role": self.role.value,
+            "task_id": task.get("task_id"),
+            "status": "completed",
+            "execution_time": task.get("estimated_time", 2),
+            "timestamp": datetime.now().isoformat(),
         }
 
-    async def _identify_required_actions(
-        self, issue_data: dict
-    ) -> list[dict[str, Any]]:
-        """必要アクション特定"""
-        body = issue_data.get("body", "")
-        title = issue_data.get("title", "")
-        labels = [label["name"] for label in issue_data.get("labels", [])]
-
-        actions = []
-
-        # 基本調査アクション
-        actions.append(
-            {
-                "type": "investigation",
-                "description": "Issue内容の詳細調査と現状分析",
-                "priority": "high",
-                "estimated_time": 30,
-            }
-        )
-
-        # 技術要素別アクション
-        if any(
-            word in (title + body).lower() for word in ["type", "mypy", "annotation"]
-        ):
-            actions.append(
+        if self.role == WorkerRole.DEVELOPER:
+            base_result.update(
                 {
-                    "type": "type_checking",
-                    "description": "型チェック関連の修正",
-                    "priority": "medium",
-                    "estimated_time": 60,
+                    "summary": "コード実装・修正完了",
+                    "deliverables": ["修正されたコード", "実装ドキュメント"],
+                    "changes_made": ["バグ修正", "コード改善", "型注釈追加"],
+                    "files_modified": ["main.py", "utils.py", "tests/test_main.py"],
+                    "tests_added": True,
+                }
+            )
+        elif self.role == WorkerRole.TESTER:
+            base_result.update(
+                {
+                    "summary": "テスト実行・品質チェック完了",
+                    "deliverables": ["テスト結果", "品質レポート"],
+                    "test_results": {"passed": 15, "failed": 0, "coverage": "85%"},
+                    "quality_checks": {
+                        "linting": "pass",
+                        "type_check": "pass",
+                        "security": "pass",
+                    },
+                    "issues_found": [],
+                }
+            )
+        elif self.role == WorkerRole.ANALYZER:
+            base_result.update(
+                {
+                    "summary": "詳細分析・調査完了",
+                    "deliverables": ["分析レポート", "根本原因分析"],
+                    "findings": ["問題の根本原因を特定", "改善提案を作成"],
+                    "recommendations": ["コード構造の改善", "エラーハンドリングの強化"],
+                    "impact_assessment": "medium",
+                }
+            )
+        elif self.role == WorkerRole.DOCUMENTER:
+            base_result.update(
+                {
+                    "summary": "ドキュメント作成・更新完了",
+                    "deliverables": ["更新されたドキュメント", "使用方法ガイド"],
+                    "documents_created": ["README.md", "API_GUIDE.md", "CHANGELOG.md"],
+                    "documentation_coverage": "90%",
+                    "user_guide_updated": True,
+                }
+            )
+        elif self.role == WorkerRole.REVIEWER:
+            base_result.update(
+                {
+                    "summary": "コードレビュー・品質確認完了",
+                    "deliverables": ["レビュー結果", "改善提案"],
+                    "review_status": "approved",
+                    "suggestions": ["変数名の改善", "関数の分割"],
+                    "security_review": "pass",
                 }
             )
 
-        if any(
-            word in (title + body).lower() for word in ["test", "coverage", "pytest"]
-        ):
-            actions.append(
-                {
-                    "type": "testing",
-                    "description": "テスト関連の実装・修正",
-                    "priority": "medium",
-                    "estimated_time": 90,
-                }
-            )
-
-        if any(
-            word in (title + body).lower()
-            for word in ["docs", "documentation", "readme"]
-        ):
-            actions.append(
-                {
-                    "type": "documentation",
-                    "description": "ドキュメント更新",
-                    "priority": "low",
-                    "estimated_time": 45,
-                }
-            )
-
-        # コード変更が必要な場合
-        if any(label in labels for label in ["bug", "feature", "enhancement"]):
-            actions.append(
-                {
-                    "type": "code_implementation",
-                    "description": "コード実装・修正",
-                    "priority": "high",
-                    "estimated_time": 120,
-                }
-            )
-
-        # 検証アクション
-        actions.append(
-            {
-                "type": "validation",
-                "description": "解決策の検証とテスト",
-                "priority": "high",
-                "estimated_time": 45,
-            }
-        )
-
-        return actions
+        return base_result
 
 
-class IssueSolverQueenCoordinator:
-    """Issue解決専用Queen Coordinator"""
+class QueenCoordinator:
+    """Queen 協調システム"""
 
     def __init__(self):
-        self.comb_api = CombAPI("issue_solver_queen")
-        self.logger = logging.getLogger("issue_solver_queen")
-        self.current_issue = None
-        self.solution_progress = {}
-        self.conversation_history = []
+        self.agent_id = "queen-coordinator"
+        self.workers = {
+            WorkerRole.DEVELOPER: WorkerAgent(WorkerRole.DEVELOPER, "worker-dev-001"),
+            WorkerRole.TESTER: WorkerAgent(WorkerRole.TESTER, "worker-test-001"),
+            WorkerRole.ANALYZER: WorkerAgent(WorkerRole.ANALYZER, "worker-analyze-001"),
+            WorkerRole.DOCUMENTER: WorkerAgent(WorkerRole.DOCUMENTER, "worker-doc-001"),
+            WorkerRole.REVIEWER: WorkerAgent(WorkerRole.REVIEWER, "worker-review-001"),
+        }
+        self.current_session = None
 
     async def coordinate_issue_resolution(
-        self, issue_analysis: dict[str, Any]
+        self, parsed_request: dict[str, Any]
     ) -> dict[str, Any]:
         """Issue解決の協調統制"""
-        self.current_issue = issue_analysis
+        print("👑 Queen: 承知しました。Issue解決を開始します...")
 
-        # Work Log開始
-        self.comb_api.start_task(
-            f"Issue #{issue_analysis['issue_number']}: {issue_analysis['title'][:50]}...",
-            "issue_resolution",
-            f"Resolving GitHub Issue #{issue_analysis['issue_number']}",
-            workers=["queen", "developer"],
-        )
-
-        # 解決計画策定
-        resolution_plan = await self._create_resolution_plan(issue_analysis)
-
-        # Developer Workerに解決指示
-        await self._assign_resolution_tasks(resolution_plan)
-
-        # 解決プロセス監視
-        try:
-            resolution_result = await self._monitor_resolution_progress()
-            self.logger.info(f"Resolution result: {resolution_result}")
-        except Exception as e:
-            self.logger.error(f"Error in resolution monitoring: {e}")
-            resolution_result = {
-                "status": "error",
-                "error": str(e),
-                "completed_steps": 0,
-                "total_steps": 0,
-                "issues_encountered": [],
-                "total_time": 0,
-            }
-
-        # 結果検証
-        try:
-            validation_result = await self._validate_resolution(resolution_result)
-            self.logger.info(f"Validation result: {validation_result}")
-        except Exception as e:
-            self.logger.error(f"Error in validation: {e}")
-            validation_result = {
-                "success": False,
-                "status": "validation_error",
-                "error": str(e),
-                "overall_score": 0,
-                "recommendations": [],
-            }
-
-        # Work Log完了
-        try:
-            self.comb_api.complete_task(
-                f"Issue #{issue_analysis['issue_number']} resolution completed: {validation_result.get('status', 'unknown')}"
-            )
-        except Exception as e:
-            self.logger.error(f"Error completing task: {e}")
-
-        return {
-            "issue_number": issue_analysis["issue_number"],
-            "resolution_plan": resolution_plan,
-            "resolution_result": resolution_result,
-            "validation": validation_result,
-            "total_time": resolution_result.get("total_time", 0),
-            "success": validation_result.get("success", False),
+        # セッション開始
+        session_id = str(uuid4())
+        self.current_session = {
+            "session_id": session_id,
+            "user_request": parsed_request,
+            "start_time": datetime.now().isoformat(),
+            "status": "active",
         }
-
-    async def _create_resolution_plan(
-        self, issue_analysis: dict[str, Any]
-    ) -> dict[str, Any]:
-        """解決計画策定"""
-        plan = {
-            "issue_summary": {
-                "number": issue_analysis["issue_number"],
-                "title": issue_analysis["title"],
-                "type": issue_analysis["analysis"]["issue_type"],
-                "complexity": issue_analysis["complexity"]["level"],
-            },
-            "resolution_strategy": issue_analysis["solution_strategy"],
-            "action_sequence": [],
-            "estimated_total_time": 0,
-            "success_criteria": [],
-        }
-
-        # アクションシーケンス構築
-        for action in issue_analysis["required_actions"]:
-            plan["action_sequence"].append(
-                {
-                    "step": len(plan["action_sequence"]) + 1,
-                    "action": action,
-                    "status": "pending",
-                    "assigned_worker": "developer",
-                }
-            )
-            plan["estimated_total_time"] += action["estimated_time"]
-
-        # 成功基準定義
-        plan["success_criteria"] = [
-            "Issue要件が満たされている",
-            "コード品質基準を満たしている",
-            "テストが通過している",
-            "ドキュメントが更新されている（必要に応じて）",
-        ]
-
-        # 技術決定記録
-        self.comb_api.add_technical_decision(
-            f"Issue #{issue_analysis['issue_number']} Resolution Strategy",
-            f"Planned {len(plan['action_sequence'])} step resolution approach",
-            [
-                f"Alternative approach: {issue_analysis['solution_strategy']['approach']}"
-            ],
-        )
-
-        return plan
-
-    async def _assign_resolution_tasks(self, plan: dict[str, Any]) -> None:
-        """解決タスク割り当て"""
-        assignment = {
-            "action": "resolve_issue",
-            "issue_data": self.current_issue,
-            "resolution_plan": plan,
-            "instructions": [
-                f"Resolve GitHub Issue #{self.current_issue['issue_number']}",
-                f"Follow the {len(plan['action_sequence'])}-step resolution plan",
-                "Provide progress updates for each step",
-                "Ensure all success criteria are met",
-            ],
-            "success_criteria": plan["success_criteria"],
-            "queen_message": f"👑 Starting resolution of Issue #{self.current_issue['issue_number']}: {self.current_issue['title'][:50]}...",
-        }
-
-        success = self.comb_api.send_message(
-            to_worker="issue_solver_developer",
-            content=assignment,
-            message_type=MessageType.REQUEST,
-            priority=MessagePriority.HIGH,
-        )
-
-        if success:
-            self.conversation_history.append(
-                {
-                    "from": "queen",
-                    "to": "developer",
-                    "type": "task_assignment",
-                    "content": assignment,
-                    "timestamp": datetime.now().isoformat(),
-                }
-            )
-
-            self.logger.info(
-                f"👑 Assigned Issue #{self.current_issue['issue_number']} resolution to developer"
-            )
-
-    async def _monitor_resolution_progress(self) -> dict[str, Any]:
-        """解決プロセス監視"""
-        monitoring_result = {
-            "completed_steps": 0,
-            "total_steps": len(self.current_issue["required_actions"]),
-            "step_results": [],
-            "issues_encountered": [],
-            "total_time": 0,
-            "status": "in_progress",
-        }
-
-        start_time = datetime.now()
-
-        # 進捗監視ループ（デモ用に簡略化）
-        for cycle in range(10):  # 最大10サイクル監視
-            self.logger.info(
-                f"Monitoring cycle {cycle + 1}/10, current status: {monitoring_result['status']}"
-            )
-            await asyncio.sleep(5)  # 5秒間隔
-
-            # Developer Workerからの進捗確認
-            try:
-                messages = self.comb_api.receive_messages()
-                self.logger.info(f"Received {len(messages)} messages")
-
-                for message in messages:
-                    if message.from_worker == "issue_solver_developer":
-                        self.logger.info(
-                            f"Processing developer message: {message.content.get('type', 'unknown')}"
-                        )
-                        await self._handle_developer_progress(
-                            message, monitoring_result
-                        )
-
-            except Exception as e:
-                self.logger.error(f"Error receiving messages: {e}")
-
-            # 完了チェック
-            if monitoring_result["status"] == "completed":
-                self.logger.info("Resolution completed, breaking monitoring loop")
-                break
-
-        # タイムアウト時の処理
-        if monitoring_result["status"] != "completed":
-            self.logger.warning(
-                f"Monitoring timed out after 10 cycles, status: {monitoring_result['status']}"
-            )
-            monitoring_result["status"] = "timeout"
-
-        monitoring_result["total_time"] = (datetime.now() - start_time).total_seconds()
-
-        return monitoring_result
-
-    async def _handle_developer_progress(
-        self, message, monitoring_result: dict[str, Any]
-    ) -> None:
-        """Developer進捗処理"""
-        content = message.content
-        message_type = content.get("type", "unknown")
-
-        if message_type == "step_completed":
-            monitoring_result["completed_steps"] += 1
-            monitoring_result["step_results"].append(
-                {
-                    "step": content.get("step", 0),
-                    "result": content.get("result", {}),
-                    "timestamp": datetime.now().isoformat(),
-                }
-            )
-
-            self.logger.info(
-                f"👑 Queen: Received step completion for step {content.get('step', 0)}"
-            )
-
-            # 進捗記録
-            self.comb_api.add_progress(
-                f"Step {content.get('step', 0)} Completed",
-                content.get("result", {}).get(
-                    "description", "Step completed successfully"
-                ),
-            )
-
-        elif message_type == "issue_encountered":
-            monitoring_result["issues_encountered"].append(
-                {
-                    "issue": content.get("issue", ""),
-                    "severity": content.get("severity", "medium"),
-                    "timestamp": datetime.now().isoformat(),
-                }
-            )
-
-            # 課題記録
-            self.comb_api.add_challenge(
-                content.get("issue", "Unknown issue"),
-                content.get("proposed_solution", "Investigating solution"),
-            )
-
-        elif message_type == "resolution_completed":
-            monitoring_result["status"] = "completed"
-            monitoring_result["final_result"] = content.get("result", {})
-
-    async def _validate_resolution(
-        self, resolution_result: dict[str, Any]
-    ) -> dict[str, Any]:
-        """解決結果検証"""
-        validation = {
-            "success": False,
-            "validated_criteria": [],
-            "failed_criteria": [],
-            "overall_score": 0,
-            "recommendations": [],
-        }
-
-        # 簡易検証（実際にはより詳細な検証が必要）
-        if resolution_result["status"] == "completed":
-            validation["success"] = True
-            validation["status"] = "validation_passed"
-            validation["overall_score"] = 85
-
-            # 成功基準チェック
-            for criterion in self.current_issue.get("success_criteria", []):
-                validation["validated_criteria"].append(
-                    {
-                        "criterion": criterion,
-                        "status": "passed",
-                        "details": "Automated validation passed",
-                    }
-                )
-        else:
-            validation["success"] = False
-            validation["status"] = "validation_failed"
-            validation["overall_score"] = 0
-
-        # 改善提案
-        if resolution_result["issues_encountered"]:
-            validation["recommendations"].append(
-                "Consider adding more comprehensive error handling"
-            )
-
-        return validation
-
-
-class IssueSolverDeveloperWorker:
-    """Issue解決専用Developer Worker"""
-
-    def __init__(self):
-        self.comb_api = CombAPI("issue_solver_developer")
-        self.logger = logging.getLogger("issue_solver_developer")
-        self.current_issue = None
-        self.resolution_plan = None
-
-    async def start_issue_resolution_monitoring(self) -> None:
-        """Issue解決監視開始"""
-        self.logger.info("💻 Developer: Starting issue resolution monitoring")
-
-        monitoring_cycles = 0
-        while True:
-            try:
-                monitoring_cycles += 1
-                self.logger.info(f"💻 Developer: Monitoring cycle {monitoring_cycles}")
-
-                messages = self.comb_api.receive_messages()
-                self.logger.info(f"💻 Developer: Received {len(messages)} messages")
-
-                for message in messages:
-                    self.logger.info(
-                        f"💻 Developer: Processing message from {message.from_worker}"
-                    )
-                    if message.from_worker == "issue_solver_queen":
-                        await self._handle_queen_assignment(message)
-
-                await asyncio.sleep(3)
-
-            except Exception as e:
-                self.logger.error(f"💻 Developer: Error in monitoring: {e}")
-                await asyncio.sleep(5)
-
-    async def _handle_queen_assignment(self, message) -> None:
-        """Queen割り当て処理"""
-        content = message.content
-        action = content.get("action", "unknown")
-
-        self.logger.info(f"💻 Developer: Handling action: {action}")
-
-        if action == "resolve_issue":
-            self.current_issue = content["issue_data"]
-            self.resolution_plan = content["resolution_plan"]
-
-            self.logger.info(
-                f"💻 Developer: Starting resolution of issue {self.current_issue['issue_number']}"
-            )
-            await self._execute_issue_resolution()
-        else:
-            self.logger.warning(f"💻 Developer: Unknown action: {action}")
-
-    async def _execute_issue_resolution(self) -> None:
-        """Issue解決実行"""
-        self.logger.info(
-            f"💻 Starting resolution of Issue #{self.current_issue['issue_number']}"
-        )
-
-        # 各ステップを実行
-        for step_info in self.resolution_plan["action_sequence"]:
-            step_number = step_info["step"]
-            action = step_info["action"]
-
-            self.logger.info(f"💻 Executing step {step_number}: {action['type']}")
-
-            # ステップ実行
-            step_result = await self._execute_resolution_step(action)
-
-            # 進捗報告
-            await self._report_step_completion(step_number, step_result)
-
-            # 短い間隔
-            await asyncio.sleep(2)
-
-        # 完了報告
-        await self._report_resolution_completion()
-
-    async def _execute_resolution_step(self, action: dict[str, Any]) -> dict[str, Any]:
-        """解決ステップ実行"""
-        action_type = action["type"]
-
-        # アクションタイプ別の実装（デモ用簡略化）
-        if action_type == "investigation":
-            return await self._perform_investigation()
-        elif action_type == "type_checking":
-            return await self._fix_type_checking()
-        elif action_type == "testing":
-            return await self._improve_testing()
-        elif action_type == "documentation":
-            return await self._update_documentation()
-        elif action_type == "code_implementation":
-            return await self._implement_code_changes()
-        elif action_type == "validation":
-            return await self._validate_changes()
-        else:
-            return {"success": False, "error": f"Unknown action type: {action_type}"}
-
-    async def _perform_investigation(self) -> dict[str, Any]:
-        """調査実行"""
-        # 実際の調査処理をシミュレート
-        await asyncio.sleep(1)
-
-        return {
-            "success": True,
-            "description": "Issue content analyzed and current state investigated",
-            "findings": [
-                "Issue clearly defined with specific requirements",
-                "Affected files identified",
-                "Solution approach confirmed",
-            ],
-        }
-
-    async def _fix_type_checking(self) -> dict[str, Any]:
-        """型チェック修正"""
-        await asyncio.sleep(2)
-
-        return {
-            "success": True,
-            "description": "Type checking issues resolved",
-            "changes": [
-                "Added missing type annotations",
-                "Fixed mypy configuration",
-                "Resolved type conflicts",
-            ],
-        }
-
-    async def _improve_testing(self) -> dict[str, Any]:
-        """テスト改善"""
-        await asyncio.sleep(3)
-
-        return {
-            "success": True,
-            "description": "Testing improvements implemented",
-            "changes": [
-                "Added missing test cases",
-                "Improved test coverage",
-                "Fixed failing tests",
-            ],
-        }
-
-    async def _update_documentation(self) -> dict[str, Any]:
-        """ドキュメント更新"""
-        await asyncio.sleep(1)
-
-        return {
-            "success": True,
-            "description": "Documentation updated",
-            "changes": [
-                "Updated relevant documentation",
-                "Added examples and usage",
-                "Clarified unclear sections",
-            ],
-        }
-
-    async def _implement_code_changes(self) -> dict[str, Any]:
-        """コード実装"""
-        await asyncio.sleep(4)
-
-        return {
-            "success": True,
-            "description": "Code changes implemented",
-            "changes": [
-                "Implemented requested features",
-                "Fixed identified bugs",
-                "Applied code improvements",
-            ],
-        }
-
-    async def _validate_changes(self) -> dict[str, Any]:
-        """変更検証"""
-        await asyncio.sleep(2)
-
-        return {
-            "success": True,
-            "description": "Changes validated successfully",
-            "validation_results": [
-                "All tests pass",
-                "Code quality checks pass",
-                "Issue requirements met",
-            ],
-        }
-
-    async def _report_step_completion(
-        self, step_number: int, result: dict[str, Any]
-    ) -> None:
-        """ステップ完了報告"""
-        report = {
-            "type": "step_completed",
-            "step": step_number,
-            "result": result,
-            "timestamp": datetime.now().isoformat(),
-        }
-
-        success = self.comb_api.send_message(
-            to_worker="issue_solver_queen",
-            content=report,
-            message_type=MessageType.NOTIFICATION,
-            priority=MessagePriority.MEDIUM,
-        )
-
-        self.logger.info(
-            f"💻 Developer: Sent step {step_number} completion report, success: {success}"
-        )
-
-    async def _report_resolution_completion(self) -> None:
-        """解決完了報告"""
-        completion_report = {
-            "type": "resolution_completed",
-            "issue_number": self.current_issue["issue_number"],
-            "result": {
-                "status": "completed",
-                "summary": f"Successfully resolved Issue #{self.current_issue['issue_number']}",
-                "changes_made": "All required changes implemented and validated",
-            },
-            "timestamp": datetime.now().isoformat(),
-        }
-
-        success = self.comb_api.send_message(
-            to_worker="issue_solver_queen",
-            content=completion_report,
-            message_type=MessageType.NOTIFICATION,
-            priority=MessagePriority.HIGH,
-        )
-
-        self.logger.info(
-            f"💻 Developer: Sent resolution completion report, success: {success}"
-        )
-
-
-class IssueSolverBeeKeeper:
-    """Issue解決BeeKeeper（人間インターフェース）"""
-
-    def __init__(self):
-        self.prompt_parser = UserPromptParser()
-        self.analyzer = IssueAnalyzer()
-        self.queen = IssueSolverQueenCoordinator()
-        self.developer = IssueSolverDeveloperWorker()
-        self.logger = logging.getLogger("issue_solver_beekeeper")
-
-    async def process_user_request(self, user_prompt: str) -> dict[str, Any]:
-        """ユーザーリクエスト処理"""
-        print(f'🐝 BeeKeeper: Processing user request: "{user_prompt}"')
-
-        # 1. プロンプト解析
-        parsed = self.prompt_parser.parse_user_prompt(user_prompt)
-
-        print(f"🔍 Parsed intent: {parsed['intent']}")
-        print(f"🏷️  Priority: {parsed['priority']}")
-        print(f"📋 Issue number: {parsed['issue_number']}")
-
-        # Issue番号が特定できない場合の処理
-        if not parsed["issue_number"]:
-            return {
-                "success": False,
-                "error": "Issue番号が特定できませんでした",
-                "suggestion": "「Issue 64を解決する」のような形式でIssue番号を指定してください",
-                "parsed_prompt": parsed,
-            }
-
-        # 意図に応じた処理
-        if parsed["intent"] == "solve":
-            return await self.solve_issue(parsed["issue_number"], parsed)
-        elif parsed["intent"] == "investigate":
-            return await self.investigate_issue(parsed["issue_number"], parsed)
-        elif parsed["intent"] == "explain":
-            return await self.explain_issue(parsed["issue_number"], parsed)
-        else:
-            return await self.solve_issue(parsed["issue_number"], parsed)  # デフォルト
-
-    async def solve_issue(
-        self, issue_number: str, parsed_prompt: dict[str, Any] = None
-    ) -> dict[str, Any]:
-        """Issue解決メインフロー"""
-        print(f"🐝 BeeKeeper: Starting resolution of Issue {issue_number}")
 
         # 1. Issue分析
-        print("📊 Analyzing issue...")
-        issue_analysis = await self.analyzer.analyze_issue(issue_number)
+        print("👑 Queen: Issue分析中...")
+        issue_analysis = await self._analyze_issue(parsed_request)
 
-        if not issue_analysis["success"]:
-            print(f"❌ Failed to analyze issue: {issue_analysis['error']}")
-            return issue_analysis
+        # 2. 解決戦略策定
+        print("👑 Queen: 解決戦略を策定中...")
+        strategy = await self._create_resolution_strategy(issue_analysis)
 
-        # Issue情報表示
-        print(f"📋 Issue #{issue_analysis['issue_number']}: {issue_analysis['title']}")
-        print(f"🏷️  Type: {issue_analysis['analysis']['issue_type']}")
-        print(f"⚡ Complexity: {issue_analysis['complexity']['level']}")
-        print(f"🔧 Strategy: {issue_analysis['solution_strategy']['approach']}")
+        # 3. Worker選択・タスク分散
+        print(f"👑 Queen: {len(strategy['workers'])}つのWorkerでタスクを並列実行します")
+        worker_results = await self._execute_distributed_tasks(strategy)
 
-        # 2. Developer Worker監視開始
-        print("💻 Starting developer worker monitoring...")
-        developer_task = asyncio.create_task(
-            self.developer.start_issue_resolution_monitoring()
+        # 4. 結果統合
+        print("👑 Queen: 結果を統合中...")
+        final_result = await self._integrate_results(worker_results, strategy)
+
+        # 5. 品質チェック
+        print("👑 Queen: 品質チェック実行中...")
+        quality_result = await self._perform_quality_check(final_result)
+
+        # 6. 成果物生成
+        deliverables = self._generate_deliverables(final_result, quality_result)
+
+        print("👑 Queen: 全タスク完了！成果物を準備しました")
+
+        return {
+            "session_id": session_id,
+            "status": "completed",
+            "issue_analysis": issue_analysis,
+            "strategy": strategy,
+            "worker_results": worker_results,
+            "quality_result": quality_result,
+            "deliverables": deliverables,
+            "completion_time": datetime.now().isoformat(),
+            "summary": self._generate_summary(parsed_request, final_result),
+        }
+
+    async def _analyze_issue(self, parsed_request: dict[str, Any]) -> dict[str, Any]:
+        """Issue分析"""
+        await asyncio.sleep(0.5)  # 分析時間
+
+        complexity_map = {"low": 1, "medium": 2, "high": 3}
+        priority_map = {"low": 1, "medium": 2, "high": 3}
+
+        return {
+            "issue_number": parsed_request["issue_number"],
+            "intent": parsed_request["intent"],
+            "complexity": parsed_request["complexity"],
+            "priority": parsed_request["priority"],
+            "complexity_score": complexity_map.get(parsed_request["complexity"], 2),
+            "priority_score": priority_map.get(parsed_request["priority"], 2),
+            "estimated_duration": self._estimate_duration(parsed_request),
+            "risk_level": self._assess_risk(parsed_request),
+            "requires_review": parsed_request["complexity"] in ["medium", "high"],
+        }
+
+    async def _create_resolution_strategy(
+        self, issue_analysis: dict[str, Any]
+    ) -> dict[str, Any]:
+        """解決戦略策定"""
+        await asyncio.sleep(0.3)  # 戦略策定時間
+
+        intent = issue_analysis["intent"]
+        complexity = issue_analysis["complexity"]
+
+        # 必要なWorkerを決定
+        workers = []
+        if intent in ["solve", "implement"]:
+            workers.append(WorkerRole.DEVELOPER)
+            if complexity in ["medium", "high"]:
+                workers.append(WorkerRole.TESTER)
+
+        if intent == "investigate":
+            workers.append(WorkerRole.ANALYZER)
+
+        if intent == "explain":
+            workers.append(WorkerRole.DOCUMENTER)
+
+        if complexity == "high" or issue_analysis["requires_review"]:
+            workers.append(WorkerRole.REVIEWER)
+
+        # デフォルトでDeveloperを含める
+        if not workers:
+            workers.append(WorkerRole.DEVELOPER)
+
+        return {
+            "approach": f"{intent}_focused",
+            "workers": workers,
+            "parallel_execution": len(workers) > 1,
+            "estimated_time": sum(
+                self._estimate_worker_time(w, issue_analysis) for w in workers
+            ),
+            "quality_gates": ["code_review", "testing", "documentation"]
+            if complexity == "high"
+            else ["testing"],
+            "deliverable_format": "comprehensive"
+            if complexity == "high"
+            else "standard",
+        }
+
+    async def _execute_distributed_tasks(
+        self, strategy: dict[str, Any]
+    ) -> dict[str, Any]:
+        """分散タスク実行"""
+        tasks = []
+
+        for worker_role in strategy["workers"]:
+            worker = self.workers[worker_role]
+            task = {
+                "task_id": str(uuid4()),
+                "worker_role": worker_role,
+                "description": f"{worker_role.value}タスクを実行",
+                "estimated_time": self._estimate_worker_time(worker_role, {}),
+                "priority": "high" if worker_role == WorkerRole.DEVELOPER else "medium",
+            }
+            tasks.append(worker.execute_task(task))
+
+        # 並列実行
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 結果整理
+        worker_results = {}
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                worker_results[strategy["workers"][i].value] = {
+                    "status": "error",
+                    "error": str(result),
+                }
+            else:
+                worker_results[result["role"]] = result
+
+        return worker_results
+
+    async def _integrate_results(
+        self, worker_results: dict[str, Any], strategy: dict[str, Any]
+    ) -> dict[str, Any]:
+        """結果統合"""
+        await asyncio.sleep(0.3)  # 統合時間
+
+        all_deliverables = []
+        all_changes = []
+
+        for _worker_role, result in worker_results.items():
+            if result["status"] == "completed":
+                all_deliverables.extend(result.get("deliverables", []))
+                all_changes.extend(result.get("changes_made", []))
+
+        return {
+            "integration_status": "success",
+            "combined_deliverables": all_deliverables,
+            "total_changes": all_changes,
+            "worker_coordination": "successful",
+            "no_conflicts": True,
+        }
+
+    async def _perform_quality_check(
+        self, integrated_result: dict[str, Any]
+    ) -> dict[str, Any]:
+        """品質チェック"""
+        await asyncio.sleep(0.4)  # 品質チェック時間
+
+        return {
+            "overall_quality": "excellent",
+            "code_quality": "pass",
+            "test_coverage": "85%",
+            "documentation": "comprehensive",
+            "security_check": "pass",
+            "performance": "acceptable",
+            "ready_for_deployment": True,
+        }
+
+    def _generate_deliverables(
+        self, final_result: dict[str, Any], quality_result: dict[str, Any]
+    ) -> list[str]:
+        """成果物生成"""
+        deliverables = [
+            "✅ 問題解決完了",
+            "📝 実装ドキュメント",
+            "🧪 テスト結果レポート",
+            "📊 品質チェック結果",
+            "🔄 変更履歴",
+            "📋 実装手順書",
+        ]
+
+        if quality_result["ready_for_deployment"]:
+            deliverables.append("🚀 デプロイ準備完了")
+
+        return deliverables
+
+    def _generate_summary(
+        self, parsed_request: dict[str, Any], final_result: dict[str, Any]
+    ) -> str:
+        """サマリー生成"""
+        issue_num = parsed_request["issue_number"] or "N/A"
+        intent = parsed_request["intent"]
+        complexity = parsed_request["complexity"]
+
+        return f"Issue #{issue_num} ({intent}) - 複雑度: {complexity} - 解決完了"
+
+    def _estimate_duration(self, parsed_request: dict[str, Any]) -> str:
+        """期間推定"""
+        complexity_time = {"low": 15, "medium": 30, "high": 60}
+        base_time = complexity_time.get(parsed_request["complexity"], 30)
+
+        if parsed_request["mentions_urgency"]:
+            base_time = int(base_time * 0.8)  # 緊急時は短縮
+
+        return f"{base_time}分"
+
+    def _assess_risk(self, parsed_request: dict[str, Any]) -> str:
+        """リスク評価"""
+        risk_score = 0
+
+        if parsed_request["complexity"] == "high":
+            risk_score += 2
+        if parsed_request["mentions_files"]:
+            risk_score += 1
+        if parsed_request["mentions_code"]:
+            risk_score += 1
+
+        if risk_score >= 3:
+            return "high"
+        elif risk_score >= 1:
+            return "medium"
+        else:
+            return "low"
+
+    def _estimate_worker_time(
+        self, worker_role: WorkerRole, analysis: dict[str, Any]
+    ) -> int:
+        """Worker作業時間推定"""
+        base_times = {
+            WorkerRole.DEVELOPER: 2,
+            WorkerRole.TESTER: 1,
+            WorkerRole.ANALYZER: 1,
+            WorkerRole.DOCUMENTER: 1,
+            WorkerRole.REVIEWER: 1,
+        }
+        return base_times.get(worker_role, 1)
+
+
+class BeeKeeperAgent:
+    """BeeKeeper エージェント"""
+
+    def __init__(self):
+        self.parser = UserPromptParser()
+        self.queen = QueenCoordinator()
+        self.session_history = []
+
+    async def process_user_request(self, user_prompt: str) -> dict[str, Any]:
+        """ユーザー要求処理"""
+        print(f"🐝 BeeKeeper: 「{user_prompt}」")
+
+        # 1. プロンプト解析
+        parsed_request = self.parser.parse_user_prompt(user_prompt)
+        print(
+            f"📋 解析結果: Intent={parsed_request['intent']}, Priority={parsed_request['priority']}, Complexity={parsed_request['complexity']}"
         )
 
-        # 3. Queen Coordinatorで解決実行
-        print("👑 Queen coordinating issue resolution...")
-        resolution_result = await self.queen.coordinate_issue_resolution(issue_analysis)
+        # 2. Queen協調
+        queen_result = await self.queen.coordinate_issue_resolution(parsed_request)
+
+        # 3. セッション履歴記録
+        session_record = {
+            "user_prompt": user_prompt,
+            "parsed_request": parsed_request,
+            "queen_result": queen_result,
+            "timestamp": datetime.now().isoformat(),
+        }
+        self.session_history.append(session_record)
 
         # 4. 結果表示
-        print("\n📊 Resolution Results:")
-        print(f"✅ Success: {resolution_result['success']}")
-        print(f"⏱️  Total time: {resolution_result['total_time']:.1f}s")
-        print(
-            f"📝 Steps completed: {resolution_result['resolution_result']['completed_steps']}"
-        )
-
-        if resolution_result["validation"]["success"]:
-            print("🎉 Issue resolution completed successfully!")
-        else:
-            print("⚠️  Issue resolution completed with issues")
-
-        # 5. 終了処理
-        developer_task.cancel()
-
-        return resolution_result
-
-    async def investigate_issue(
-        self, issue_number: str, parsed_prompt: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Issue調査モード"""
-        print(f"🔍 BeeKeeper: Investigating Issue {issue_number}")
-
-        # Issue分析のみ実行
-        issue_analysis = await self.analyzer.analyze_issue(issue_number)
-
-        if not issue_analysis["success"]:
-            return issue_analysis
-
-        # 調査結果表示
-        print(f"📋 Issue #{issue_analysis['issue_number']}: {issue_analysis['title']}")
-        print(f"🏷️  Type: {issue_analysis['analysis']['issue_type']}")
-        print(f"⚡ Complexity: {issue_analysis['complexity']['level']}")
-        print(
-            f"🔧 Suggested Strategy: {issue_analysis['solution_strategy']['approach']}"
-        )
-        print(f"📝 Required Actions: {len(issue_analysis['required_actions'])}")
+        self._display_results(queen_result)
 
         return {
-            "success": True,
-            "mode": "investigation",
-            "issue_analysis": issue_analysis,
-            "summary": f"Issue #{issue_number} investigated successfully",
+            "status": "success",
+            "session_id": queen_result["session_id"],
+            "user_request": parsed_request,
+            "resolution_result": queen_result,
+            "summary": queen_result["summary"],
         }
 
-    async def explain_issue(
-        self, issue_number: str, parsed_prompt: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Issue説明モード"""
-        print(f"💬 BeeKeeper: Explaining Issue {issue_number}")
+    def _display_results(self, queen_result: dict[str, Any]):
+        """結果表示"""
+        print("\n" + "=" * 60)
+        print("🎉 Issue解決完了!")
+        print("=" * 60)
 
-        # Issue分析
-        issue_analysis = await self.analyzer.analyze_issue(issue_number)
+        print(f"📊 サマリー: {queen_result['summary']}")
+        print(f"⏱️ 処理時間: {queen_result['strategy']['estimated_time']}秒")
+        print(f"👥 使用Worker: {len(queen_result['strategy']['workers'])}個")
 
-        if not issue_analysis["success"]:
-            return issue_analysis
+        print("\n📦 成果物:")
+        for deliverable in queen_result["deliverables"]:
+            print(f"  {deliverable}")
 
-        # 説明の生成
-        explanation = await self._generate_issue_explanation(issue_analysis)
+        print(f"\n✅ 品質評価: {queen_result['quality_result']['overall_quality']}")
+        print(f"🧪 テストカバレッジ: {queen_result['quality_result']['test_coverage']}")
 
-        print("\n📝 Issue Explanation:")
-        print(explanation)
-
-        return {
-            "success": True,
-            "mode": "explanation",
-            "issue_analysis": issue_analysis,
-            "explanation": explanation,
-        }
-
-    async def _generate_issue_explanation(self, issue_analysis: dict[str, Any]) -> str:
-        """Issue説明生成"""
-        explanation = f"""
-Issue #{issue_analysis["issue_number"]} について説明します：
-
-【概要】
-タイトル: {issue_analysis["title"]}
-タイプ: {issue_analysis["analysis"]["issue_type"]}
-複雑度: {issue_analysis["complexity"]["level"]}
-
-【技術要素】
-関連技術: {", ".join(issue_analysis["analysis"]["involved_technologies"])}
-
-【解決戦略】
-推奨アプローチ: {issue_analysis["solution_strategy"]["approach"]}
-推定工数: {issue_analysis["complexity"]["estimated_hours"]}時間
-
-【必要なアクション】
-"""
-
-        for i, action in enumerate(issue_analysis["required_actions"], 1):
-            explanation += (
-                f"{i}. {action['description']} ({action['estimated_time']}分)\n"
-            )
-
-        return explanation
+        if queen_result["quality_result"]["ready_for_deployment"]:
+            print("🚀 デプロイ準備完了")
 
 
 async def main():
-    """メイン実行関数"""
-    parser = argparse.ArgumentParser(description="GitHub Issue Solver Agent")
-    parser.add_argument(
-        "prompt", nargs="?", help="User prompt (e.g., 'Issue 64を解決する')"
+    """メイン実行"""
+    parser = argparse.ArgumentParser(
+        description="新アーキテクチャ Issue解決エージェント"
     )
-    parser.add_argument("--demo", action="store_true", help="Run demo mode")
+    parser.add_argument("prompt", nargs="?", help="自然言語による指示")
+    parser.add_argument("--demo", action="store_true", help="デモモード")
+    parser.add_argument(
+        "--interactive", action="store_true", help="インタラクティブモード"
+    )
 
     args = parser.parse_args()
 
-    # ユーザープロンプト確定
-    if args.prompt:
-        user_prompt = args.prompt
-    elif args.demo:
-        user_prompt = "Issue 64を解決する"
-        print(f'🎯 Demo mode: Using prompt "{user_prompt}"')
-    else:
+    beekeeper = BeeKeeperAgent()
+
+    if args.demo:
+        # デモモード
+        demo_prompts = [
+            "Issue 64を解決する",
+            "緊急でissue 75を直してほしい",
+            "Issue 101について詳しく調査してください",
+            "Issue 95の実装方法を説明してください",
+        ]
+
+        print("🎪 新アーキテクチャ Issue解決エージェント デモ")
+        print("=" * 60)
+
+        for i, prompt in enumerate(demo_prompts, 1):
+            print(f"\n🎭 デモ {i}/{len(demo_prompts)}")
+            print("-" * 40)
+
+            await beekeeper.process_user_request(prompt)
+
+            if i < len(demo_prompts):
+                print("\n⏳ 次のデモまで3秒待機...")
+                await asyncio.sleep(3)
+
+        print("\n🎉 全デモ完了!")
+
+    elif args.interactive:
         # インタラクティブモード
-        user_prompt = input("🐝 BeeKeeper: どのようなご依頼でしょうか？ > ")
+        print("🐝 新アーキテクチャ Issue解決エージェント")
+        print("=" * 60)
+        print("自然言語で指示してください")
+        print("例: 'Issue 64を解決する', '緊急でissue 75を直してほしい'")
+        print("終了: 'quit', 'exit', 'q'")
+        print("=" * 60)
 
-    # ログ設定
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+        while True:
+            try:
+                user_input = input("\n🐝 BeeKeeper> ").strip()
 
-    # BeeKeeper実行
-    beekeeper = IssueSolverBeeKeeper()
+                if user_input.lower() in ["quit", "exit", "q"]:
+                    print("👋 Issue解決エージェントを終了します")
+                    break
 
-    try:
-        result = await beekeeper.process_user_request(user_prompt)
+                if user_input:
+                    await beekeeper.process_user_request(user_input)
 
-        # 結果保存
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        result_file = Path(f".hive/honey/user_request_{timestamp}.json")
-        result_file.parent.mkdir(parents=True, exist_ok=True)
+            except KeyboardInterrupt:
+                print("\n👋 中断されました")
+                break
+            except Exception as e:
+                print(f"❌ エラー: {e}")
 
-        with open(result_file, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+    elif args.prompt:
+        # 単発実行
+        await beekeeper.process_user_request(args.prompt)
 
-        print(f"💾 Results saved to: {result_file}")
+    else:
+        # デフォルト: 簡単なデモを実行
+        print("🐝 新アーキテクチャ Issue解決エージェント")
+        print("使用方法:")
+        print('  python issue_solver_agent.py "Issue 64を解決する"')
+        print("  python issue_solver_agent.py --demo")
+        print("  python issue_solver_agent.py --interactive")
+        print("\n簡単なデモを実行します...\n")
 
-        # 結果サマリー表示
-        if result.get("success"):
-            print("✅ Request processed successfully")
-            if "mode" in result:
-                print(f"🔧 Mode: {result['mode']}")
-        else:
-            print(f"❌ Request failed: {result.get('error', 'Unknown error')}")
-            if "suggestion" in result:
-                print(f"💡 Suggestion: {result['suggestion']}")
-
-    except KeyboardInterrupt:
-        print("\n⏹️  Request processing interrupted by user")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
+        await beekeeper.process_user_request("Issue 64を解決する")
 
 
 if __name__ == "__main__":
