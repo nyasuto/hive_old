@@ -28,7 +28,7 @@ from protocols.protocol_validator import (
 class TestValidationError(unittest.TestCase):
     """ValidationErrorのテスト"""
 
-    def test_basic_error(self):
+    def test_basic_error(self) -> None:
         """基本エラーテスト"""
         error = ValidationError("Test error message")
 
@@ -36,7 +36,7 @@ class TestValidationError(unittest.TestCase):
         self.assertIsNone(error.field)
         self.assertIsNone(error.code)
 
-    def test_error_with_field_and_code(self):
+    def test_error_with_field_and_code(self) -> None:
         """フィールドとコード付きエラーテスト"""
         error = ValidationError(
             "Invalid format", field="message_id", code="INVALID_FORMAT"
@@ -50,21 +50,21 @@ class TestValidationError(unittest.TestCase):
 class TestValidationResult(unittest.TestCase):
     """ValidationResultのテスト"""
 
-    def test_valid_result(self):
+    def test_valid_result(self) -> None:
         """有効な結果テスト"""
         result = ValidationResult()
 
         self.assertTrue(result.valid)
         self.assertEqual(len(result.errors), 0)
 
-    def test_invalid_result(self):
+    def test_invalid_result(self) -> None:
         """無効な結果テスト"""
         result = ValidationResult(valid=False)
 
         self.assertFalse(result.valid)
         self.assertEqual(len(result.errors), 0)
 
-    def test_add_error(self):
+    def test_add_error(self) -> None:
         """エラー追加テスト"""
         result = ValidationResult()
         error = ValidationError("Test error", field="test_field", code="TEST_ERROR")
@@ -75,7 +75,7 @@ class TestValidationResult(unittest.TestCase):
         self.assertEqual(len(result.errors), 1)
         self.assertEqual(result.errors[0], error)
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         """辞書変換テスト"""
         result = ValidationResult()
         error = ValidationError("Test error", field="test_field", code="TEST_ERROR")
@@ -95,7 +95,7 @@ class TestValidationResult(unittest.TestCase):
 class TestProtocolValidator(unittest.TestCase):
     """ProtocolValidatorのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.validator = ProtocolValidator()
         self.protocol = MessageProtocol()
@@ -108,14 +108,14 @@ class TestProtocolValidator(unittest.TestCase):
             content={"action": "test"},
         )
 
-    def test_validate_valid_message(self):
+    def test_validate_valid_message(self) -> None:
         """有効なメッセージの検証テスト"""
         result = self.validator.validate_message(self.valid_message)
 
         self.assertTrue(result.valid)
         self.assertEqual(len(result.errors), 0)
 
-    def test_validate_header_required_fields(self):
+    def test_validate_header_required_fields(self) -> None:
         """ヘッダー必須フィールド検証テスト"""
         # 無効なヘッダーを作成
         invalid_header = MessageHeader(
@@ -133,7 +133,7 @@ class TestProtocolValidator(unittest.TestCase):
         self.assertFalse(result.valid)
         self.assertTrue(any("message_id" in str(error) for error in result.errors))
 
-    def test_validate_header_invalid_uuid(self):
+    def test_validate_header_invalid_uuid(self) -> None:
         """ヘッダー無効UUID検証テスト"""
         header = MessageHeader(
             message_id="invalid-uuid",
@@ -148,9 +148,11 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_header(header)
 
         self.assertFalse(result.valid)
-        self.assertTrue(any("INVALID_FORMAT" in error.code for error in result.errors))
+        self.assertTrue(
+            any("INVALID_FORMAT" in (error.code or "") for error in result.errors)
+        )
 
-    def test_validate_header_unsupported_version(self):
+    def test_validate_header_unsupported_version(self) -> None:
         """ヘッダー未サポートバージョン検証テスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -166,10 +168,10 @@ class TestProtocolValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("UNSUPPORTED_VERSION" in error.code for error in result.errors)
+            any("UNSUPPORTED_VERSION" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_header_invalid_timestamp(self):
+    def test_validate_header_invalid_timestamp(self) -> None:
         """ヘッダー無効タイムスタンプ検証テスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -185,10 +187,10 @@ class TestProtocolValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("INVALID_TIMESTAMP" in error.code for error in result.errors)
+            any("INVALID_TIMESTAMP" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_header_future_timestamp(self):
+    def test_validate_header_future_timestamp(self) -> None:
         """ヘッダー未来タイムスタンプ検証テスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -204,10 +206,10 @@ class TestProtocolValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("FUTURE_TIMESTAMP" in error.code for error in result.errors)
+            any("FUTURE_TIMESTAMP" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_header_invalid_agent_id(self):
+    def test_validate_header_invalid_agent_id(self) -> None:
         """ヘッダー無効エージェントID検証テスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -223,10 +225,10 @@ class TestProtocolValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("INVALID_AGENT_ID" in error.code for error in result.errors)
+            any("INVALID_AGENT_ID" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_header_retry_validation(self):
+    def test_validate_header_retry_validation(self) -> None:
         """ヘッダーリトライ検証テスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -243,9 +245,11 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_header(header)
 
         self.assertFalse(result.valid)
-        self.assertTrue(any("RETRY_EXCEEDED" in error.code for error in result.errors))
+        self.assertTrue(
+            any("RETRY_EXCEEDED" in (error.code or "") for error in result.errors)
+        )
 
-    def test_validate_header_invalid_expiry(self):
+    def test_validate_header_invalid_expiry(self) -> None:
         """ヘッダー無効期限検証テスト"""
         timestamp = time.time()
         header = MessageHeader(
@@ -262,20 +266,30 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_header(header)
 
         self.assertFalse(result.valid)
-        self.assertTrue(any("INVALID_EXPIRY" in error.code for error in result.errors))
+        self.assertTrue(
+            any("INVALID_EXPIRY" in (error.code or "") for error in result.errors)
+        )
 
-    def test_validate_payload_required_fields(self):
+    def test_validate_payload_required_fields(self) -> None:
         """ペイロード必須フィールド検証テスト"""
-        payload = MessagePayload(content=None)  # 必須フィールドがNone
+        # Create a payload with None content by bypassing normal constructor
+        payload = MessagePayload.__new__(MessagePayload)
+        payload.content = None  # type: ignore
+        payload.content_type = "application/json"
+        payload.encoding = "utf-8"
+        payload.checksum = None
 
         result = self.validator.validate_payload(payload)
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("REQUIRED_FIELD_MISSING" in error.code for error in result.errors)
+            any(
+                "REQUIRED_FIELD_MISSING" in (error.code or "")
+                for error in result.errors
+            )
         )
 
-    def test_validate_payload_unsupported_content_type(self):
+    def test_validate_payload_unsupported_content_type(self) -> None:
         """ペイロード未サポートコンテンツタイプ検証テスト"""
         payload = MessagePayload(
             content={"test": "data"},
@@ -286,23 +300,29 @@ class TestProtocolValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("UNSUPPORTED_CONTENT_TYPE" in error.code for error in result.errors)
+            any(
+                "UNSUPPORTED_CONTENT_TYPE" in (error.code or "")
+                for error in result.errors
+            )
         )
 
-    def test_validate_payload_invalid_content_type(self):
+    def test_validate_payload_invalid_content_type(self) -> None:
         """ペイロード無効コンテンツタイプ検証テスト"""
-        payload = MessagePayload(
-            content="invalid content",  # 辞書ではない
-        )
+        # Create a payload with non-dict content by bypassing normal constructor
+        payload = MessagePayload.__new__(MessagePayload)
+        payload.content = "invalid content"  # type: ignore  # 辞書ではない
+        payload.content_type = "application/json"
+        payload.encoding = "utf-8"
+        payload.checksum = None
 
         result = self.validator.validate_payload(payload)
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("INVALID_CONTENT_TYPE" in error.code for error in result.errors)
+            any("INVALID_CONTENT_TYPE" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_status(self):
+    def test_validate_status(self) -> None:
         """ステータス検証テスト"""
         # 有効なステータス
         result = self.validator.validate_status(MessageStatus.PENDING)
@@ -314,7 +334,7 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_status(MessageStatus.COMPLETED)
         self.assertTrue(result.valid)
 
-    def test_validate_task_assignment_message(self):
+    def test_validate_task_assignment_message(self) -> None:
         """タスク割り当てメッセージ検証テスト"""
         # 有効なタスク割り当てメッセージ
         message = self.protocol.create_task_assignment(
@@ -339,10 +359,10 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(invalid_message)
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("TASK_FIELD_MISSING" in error.code for error in result.errors)
+            any("TASK_FIELD_MISSING" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_task_completion_message(self):
+    def test_validate_task_completion_message(self) -> None:
         """タスク完了メッセージ検証テスト"""
         # 有効なタスク完了メッセージ
         message = self.protocol.create_task_completion(
@@ -371,10 +391,10 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(invalid_message)
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("INVALID_FIELD_TYPE" in error.code for error in result.errors)
+            any("INVALID_FIELD_TYPE" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_response_message(self):
+    def test_validate_response_message(self) -> None:
         """レスポンスメッセージ検証テスト"""
         # 有効なレスポンスメッセージ
         response = self.protocol.create_response(
@@ -396,10 +416,13 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(invalid_response)
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("RESPONSE_FIELD_MISSING" in error.code for error in result.errors)
+            any(
+                "RESPONSE_FIELD_MISSING" in (error.code or "")
+                for error in result.errors
+            )
         )
 
-    def test_validate_heartbeat_message(self):
+    def test_validate_heartbeat_message(self) -> None:
         """ハートビートメッセージ検証テスト"""
         # 有効なハートビートメッセージ
         message = self.protocol.create_heartbeat(
@@ -421,10 +444,13 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(invalid_message)
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("HEARTBEAT_FIELD_MISSING" in error.code for error in result.errors)
+            any(
+                "HEARTBEAT_FIELD_MISSING" in (error.code or "")
+                for error in result.errors
+            )
         )
 
-    def test_validate_system_alert_message(self):
+    def test_validate_system_alert_message(self) -> None:
         """システムアラートメッセージ検証テスト"""
         # 有効なシステムアラートメッセージ
         message = self.protocol.create_system_alert(
@@ -452,10 +478,10 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(invalid_message)
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("INVALID_SEVERITY" in error.code for error in result.errors)
+            any("INVALID_SEVERITY" in (error.code or "") for error in result.errors)
         )
 
-    def test_validate_expired_message(self):
+    def test_validate_expired_message(self) -> None:
         """期限切れメッセージ検証テスト"""
         # 期限切れメッセージを作成
         expired_message = self.protocol.create_message(
@@ -472,9 +498,9 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_message(expired_message)
 
         self.assertFalse(result.valid)
-        self.assertTrue(any("EXPIRED" in error.code for error in result.errors))
+        self.assertTrue(any("EXPIRED" in (error.code or "") for error in result.errors))
 
-    def test_validate_batch(self):
+    def test_validate_batch(self) -> None:
         """バッチ検証テスト"""
         messages = [
             self.protocol.create_message(
@@ -498,7 +524,7 @@ class TestProtocolValidator(unittest.TestCase):
             self.assertIn(message.header.message_id, results)
             self.assertTrue(results[message.header.message_id].valid)
 
-    def test_validate_version_compatibility(self):
+    def test_validate_version_compatibility(self) -> None:
         """バージョン互換性検証テスト"""
         # 互換性のあるバージョン
         result = self.validator.validate_version_compatibility("1.0", "1.1")
@@ -511,17 +537,17 @@ class TestProtocolValidator(unittest.TestCase):
         result = self.validator.validate_version_compatibility("1.0", "2.0")
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("VERSION_INCOMPATIBLE" in error.code for error in result.errors)
+            any("VERSION_INCOMPATIBLE" in (error.code or "") for error in result.errors)
         )
 
         # 未サポートバージョン
         result = self.validator.validate_version_compatibility("999.0", "1.0")
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("UNSUPPORTED_VERSION" in error.code for error in result.errors)
+            any("UNSUPPORTED_VERSION" in (error.code or "") for error in result.errors)
         )
 
-    def test_get_validation_stats(self):
+    def test_get_validation_stats(self) -> None:
         """検証統計情報取得テスト"""
         stats = self.validator.get_validation_stats()
 
@@ -543,16 +569,16 @@ class TestProtocolValidator(unittest.TestCase):
 class TestStrictValidator(unittest.TestCase):
     """厳密モードバリデーターのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.strict_validator = ProtocolValidator(strict_mode=True)
         self.protocol = MessageProtocol()
 
-    def test_strict_mode_enabled(self):
+    def test_strict_mode_enabled(self) -> None:
         """厳密モード有効化テスト"""
         self.assertTrue(self.strict_validator.strict_mode)
 
-    def test_strict_mode_content_size_limit(self):
+    def test_strict_mode_content_size_limit(self) -> None:
         """厳密モードコンテンツサイズ制限テスト"""
         # 大きなコンテンツを作成
         large_content = {"data": "x" * (1024 * 1024 + 1)}  # 1MB+1バイト
@@ -563,24 +589,24 @@ class TestStrictValidator(unittest.TestCase):
 
         self.assertFalse(result.valid)
         self.assertTrue(
-            any("CONTENT_TOO_LARGE" in error.code for error in result.errors)
+            any("CONTENT_TOO_LARGE" in (error.code or "") for error in result.errors)
         )
 
 
 class TestDefaultValidators(unittest.TestCase):
     """デフォルトバリデーターのテスト"""
 
-    def test_default_validator_exists(self):
+    def test_default_validator_exists(self) -> None:
         """デフォルトバリデーターの存在確認"""
         self.assertIsInstance(default_validator, ProtocolValidator)
         self.assertFalse(default_validator.strict_mode)
 
-    def test_strict_validator_exists(self):
+    def test_strict_validator_exists(self) -> None:
         """厳密バリデーターの存在確認"""
         self.assertIsInstance(strict_validator, ProtocolValidator)
         self.assertTrue(strict_validator.strict_mode)
 
-    def test_default_validator_functionality(self):
+    def test_default_validator_functionality(self) -> None:
         """デフォルトバリデーターの機能テスト"""
         protocol = MessageProtocol()
         message = protocol.create_message(

@@ -353,15 +353,15 @@ class ProtocolValidator:
             )
 
         # コンテンツ検証
+        # Runtime validation for content type safety despite type annotations
         if not isinstance(payload.content, dict):
-            result.add_error(
+            result.add_error(  # type: ignore[unreachable]
                 ValidationError(
                     "Content must be a dictionary",
                     field="content",
                     code="INVALID_CONTENT_TYPE",
                 )
             )
-            return result
 
         # 厳密モードでのコンテンツサイズ制限
         if self.strict_mode:

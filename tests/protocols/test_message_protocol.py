@@ -25,7 +25,7 @@ from protocols.message_protocol import (
 class TestMessageHeader(unittest.TestCase):
     """MessageHeaderのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -37,7 +37,7 @@ class TestMessageHeader(unittest.TestCase):
             receiver_id="test-receiver",
         )
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         """辞書変換テスト"""
         header_dict = self.header.to_dict()
 
@@ -50,7 +50,7 @@ class TestMessageHeader(unittest.TestCase):
         self.assertEqual(header_dict["sender_id"], "test-sender")
         self.assertEqual(header_dict["receiver_id"], "test-receiver")
 
-    def test_from_dict(self):
+    def test_from_dict(self) -> None:
         """辞書復元テスト"""
         header_dict = self.header.to_dict()
         restored_header = MessageHeader.from_dict(header_dict)
@@ -62,7 +62,7 @@ class TestMessageHeader(unittest.TestCase):
         self.assertEqual(restored_header.sender_id, self.header.sender_id)
         self.assertEqual(restored_header.receiver_id, self.header.receiver_id)
 
-    def test_optional_fields(self):
+    def test_optional_fields(self) -> None:
         """オプションフィールドテスト"""
         header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -90,7 +90,7 @@ class TestMessageHeader(unittest.TestCase):
 class TestMessagePayload(unittest.TestCase):
     """MessagePayloadのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.payload = MessagePayload(
             content={"key": "value", "number": 42},
@@ -98,7 +98,7 @@ class TestMessagePayload(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         """辞書変換テスト"""
         payload_dict = self.payload.to_dict()
 
@@ -107,7 +107,7 @@ class TestMessagePayload(unittest.TestCase):
         self.assertEqual(payload_dict["encoding"], "utf-8")
         self.assertIsNone(payload_dict["checksum"])
 
-    def test_from_dict(self):
+    def test_from_dict(self) -> None:
         """辞書復元テスト"""
         payload_dict = self.payload.to_dict()
         restored_payload = MessagePayload.from_dict(payload_dict)
@@ -117,7 +117,7 @@ class TestMessagePayload(unittest.TestCase):
         self.assertEqual(restored_payload.encoding, self.payload.encoding)
         self.assertEqual(restored_payload.checksum, self.payload.checksum)
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """デフォルト値テスト"""
         payload = MessagePayload(content={"test": "data"})
 
@@ -129,7 +129,7 @@ class TestMessagePayload(unittest.TestCase):
 class TestProtocolMessage(unittest.TestCase):
     """ProtocolMessageのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.header = MessageHeader(
             message_id="550e8400-e29b-41d4-a716-446655440000",
@@ -150,7 +150,7 @@ class TestProtocolMessage(unittest.TestCase):
             payload=self.payload,
         )
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         """辞書変換テスト"""
         message_dict = self.message.to_dict()
 
@@ -171,7 +171,7 @@ class TestProtocolMessage(unittest.TestCase):
             payload_dict["content"], {"action": "test", "data": {"value": 123}}
         )
 
-    def test_from_dict(self):
+    def test_from_dict(self) -> None:
         """辞書復元テスト"""
         message_dict = self.message.to_dict()
         restored_message = ProtocolMessage.from_dict(message_dict)
@@ -190,7 +190,7 @@ class TestProtocolMessage(unittest.TestCase):
         # ステータス検証
         self.assertEqual(restored_message.status, self.message.status)
 
-    def test_is_expired(self):
+    def test_is_expired(self) -> None:
         """期限切れチェックテスト"""
         # 期限なしメッセージ
         self.assertFalse(self.message.is_expired())
@@ -203,7 +203,7 @@ class TestProtocolMessage(unittest.TestCase):
         self.message.header.expires_at = time.time() - 3600
         self.assertTrue(self.message.is_expired())
 
-    def test_can_retry(self):
+    def test_can_retry(self) -> None:
         """リトライ可能チェックテスト"""
         # 基本的なリトライ可能状態
         self.message.status = MessageStatus.FAILED
@@ -224,7 +224,7 @@ class TestProtocolMessage(unittest.TestCase):
         self.message.status = MessageStatus.COMPLETED
         self.assertFalse(self.message.can_retry())
 
-    def test_increment_retry(self):
+    def test_increment_retry(self) -> None:
         """リトライ増加テスト"""
         original_count = self.message.header.retry_count
         self.message.status = MessageStatus.FAILED
@@ -234,7 +234,7 @@ class TestProtocolMessage(unittest.TestCase):
         self.assertEqual(self.message.header.retry_count, original_count + 1)
         self.assertEqual(self.message.status, MessageStatus.PENDING)
 
-    def test_status_transitions(self):
+    def test_status_transitions(self) -> None:
         """ステータス遷移テスト"""
         # 初期状態
         self.assertEqual(self.message.status, MessageStatus.PENDING)
@@ -259,11 +259,11 @@ class TestProtocolMessage(unittest.TestCase):
 class TestMessageProtocol(unittest.TestCase):
     """MessageProtocolのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.protocol = MessageProtocol(ProtocolVersion.V1_1)
 
-    def test_create_message(self):
+    def test_create_message(self) -> None:
         """メッセージ作成テスト"""
         message = self.protocol.create_message(
             message_type=MessageType.REQUEST,
@@ -280,7 +280,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertEqual(message.payload.content, {"action": "test"})
         self.assertEqual(message.status, MessageStatus.PENDING)
 
-    def test_create_message_with_ttl(self):
+    def test_create_message_with_ttl(self) -> None:
         """TTL付きメッセージ作成テスト"""
         with patch("time.time", return_value=1000.0):
             message = self.protocol.create_message(
@@ -293,7 +293,7 @@ class TestMessageProtocol(unittest.TestCase):
 
         self.assertEqual(message.header.expires_at, 1000.0 + 3600)
 
-    def test_create_response(self):
+    def test_create_response(self) -> None:
         """レスポンスメッセージ作成テスト"""
         original_message = self.protocol.create_message(
             message_type=MessageType.REQUEST,
@@ -321,7 +321,7 @@ class TestMessageProtocol(unittest.TestCase):
         )
         self.assertEqual(response_content["response"], {"result": "success"})
 
-    def test_create_task_assignment(self):
+    def test_create_task_assignment(self) -> None:
         """タスク割り当てメッセージ作成テスト"""
         message = self.protocol.create_task_assignment(
             sender_id="queen",
@@ -341,7 +341,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertEqual(content["task_type"], "analysis")
         self.assertEqual(content["task_data"], {"file": "data.csv"})
 
-    def test_create_task_completion(self):
+    def test_create_task_completion(self) -> None:
         """タスク完了メッセージ作成テスト"""
         message = self.protocol.create_task_completion(
             sender_id="worker",
@@ -361,7 +361,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertTrue(content["success"])
         self.assertIsNone(content["error_message"])
 
-    def test_create_task_completion_with_error(self):
+    def test_create_task_completion_with_error(self) -> None:
         """エラー付きタスク完了メッセージ作成テスト"""
         message = self.protocol.create_task_completion(
             sender_id="worker",
@@ -376,7 +376,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertFalse(content["success"])
         self.assertEqual(content["error_message"], "Processing failed")
 
-    def test_create_heartbeat(self):
+    def test_create_heartbeat(self) -> None:
         """ハートビートメッセージ作成テスト"""
         message = self.protocol.create_heartbeat(
             agent_id="worker-1",
@@ -392,7 +392,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertEqual(content["status"], {"cpu": 50, "memory": 60})
         self.assertFalse(content["broadcast"])
 
-    def test_create_heartbeat_broadcast(self):
+    def test_create_heartbeat_broadcast(self) -> None:
         """ブロードキャストハートビートメッセージ作成テスト"""
         message = self.protocol.create_heartbeat(
             agent_id="worker-1",
@@ -403,7 +403,7 @@ class TestMessageProtocol(unittest.TestCase):
         content = message.payload.content
         self.assertTrue(content["broadcast"])
 
-    def test_create_system_alert(self):
+    def test_create_system_alert(self) -> None:
         """システムアラートメッセージ作成テスト"""
         message = self.protocol.create_system_alert(
             sender_id="system",
@@ -424,7 +424,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertEqual(content["severity"], "warning")
         self.assertTrue(content["broadcast"])
 
-    def test_create_system_alert_critical(self):
+    def test_create_system_alert_critical(self) -> None:
         """クリティカルシステムアラートメッセージ作成テスト"""
         message = self.protocol.create_system_alert(
             sender_id="system",
@@ -436,7 +436,7 @@ class TestMessageProtocol(unittest.TestCase):
 
         self.assertEqual(message.header.priority, MessagePriority.CRITICAL)
 
-    def test_is_version_supported(self):
+    def test_is_version_supported(self) -> None:
         """バージョンサポートチェックテスト"""
         self.assertTrue(self.protocol.is_version_supported("1.0"))
         self.assertTrue(self.protocol.is_version_supported("1.1"))
@@ -444,7 +444,7 @@ class TestMessageProtocol(unittest.TestCase):
         self.assertFalse(self.protocol.is_version_supported("3.0"))
         self.assertFalse(self.protocol.is_version_supported("invalid"))
 
-    def test_get_protocol_info(self):
+    def test_get_protocol_info(self) -> None:
         """プロトコル情報取得テスト"""
         info = self.protocol.get_protocol_info()
 
@@ -469,12 +469,12 @@ class TestMessageProtocol(unittest.TestCase):
 class TestDefaultProtocol(unittest.TestCase):
     """デフォルトプロトコルのテスト"""
 
-    def test_default_protocol_exists(self):
+    def test_default_protocol_exists(self) -> None:
         """デフォルトプロトコルの存在確認"""
         self.assertIsInstance(default_protocol, MessageProtocol)
         self.assertEqual(default_protocol.protocol_version, ProtocolVersion.CURRENT)
 
-    def test_default_protocol_functionality(self):
+    def test_default_protocol_functionality(self) -> None:
         """デフォルトプロトコルの機能テスト"""
         message = default_protocol.create_message(
             message_type=MessageType.REQUEST,

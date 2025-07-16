@@ -20,7 +20,7 @@ from protocols.protocol_validator import ProtocolValidator
 class TestMessageRouterIntegration(unittest.TestCase):
     """MessageRouterIntegrationのテスト"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """テストセットアップ"""
         self.mock_legacy_router = Mock(spec=LegacyRouter)
         self.protocol = MessageProtocol()
@@ -31,7 +31,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
             legacy_router=self.mock_legacy_router,
         )
 
-    def test_send_protocol_message_success(self):
+    def test_send_protocol_message_success(self) -> None:
         """プロトコルメッセージ送信成功テスト"""
         # 有効なプロトコルメッセージを作成
         message = self.protocol.create_message(
@@ -55,7 +55,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(sent_message.to_worker, "test-receiver")
         self.assertEqual(sent_message.content, {"action": "test"})
 
-    def test_send_protocol_message_validation_failure(self):
+    def test_send_protocol_message_validation_failure(self) -> None:
         """プロトコルメッセージ送信検証失敗テスト"""
         # 無効なプロトコルメッセージを作成
         message = self.protocol.create_message(
@@ -73,7 +73,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertFalse(result)
         self.mock_legacy_router.send_message.assert_not_called()
 
-    def test_receive_protocol_messages_success(self):
+    def test_receive_protocol_messages_success(self) -> None:
         """プロトコルメッセージ受信成功テスト"""
         # 既存メッセージを作成
         legacy_message = LegacyMessage.create(
@@ -95,7 +95,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(messages[0].header.message_type, MessageType.REQUEST)
         self.assertEqual(messages[0].payload.content, {"action": "test"})
 
-    def test_receive_protocol_messages_empty(self):
+    def test_receive_protocol_messages_empty(self) -> None:
         """プロトコルメッセージ受信空テスト"""
         # 既存ルーターの受信をモック（空）
         self.mock_legacy_router.receive_messages.return_value = []
@@ -104,7 +104,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
 
         self.assertEqual(len(messages), 0)
 
-    def test_send_task_assignment(self):
+    def test_send_task_assignment(self) -> None:
         """タスク割り当て送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -132,7 +132,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(content["task_type"], "analysis")
         self.assertEqual(content["task_data"], {"file": "data.csv"})
 
-    def test_send_task_completion(self):
+    def test_send_task_completion(self) -> None:
         """タスク完了送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -160,7 +160,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertTrue(content["success"])
         self.assertIsNone(content["error_message"])
 
-    def test_send_task_completion_with_error(self):
+    def test_send_task_completion_with_error(self) -> None:
         """エラー付きタスク完了送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -181,7 +181,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertFalse(content["success"])
         self.assertEqual(content["error_message"], "Processing failed")
 
-    def test_send_heartbeat(self):
+    def test_send_heartbeat(self) -> None:
         """ハートビート送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -206,7 +206,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(content["status"], {"cpu": 50, "memory": 60})
         self.assertTrue(content["broadcast"])
 
-    def test_send_system_alert(self):
+    def test_send_system_alert(self) -> None:
         """システムアラート送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -234,7 +234,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(content["alert_data"], {"cpu": 90})
         self.assertEqual(content["severity"], "warning")
 
-    def test_send_system_alert_critical(self):
+    def test_send_system_alert_critical(self) -> None:
         """クリティカルシステムアラート送信テスト"""
         self.mock_legacy_router.send_message.return_value = True
 
@@ -254,7 +254,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
             sent_message.priority, LegacyPriority.URGENT
         )  # CRITICALはURGENTにマップ
 
-    def test_type_mapping(self):
+    def test_type_mapping(self) -> None:
         """タイプマッピングテスト"""
         # プロトコル → 既存
         self.assertEqual(
@@ -276,7 +276,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
             MessageType.RESPONSE,
         )
 
-    def test_priority_mapping(self):
+    def test_priority_mapping(self) -> None:
         """優先度マッピングテスト"""
         # プロトコル → 既存
         self.assertEqual(
@@ -302,7 +302,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
             MessagePriority.URGENT,
         )
 
-    def test_convert_protocol_to_legacy(self):
+    def test_convert_protocol_to_legacy(self) -> None:
         """プロトコル → 既存変換テスト"""
         protocol_message = self.protocol.create_message(
             message_type=MessageType.REQUEST,
@@ -321,7 +321,7 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(legacy_message.priority, LegacyPriority.HIGH)
         self.assertEqual(legacy_message.content, {"test": "data"})
 
-    def test_convert_legacy_to_protocol(self):
+    def test_convert_legacy_to_protocol(self) -> None:
         """既存 → プロトコル変換テスト"""
         legacy_message = LegacyMessage.create(
             from_worker="sender",
@@ -340,22 +340,24 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(protocol_message.header.priority, MessagePriority.HIGH)
         self.assertEqual(protocol_message.payload.content, {"test": "data"})
 
-    def test_timestamp_conversion(self):
+    def test_timestamp_conversion(self) -> None:
         """タイムスタンプ変換テスト"""
         # タイムスタンプ → ISO
         timestamp = 1634567890.123
         iso_string = self.integration._timestamp_to_iso(timestamp)
         self.assertIsInstance(iso_string, str)
-        self.assertIn("2021-10-18", iso_string)
+        if iso_string is not None:
+            self.assertIn("2021-10-18", iso_string)
 
         # None処理
         self.assertIsNone(self.integration._timestamp_to_iso(None))
 
         # ISO → タイムスタンプ
-        converted_back = self.integration._iso_to_timestamp(iso_string)
-        self.assertAlmostEqual(converted_back, timestamp, places=0)
+        if iso_string is not None:
+            converted_back = self.integration._iso_to_timestamp(iso_string)
+            self.assertAlmostEqual(converted_back, timestamp, places=0)
 
-    def test_get_integration_stats(self):
+    def test_get_integration_stats(self) -> None:
         """統合統計情報取得テスト"""
         # 既存ルーターの統計をモック
         self.mock_legacy_router.get_message_stats.return_value = {
@@ -377,14 +379,14 @@ class TestMessageRouterIntegration(unittest.TestCase):
         self.assertEqual(stats["legacy_router_stats"]["outbox"], 3)
         self.assertEqual(stats["legacy_router_stats"]["sent"], 10)
 
-    def test_validate_integration_success(self):
+    def test_validate_integration_success(self) -> None:
         """統合検証成功テスト"""
         result = self.integration.validate_integration()
 
         self.assertTrue(result.valid)
         self.assertEqual(len(result.errors), 0)
 
-    def test_validate_integration_no_legacy_router(self):
+    def test_validate_integration_no_legacy_router(self) -> None:
         """統合検証失敗テスト（既存ルーターなし）"""
         # legacy_routerをNoneに設定してテスト
         integration = MessageRouterIntegration(
@@ -394,18 +396,20 @@ class TestMessageRouterIntegration(unittest.TestCase):
         )
 
         # 実際にはデフォルトルーターが作成されるため、手動でNoneにする
-        integration.legacy_router = None
+        integration.legacy_router = None  # type: ignore
 
         result = integration.validate_integration()
 
         self.assertFalse(result.valid)
-        self.assertTrue(any("NOT_INITIALIZED" in error.code for error in result.errors))
+        self.assertTrue(
+            any("NOT_INITIALIZED" in (error.code or "") for error in result.errors)
+        )
 
 
 class TestDefaultIntegration(unittest.TestCase):
     """デフォルト統合のテスト"""
 
-    def test_default_integration_import(self):
+    def test_default_integration_import(self) -> None:
         """デフォルト統合のインポートテスト"""
         from protocols.message_router_integration import default_integration
 
@@ -414,7 +418,7 @@ class TestDefaultIntegration(unittest.TestCase):
         self.assertIsNotNone(default_integration.validator)
         self.assertIsNotNone(default_integration.legacy_router)
 
-    def test_default_integration_functionality(self):
+    def test_default_integration_functionality(self) -> None:
         """デフォルト統合の機能テスト"""
         from protocols.message_router_integration import default_integration
 
