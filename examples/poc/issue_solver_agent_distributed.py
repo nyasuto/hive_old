@@ -463,9 +463,11 @@ Issue番号: {parsed_request.get("issue_number", "N/A")}
             # For queen-coordinated tasks, assess quality based on queen result
             queen_result = integrated_result.get("queen_response", {})
             success_rate = 1.0 if queen_result.get("status") == "completed" else 0.0
-            
+
             return {
-                "overall_quality": "excellent" if success_rate >= 0.8 else "needs_improvement",
+                "overall_quality": "excellent"
+                if success_rate >= 0.8
+                else "needs_improvement",
                 "distributed_execution": True,
                 "worker_success_rate": f"{success_rate:.1%}",
                 "successful_workers": 1 if success_rate >= 0.8 else 0,
@@ -474,14 +476,13 @@ Issue番号: {parsed_request.get("issue_number", "N/A")}
                 "ready_for_deployment": success_rate >= 0.8,
                 "distributed_quality_score": success_rate,
             }
-        
+
         # Legacy format handling
         successful_workers = integrated_result.get("successful_workers", [])
         failed_workers = integrated_result.get("failed_workers", [])
-        
+
         success_rate = (
-            len(successful_workers)
-            / (len(successful_workers) + len(failed_workers))
+            len(successful_workers) / (len(successful_workers) + len(failed_workers))
             if (successful_workers or failed_workers)
             else 1.0
         )
@@ -627,8 +628,8 @@ class DistributedBeeKeeperAgent:
         if queen_result.get("execution_type") == "queen_coordinated":
             # New queen-coordinated format
             print(f"📊 サマリー: {queen_result.get('summary', 'N/A')}")
-            print(f"⏱️ 処理時間: 完了")
-            print(f"👥 使用Worker: Queen統括実行")
+            print("⏱️ 処理時間: 完了")
+            print("👥 使用Worker: Queen統括実行")
             print("🌐 実行タイプ: Queen統括分散実行")
 
             print("\n📦 成果物:")
@@ -654,9 +655,11 @@ class DistributedBeeKeeperAgent:
                     queen_response = coord["queen_response"]
                     if isinstance(queen_response, dict):
                         if "result" in queen_response:
-                            print(f"  ✅ {queen_response['result'].get('output', 'タスク完了')}")
+                            print(
+                                f"  ✅ {queen_response['result'].get('output', 'タスク完了')}"
+                            )
                         else:
-                            print(f"  ✅ Queen統括完了")
+                            print("  ✅ Queen統括完了")
                     else:
                         print(f"  ✅ {queen_response}")
         else:
