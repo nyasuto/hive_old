@@ -8,6 +8,8 @@ Issue #97: Claude Code永続デーモン統合
 import unittest
 from unittest.mock import Mock, patch
 
+import pytest
+
 from hive.agents_distributed.distributed.claude_daemon import (
     ClaudeCommandBuilder,
     ClaudeDaemon,
@@ -45,6 +47,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert config["max_retries"] == 3
         assert config["heartbeat_interval"] == 60
 
+    @pytest.mark.asyncio
     @patch("asyncio.sleep")
     async def test_start_daemon_success(self, mock_sleep):
         """デーモン起動成功テスト"""
@@ -63,6 +66,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert "queen" in self.daemon.command_queue
         assert "queen" in self.daemon.response_handlers
 
+    @pytest.mark.asyncio
     async def test_start_daemon_session_not_exists(self):
         """セッション未存在でのデーモン起動テスト"""
         self.mock_tmux_manager.session_exists = False
@@ -71,12 +75,14 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result is False
 
+    @pytest.mark.asyncio
     async def test_start_daemon_pane_not_found(self):
         """pane未発見でのデーモン起動テスト"""
         result = await self.daemon.start_daemon("unknown_pane")
 
         assert result is False
 
+    @pytest.mark.asyncio
     async def test_start_daemon_already_running(self):
         """既に実行中のデーモン起動テスト"""
         # デーモンが実行中の状態を設定
@@ -86,6 +92,7 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result is True
 
+    @pytest.mark.asyncio
     async def test_start_daemon_send_command_failed(self):
         """コマンド送信失敗でのデーモン起動テスト"""
         self.mock_tmux_manager.send_to_pane.return_value = False
@@ -107,6 +114,7 @@ class TestClaudeDaemon(unittest.TestCase):
         self.daemon.daemon_status["queen"] = {"status": "stopped"}
         assert self.daemon._is_daemon_running("queen") is False
 
+    @pytest.mark.asyncio
     @patch("time.time")
     @patch("asyncio.sleep")
     async def test_send_command_success(self, mock_sleep, mock_time):
@@ -135,6 +143,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert "response" in result
         assert "timestamp" in result
 
+    @pytest.mark.asyncio
     async def test_send_command_daemon_not_running(self):
         """デーモン未実行でのコマンド送信テスト"""
         result = await self.daemon.send_command("queen", "test command")
@@ -142,6 +151,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert result["success"] is False
         assert "Daemon not running" in result["error"]
 
+    @pytest.mark.asyncio
     async def test_send_command_send_failed(self):
         """コマンド送信失敗テスト"""
         self.daemon.daemon_status["queen"] = {
@@ -178,6 +188,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert "Line 2" in response
         assert "Line 3" in response
 
+    @pytest.mark.asyncio
     async def test_send_claude_prompt(self):
         """Claude プロンプト送信テスト"""
         self.daemon.daemon_status["queen"] = {
@@ -194,6 +205,7 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result["success"] is True
 
+    @pytest.mark.asyncio
     async def test_send_claude_file_command(self):
         """Claude ファイルコマンド送信テスト"""
         self.daemon.daemon_status["queen"] = {
@@ -212,6 +224,7 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result["success"] is True
 
+    @pytest.mark.asyncio
     @patch("asyncio.sleep")
     async def test_stop_daemon(self, mock_sleep):
         """デーモン停止テスト"""
@@ -229,12 +242,14 @@ class TestClaudeDaemon(unittest.TestCase):
         assert result is True
         assert self.daemon.daemon_status["queen"]["status"] == "stopped"
 
+    @pytest.mark.asyncio
     async def test_stop_daemon_not_running(self):
         """実行中でないデーモンの停止テスト"""
         result = await self.daemon.stop_daemon("queen")
 
         assert result is True
 
+    @pytest.mark.asyncio
     @patch("asyncio.sleep")
     async def test_restart_daemon(self, mock_sleep):
         """デーモン再起動テスト"""
@@ -284,6 +299,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert status["total_commands"] == 8
         assert status["total_errors"] == 1
 
+    @pytest.mark.asyncio
     @patch("time.time")
     async def test_health_check_healthy(self, mock_time):
         """健康なデーモンのヘルスチェックテスト"""
@@ -306,6 +322,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert result["healthy"] is True
         assert "response_time" in result
 
+    @pytest.mark.asyncio
     async def test_health_check_not_running(self):
         """実行中でないデーモンのヘルスチェックテスト"""
         result = await self.daemon.health_check("queen")
@@ -313,6 +330,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert result["healthy"] is False
         assert result["reason"] == "Daemon not running"
 
+    @pytest.mark.asyncio
     @patch("asyncio.sleep")
     async def test_start_all_daemons(self, mock_sleep):
         """全デーモン起動テスト"""
@@ -328,6 +346,7 @@ class TestClaudeDaemon(unittest.TestCase):
         assert results["queen"] is True
         assert results["developer1"] is True
 
+    @pytest.mark.asyncio
     @patch("asyncio.sleep")
     async def test_stop_all_daemons(self, mock_sleep):
         """全デーモン停止テスト"""

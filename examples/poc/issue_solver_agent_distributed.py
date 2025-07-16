@@ -166,7 +166,7 @@ class DistributedQueenCoordinator:
         self.worker_communicator = WorkerCommunicator()
         self.current_session = None
 
-        # Available workers
+        # Available workers (including queen)
         self.available_workers = {
             WorkerRole.DEVELOPER: "developer",
             WorkerRole.TESTER: "tester",
@@ -174,6 +174,9 @@ class DistributedQueenCoordinator:
             WorkerRole.DOCUMENTER: "documenter",
             WorkerRole.REVIEWER: "reviewer",
         }
+
+        # Queen worker for coordination
+        self.queen_worker = "queen"
 
     async def coordinate_issue_resolution(
         self, parsed_request: dict[str, Any]
@@ -202,21 +205,16 @@ class DistributedQueenCoordinator:
                 "timestamp": datetime.now().isoformat(),
             }
 
-        # 2. Issue分析
-        print("👑 Queen: Issue分析中...")
-        issue_analysis = await self._analyze_issue(parsed_request)
+        # 2. Queen にタスク全体を委任（QueenがWorker統括を実行）
+        print("👑 Queen: タスクを受領し、Worker統括を実行中...")
+        queen_result = await self._delegate_full_coordination_to_queen(parsed_request)
 
-        # 3. 解決戦略策定
-        print("👑 Queen: 解決戦略を策定中...")
-        strategy = await self._create_resolution_strategy(issue_analysis)
+        if queen_result["status"] != "success":
+            return queen_result
 
-        # 4. 実際のWorker分散実行
-        print(f"👑 Queen: {len(strategy['workers'])}つのWorkerで分散実行します")
-        worker_results = await self._execute_distributed_tasks(strategy, parsed_request)
-
-        # 5. 結果統合
-        print("👑 Queen: 結果を統合中...")
-        final_result = await self._integrate_results(worker_results, strategy)
+        # 3. Queen結果をそのまま使用（Queenが全て統括済み）
+        print("👑 Queen: 品質チェック実行中...")
+        final_result = queen_result
 
         # 6. 品質チェック
         print("👑 Queen: 品質チェック実行中...")
@@ -230,15 +228,62 @@ class DistributedQueenCoordinator:
         return {
             "session_id": session_id,
             "status": "completed",
-            "issue_analysis": issue_analysis,
-            "strategy": strategy,
-            "worker_results": worker_results,
+            "queen_coordination": queen_result,
             "quality_result": quality_result,
             "deliverables": deliverables,
             "completion_time": datetime.now().isoformat(),
             "summary": self._generate_summary(parsed_request, final_result),
             "distributed_execution": True,
+            "execution_type": "queen_coordinated",
         }
+
+    async def _delegate_full_coordination_to_queen(
+        self, parsed_request: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Queen にタスク全体の統括を委任"""
+        try:
+            # Queenに送信するメッセージを構築
+            queen_instruction = f"""以下のユーザー要求を受領しました。あなたのWorker（developer, tester, analyzer, documenter, reviewer）を適切に統括し、タスクを完了してください：
+
+ユーザー要求: {parsed_request.get("prompt", "")}
+Intent: {parsed_request.get("intent", "")}
+Priority: {parsed_request.get("priority", "")}
+Complexity: {parsed_request.get("complexity", "")}
+Issue番号: {parsed_request.get("issue_number", "N/A")}
+
+あなたの判断で：
+1. どのWorkerに何を依頼するかを決定
+2. 各Workerに適切な指示を送信
+3. 結果を統合
+4. 最終的な成果物を作成
+
+完了したら「[TASK_COMPLETED]」と出力してください。"""
+
+            # Queenにタスクを送信
+            queen_result = await self.worker_communicator.send_task_to_worker(
+                self.queen_worker,
+                {
+                    "task_type": "full_coordination",
+                    "instruction": queen_instruction,
+                    "user_request": parsed_request,
+                },
+            )
+
+            return {
+                "session_id": self.current_session["session_id"],
+                "status": "success",
+                "queen_response": queen_result,
+                "execution_type": "queen_coordinated",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        except Exception as e:
+            return {
+                "session_id": self.current_session["session_id"],
+                "status": "error",
+                "error": f"Queen coordination failed: {str(e)}",
+                "timestamp": datetime.now().isoformat(),
+            }
 
     async def _analyze_issue(self, parsed_request: dict[str, Any]) -> dict[str, Any]:
         """Issue分析"""
@@ -413,16 +458,32 @@ class DistributedQueenCoordinator:
         """品質チェック"""
         await asyncio.sleep(0.4)  # 品質チェック時間
 
+        # Handle queen_coordinated format
+        if integrated_result.get("execution_type") == "queen_coordinated":
+            # For queen-coordinated tasks, assess quality based on queen result
+            queen_result = integrated_result.get("queen_response", {})
+            success_rate = 1.0 if queen_result.get("status") == "completed" else 0.0
+
+            return {
+                "overall_quality": "excellent"
+                if success_rate >= 0.8
+                else "needs_improvement",
+                "distributed_execution": True,
+                "worker_success_rate": f"{success_rate:.1%}",
+                "successful_workers": 1 if success_rate >= 0.8 else 0,
+                "failed_workers": 0 if success_rate >= 0.8 else 1,
+                "integration_quality": "seamless" if success_rate >= 0.8 else "partial",
+                "ready_for_deployment": success_rate >= 0.8,
+                "distributed_quality_score": success_rate,
+            }
+
+        # Legacy format handling
+        successful_workers = integrated_result.get("successful_workers", [])
+        failed_workers = integrated_result.get("failed_workers", [])
+
         success_rate = (
-            len(integrated_result["successful_workers"])
-            / (
-                len(integrated_result["successful_workers"])
-                + len(integrated_result["failed_workers"])
-            )
-            if (
-                integrated_result["successful_workers"]
-                or integrated_result["failed_workers"]
-            )
+            len(successful_workers) / (len(successful_workers) + len(failed_workers))
+            if (successful_workers or failed_workers)
             else 1.0
         )
 
@@ -434,10 +495,10 @@ class DistributedQueenCoordinator:
             else "needs_improvement",
             "distributed_execution": True,
             "worker_success_rate": f"{success_rate:.1%}",
-            "successful_workers": len(integrated_result["successful_workers"]),
-            "failed_workers": len(integrated_result["failed_workers"]),
+            "successful_workers": len(successful_workers),
+            "failed_workers": len(failed_workers),
             "integration_quality": "seamless"
-            if integrated_result["conflicts_resolved"]
+            if integrated_result.get("conflicts_resolved", True)
             else "partial",
             "ready_for_deployment": success_rate >= 0.8,
             "distributed_quality_score": success_rate,
@@ -532,6 +593,7 @@ class DistributedBeeKeeperAgent:
         )
 
         # 2. 分散Queen協調
+        parsed_request["prompt"] = user_prompt  # Add original prompt for Queen
         queen_result = await self.queen.coordinate_issue_resolution(parsed_request)
 
         # 3. セッション履歴記録
@@ -549,10 +611,10 @@ class DistributedBeeKeeperAgent:
 
         return {
             "status": "success",
-            "session_id": queen_result["session_id"],
+            "session_id": queen_result.get("session_id", "unknown"),
             "user_request": parsed_request,
             "resolution_result": queen_result,
-            "summary": queen_result["summary"],
+            "summary": queen_result.get("summary", "Task completed"),
             "execution_type": "distributed",
         }
 
@@ -562,37 +624,78 @@ class DistributedBeeKeeperAgent:
         print("🎉 分散Issue解決完了!")
         print("=" * 60)
 
-        print(f"📊 サマリー: {queen_result['summary']}")
-        print(f"⏱️ 処理時間: {queen_result['strategy']['estimated_time']}秒")
-        print(f"👥 使用Worker: {len(queen_result['strategy']['workers'])}個")
+        # Handle both queen_coordinated and legacy formats
+        if queen_result.get("execution_type") == "queen_coordinated":
+            # New queen-coordinated format
+            print(f"📊 サマリー: {queen_result.get('summary', 'N/A')}")
+            print("⏱️ 処理時間: 完了")
+            print("👥 使用Worker: Queen統括実行")
+            print("🌐 実行タイプ: Queen統括分散実行")
 
-        if queen_result.get("distributed_execution"):
-            print("🌐 実行タイプ: 分散実行 (実際のWorker連携)")
+            print("\n📦 成果物:")
+            if "deliverables" in queen_result:
+                for deliverable in queen_result["deliverables"]:
+                    print(f"  {deliverable}")
+            else:
+                print("  ✅ Queen統括タスク完了")
 
-        print("\n📦 成果物:")
-        for deliverable in queen_result["deliverables"]:
-            print(f"  {deliverable}")
+            # Show quality results if available
+            if "quality_result" in queen_result:
+                quality = queen_result["quality_result"]
+                print(f"\n✅ 品質評価: {quality.get('overall_quality', 'N/A')}")
+                print(f"📡 Worker成功率: {quality.get('worker_success_rate', 'N/A')}")
+                if quality.get("ready_for_deployment"):
+                    print("🚀 分散処理デプロイ準備完了")
 
-        print(f"\n✅ 品質評価: {queen_result['quality_result']['overall_quality']}")
-        print(
-            f"📡 Worker成功率: {queen_result['quality_result']['worker_success_rate']}"
-        )
+            # Show queen coordination results
+            if "queen_coordination" in queen_result:
+                coord = queen_result["queen_coordination"]
+                if "queen_response" in coord:
+                    print("\n👑 Queen統括結果:")
+                    queen_response = coord["queen_response"]
+                    if isinstance(queen_response, dict):
+                        if "result" in queen_response:
+                            print(
+                                f"  ✅ {queen_response['result'].get('output', 'タスク完了')}"
+                            )
+                        else:
+                            print("  ✅ Queen統括完了")
+                    else:
+                        print(f"  ✅ {queen_response}")
+        else:
+            # Legacy format
+            print(f"📊 サマリー: {queen_result.get('summary', 'N/A')}")
+            if "strategy" in queen_result:
+                print(f"⏱️ 処理時間: {queen_result['strategy']['estimated_time']}秒")
+                print(f"👥 使用Worker: {len(queen_result['strategy']['workers'])}個")
 
-        if queen_result["quality_result"]["ready_for_deployment"]:
-            print("🚀 分散処理デプロイ準備完了")
+            if queen_result.get("distributed_execution"):
+                print("🌐 実行タイプ: 分散実行 (実際のWorker連携)")
 
-        # Show worker results if available
-        if "worker_results" in queen_result:
-            print("\n🏗️ Worker実行結果:")
-            for worker_name, result in queen_result["worker_results"].items():
-                if result["status"] == "completed":
-                    print(
-                        f"  ✅ {worker_name.capitalize()}: {result['result']['output']}"
-                    )
-                else:
-                    print(
-                        f"  ❌ {worker_name.capitalize()}: {result.get('error', 'Unknown error')}"
-                    )
+            print("\n📦 成果物:")
+            if "deliverables" in queen_result:
+                for deliverable in queen_result["deliverables"]:
+                    print(f"  {deliverable}")
+
+            if "quality_result" in queen_result:
+                quality = queen_result["quality_result"]
+                print(f"\n✅ 品質評価: {quality.get('overall_quality', 'N/A')}")
+                print(f"📡 Worker成功率: {quality.get('worker_success_rate', 'N/A')}")
+                if quality.get("ready_for_deployment"):
+                    print("🚀 分散処理デプロイ準備完了")
+
+            # Show worker results if available
+            if "worker_results" in queen_result:
+                print("\n🏗️ Worker実行結果:")
+                for worker_name, result in queen_result["worker_results"].items():
+                    if result["status"] == "completed":
+                        print(
+                            f"  ✅ {worker_name.capitalize()}: {result['result']['output']}"
+                        )
+                    else:
+                        print(
+                            f"  ❌ {worker_name.capitalize()}: {result.get('error', 'Unknown error')}"
+                        )
 
 
 async def main():

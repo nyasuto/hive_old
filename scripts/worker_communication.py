@@ -45,6 +45,11 @@ class WorkerCommunicator:
         default_config = {
             "session_name": "cozy-hive",
             "workers": {
+                "queen": {
+                    "tmux_pane": "cozy-hive:queen",
+                    "claude_command": "claude-code --role=queen",
+                    "timeout": 300,
+                },
                 "developer": {
                     "tmux_pane": "cozy-hive:developer",
                     "claude_command": "claude-code --role=developer",
@@ -66,7 +71,7 @@ class WorkerCommunicator:
                     "timeout": 120,
                 },
                 "reviewer": {
-                    "tmux_pane": "cozy-hive:reviewer-",
+                    "tmux_pane": "cozy-hive:reviewer",
                     "claude_command": "claude-code --role=reviewer",
                     "timeout": 180,
                 },
@@ -139,10 +144,8 @@ class WorkerCommunicator:
         message = self._create_worker_message(worker_name, task_with_id)
 
         try:
-            # Send message to Claude worker via tmux
-            subprocess.run(
-                ["tmux", "send-keys", "-t", pane_name, message, "Enter"], check=True
-            )
+            # Send message to Claude worker via tmux with confirmed input pattern
+            await self._send_message_with_confirmation(pane_name, message)
 
             # Wait for response and capture result
             timeout = self.config["workers"][worker_name].get("timeout", 120)
@@ -163,6 +166,25 @@ class WorkerCommunicator:
         except TimeoutError as e:
             raise WorkerCommunicationError(f"Worker {worker_name} timed out") from e
 
+    async def _send_message_with_confirmation(
+        self, pane_name: str, message: str
+    ) -> None:
+        """Send message to Claude Code with confirmed input pattern
+
+        Uses the pattern: message + Enter + 1 second wait + Enter
+        This ensures Claude Code properly processes and confirms the input.
+        """
+        # Step 1: Send the message with Enter
+        subprocess.run(
+            ["tmux", "send-keys", "-t", pane_name, message, "Enter"], check=True
+        )
+
+        # Step 2: Wait 1 second for message processing
+        await asyncio.sleep(1)
+
+        # Step 3: Send additional Enter for confirmation
+        subprocess.run(["tmux", "send-keys", "-t", pane_name, "Enter"], check=True)
+
     def _create_worker_message(self, worker_name: str, task: dict[str, Any]) -> str:
         """Create message to send to Claude worker"""
         issue_number = task.get("issue_number", "N/A")
@@ -181,7 +203,20 @@ class WorkerCommunicator:
         role_message = role_context.get(worker_name, f"Task: {task_type}")
 
         task_id = task.get("task_id", "unknown")
-        return f"{role_message}\n\n{instruction}\n\n回答が完了したら、以下のコマンドを実行してQueenに結果を送信してください：\ntmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あなたの回答をここに]' Enter\n\nその後、[TASK_COMPLETED]と出力してください。"
+
+        # Format message with clear instruction structure (like start-cozy-hive pattern)
+        return f"""以下があなたのタスクです。理解して実行してください：
+
+{role_message}
+
+{instruction}
+
+回答が完了したら、以下のコマンドを実行してQueenに結果を送信してください：
+tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あなたの回答をここに]' Enter
+
+その後、[TASK_COMPLETED]と出力してください。
+
+上記のタスクを理解しました。実行を開始します。"""
 
     async def _wait_for_claude_response(
         self, pane_name: str, timeout: int

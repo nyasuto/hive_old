@@ -115,9 +115,18 @@ hive remind-me     # 現在のタスクと役割を確認
 タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
 ```bash
 tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]' Enter
+sleep 1
+tmux send-keys -t cozy-hive:queen Enter
 ```
 
 その後、`[TASK_COMPLETED]`と出力してください。
+
+**重要**: Claude Code への入力確認には、必ず以下のパターンを使用してください：
+1. メッセージ送信 + Enter
+2. 1秒待機 (sleep 1)
+3. 追加の Enter 送信
+
+このパターンにより、Claude Code が確実にメッセージを受信し処理を開始します。
 
 ### 重要な原則
 - **Queen は常に一つ**: 全てのWorkerは唯一のQueenに報告
