@@ -5,9 +5,9 @@
 
 set -e
 
-SESSION_NAME="hive"
+SESSION_NAME="cozy-hive"
 
-echo "🛑 Stopping Hive Distributed System..."
+echo "🛑 Stopping Cozy Hive System..."
 
 # セッションの存在チェック
 if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -50,7 +50,7 @@ sleep 2
 echo "🔥 Killing tmux session..."
 tmux kill-session -t "$SESSION_NAME"
 
-echo "✅ Hive Distributed System stopped successfully!"
+echo "✅ Cozy Hive System stopped successfully!"
 echo ""
 echo "🔄 To restart:"
-echo "  ./scripts/start_hive_distributed.sh"
+echo "  ./scripts/start-cozy-hive.sh"

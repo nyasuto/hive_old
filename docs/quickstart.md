@@ -27,7 +27,7 @@ python examples/tests/protocols_test.py
 
 ```bash
 # 分散環境起動
-./scripts/start_hive_distributed.sh
+./scripts/start-cozy-hive.sh
 
 # 通信確認
 ./scripts/check-comb.sh
@@ -147,8 +147,8 @@ cat config/protocol_config.yaml
 ./scripts/check-comb.sh
 
 # 再起動
-./scripts/stop_hive_distributed.sh
-./scripts/start_hive_distributed.sh
+./scripts/stop-cozy-hive.sh
+./scripts/start-cozy-hive.sh
 ```
 
 ### 依存関係エラー

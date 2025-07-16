@@ -74,7 +74,7 @@ if not result.valid:
 
 #### 症状
 ```bash
-./scripts/start_hive_distributed.sh
+./scripts/start-cozy-hive.sh
 # エラーで終了、またはセッションが作成されない
 ```
 
@@ -95,10 +95,10 @@ sudo apt-get install tmux
 **原因2: スクリプト権限問題**
 ```bash
 # 確認
-ls -la scripts/start_hive_distributed.sh
+ls -la scripts/start-cozy-hive.sh
 
 # 対処
-chmod +x scripts/start_hive_distributed.sh
+chmod +x scripts/start-cozy-hive.sh
 ```
 
 ### 問題2: 通信確認が失敗する
@@ -118,8 +118,8 @@ tmux ls
 tmux attach-session -t hive-distributed
 
 # 再起動
-./scripts/stop_hive_distributed.sh
-./scripts/start_hive_distributed.sh
+./scripts/stop-cozy-hive.sh
+./scripts/start-cozy-hive.sh
 ```
 
 ## 🎯 Issue解決エージェント問題
@@ -308,7 +308,7 @@ make install
 python examples/tests/protocols_test.py
 
 # 6. 分散環境再起動
-./scripts/start_hive_distributed.sh
+./scripts/start-cozy-hive.sh
 ```
 
 ### ログ確認方法
