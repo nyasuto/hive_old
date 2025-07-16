@@ -1,0 +1,141 @@
+---
+# Hive分散システム Claude Code設定ファイル
+# Issue #97: Claude Code永続デーモン統合
+
+daemon:
+  # Claude Code起動コマンド
+  command: "claude --dangerously-skip-permissions"
+  
+  # 起動タイムアウト（秒）
+  startup_timeout: 15
+  
+  # 応答タイムアウト（秒）
+  response_timeout: 30
+  
+  # 最大再試行回数
+  max_retries: 3
+  
+  # ヘルスチェック間隔（秒）
+  heartbeat_interval: 60
+  
+  # ログレベル
+  log_level: "INFO"
+
+# pane別設定
+panes:
+  queen:
+    enabled: true
+    startup_delay: 5
+    description: "Queen用Claude Codeデーモン"
+    priority: "high"
+    
+  developer1:
+    enabled: true
+    startup_delay: 8
+    description: "Developer1用Claude Codeデーモン"
+    priority: "medium"
+    
+  developer2:
+    enabled: false
+    startup_delay: 11
+    description: "Developer2用Claude Codeデーモン（拡張用）"
+    priority: "low"
+    
+  beekeeper:
+    enabled: false
+    startup_delay: 2
+    description: "BeeKeeper用Claude Codeデーモン（オプション）"
+    priority: "low"
+
+# 応答パターン設定
+response_patterns:
+  completion_indicators:
+    - "Human:"
+    - "Assistant:"
+    - "$ "
+    - "> "
+    - "claude>"
+    
+  error_indicators:
+    - "Error:"
+    - "Exception:"
+    - "Failed:"
+    - "Permission denied"
+    
+  loading_indicators:
+    - "Loading..."
+    - "Processing..."
+    - "Thinking..."
+
+# タイムアウト設定
+timeouts:
+  file_read: 10
+  file_write: 15
+  code_analysis: 30
+  test_execution: 60
+  refactoring: 120
+
+# 安全設定
+safety:
+  # 危険なコマンドの制限
+  restricted_commands:
+    - "rm -rf"
+    - "sudo"
+    - "passwd"
+    - "chmod 777"
+    
+  # 許可されるファイル拡張子
+  allowed_extensions:
+    - ".py"
+    - ".md"
+    - ".txt"
+    - ".json"
+    - ".yaml"
+    - ".yml"
+    - ".sh"
+    - ".js"
+    - ".ts"
+    
+  # 制限されるディレクトリ
+  restricted_directories:
+    - "/etc"
+    - "/var"
+    - "/usr"
+    - "/bin"
+    - "/sbin"
+
+# 監視設定
+monitoring:
+  # 統計収集間隔（秒）
+  stats_interval: 300
+  
+  # ログファイル
+  log_file: "logs/claude_daemon.log"
+  
+  # パフォーマンス監視
+  performance_monitoring:
+    enabled: true
+    response_time_threshold: 10.0
+    error_rate_threshold: 0.1
+    
+  # アラート設定
+  alerts:
+    enabled: true
+    webhook_url: null
+    email_notifications: false
+
+# 開発・デバッグ設定
+development:
+  # デバッグモード
+  debug_mode: true
+  
+  # 詳細ログ
+  verbose_logging: true
+  
+  # テストモード
+  test_mode: false
+  
+  # 模擬応答（テスト用）
+  mock_responses:
+    enabled: false
+    default_response: "Mock response from Claude Code"
