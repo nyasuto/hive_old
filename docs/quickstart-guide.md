@@ -1,344 +1,403 @@
-# 🐝 Hive - クイックスタートガイド（10分で開始）
+# 🚀 Hive Quick Start Guide - 5分で始める自律的マルチエージェント開発
 
-## 🚀 簡単3ステップ
+Hiveシステムを最短5分で起動し、Queen + Developer Workerによる協調開発を体験できます。
 
-### ステップ1: 環境確認（2分）
+## ⚡ 5分クイックスタート
+
+### 1. 環境確認 (30秒)
+
 ```bash
-# 必要なツールがインストール済みか確認
-which tmux python3 git
+# 必要な依存関係を確認
+./scripts/check-dependencies.sh
+
+# または手動確認
+python3 --version  # 3.9+
+tmux -V           # any version
+git --version     # any version
 ```
 
-**必要な環境：**
-- macOS または Linux
-- tmux 3.0+
-- Python 3.9+
-- Claude Code（Claude Pro推奨）
+### 2. 環境セットアップ (2分)
 
-### ステップ2: Hive起動（3分）
 ```bash
-# Hiveをクローン
-git clone https://github.com/nyasuto/hive.git
-cd hive
+# 依存関係インストール
+make install
 
-# Small Colony（2 Workers）を起動
+# 開発環境セットアップ
+make dev
+```
+
+### 3. Hive起動 (1分)
+
+```bash
+# Small Colony起動 (Queen + Developer Worker)
 ./scripts/start-small-hive.sh
+
+# ✅ 成功メッセージが表示されたら完了！
 ```
 
-### ステップ3: Hiveに接続（1分）
+### 4. 動作確認 (1分)
+
 ```bash
 # tmuxセッションに接続
 tmux attach-session -t hive-small-colony
+
+# 通信状況確認 (別ターミナル)
+./scripts/check-comb.sh
+
+# 成果物確認
+./scripts/collect-honey.sh
 ```
 
-**✅ 成功の確認：**
-- 画面が左右2つのpaneに分割されている
-- 左pane: Queen Worker（プロジェクト管理担当）
-- 右pane: Developer Worker（実装担当）
-- 両paneでClaude Codeが起動している
+### 5. 終了 (30秒)
 
-**🚨 うまくいかない場合：**
 ```bash
-# セッション状態を確認
+# セッションから切断: Ctrl+B → d
+# または安全終了
+./scripts/shutdown-hive.sh --collect
+```
+
+---
+
+## 🎯 実際の使用例
+
+### Example 1: コード品質改善
+
+**Queen Workerで:**
+```
+タスク: このプロジェクトのコード品質を改善してください
+- テストカバレッジを確認
+- 型アノテーションの追加
+- docstringの改善
+```
+
+**Developer Workerで:**
+```
+# Queen Workerからの指示を確認
+make quality  # 品質チェック実行
+make test     # テスト確認
+```
+
+### Example 2: 新機能実装
+
+**Queen Workerで:**
+```
+新機能要件:
+1. User認証機能の追加
+2. JWT トークン管理
+3. セキュリティテストの実装
+```
+
+**Developer Workerで:**
+```
+# 実装フローの実行
+1. 要件分析
+2. 設計検討
+3. 実装
+4. テスト作成
+5. 品質チェック
+```
+
+### Example 3: 自動リファクタリング
+
+```bash
+# PoC実行例 - 自律的コード改善
+python examples/poc/automated_worker_coordination.py auto
+
+# 期待結果:
+# - 品質スコア: 70 → 85 → 95 (3反復)
+# - AI品質チェック自動実行
+# - 約4.5秒で完了
+```
+
+---
+
+## 🛠️ tmux基本操作
+
+### セッション管理
+```bash
+# セッション一覧
 tmux list-sessions
 
-# 強制再起動
-./scripts/shutdown-hive.sh --force
-./scripts/start-small-hive.sh
+# セッション接続
+tmux attach-session -t hive-small-colony
+
+# セッション切断
+Ctrl+B → d
 ```
 
-## 🎯 最初にやってみること（5分）
+### Pane操作
+```bash
+# Pane切り替え
+Ctrl+B → 矢印キー
+# または
+Alt + ← / →
 
-**💡 ここからはtmuxセッション内での操作です。左右のpaneを切り替えながら作業します。**
+# Paneスクロール
+Ctrl+B → [ (終了: q)
+```
 
-### オプション1: 🚀 自動協調システム（推奨・最新機能）
+---
 
-**完全自動化されたAI品質保証付き開発サイクルを体験：**
+## 📊 動作確認コマンド
+
+### システム状況確認
+```bash
+# 📊 通信システム確認
+./scripts/check-comb.sh
+
+# 📈 品質メトリクス
+make quality
+
+# 🧪 テスト実行 (カバレッジ73%)
+make test
+
+# 📋 環境情報
+make env-info
+```
+
+### ログ確認
+```bash
+# 🐝 Hiveディレクトリ確認
+ls -la .hive/
+
+# 📝 通信ログ (Markdown形式)
+ls -la .hive/comb/communication_logs/
+
+# 📊 作業ログ
+ls -la .hive/work_logs/
+
+# 🍯 成果物
+ls -la .hive/honey/
+```
+
+---
+
+## 🎬 実用シナリオ
+
+### シナリオ1: 🚀 完全自動化開発サイクル
 
 ```bash
-# 自動協調システムの実行（どのpaneからでもOK）
+# AI品質保証付き自動開発
 python examples/poc/automated_worker_coordination.py auto
 ```
 
-**🎯 期待する結果：** 
-- 3回の反復で品質スコア 70 → 85 → 95 に自動改善
-- AI品質チェックと修正提案が自動実行
-- 約4.5秒で完全自動化されたWorker協調完了
+**自動実行される内容:**
+- Queen: 高品質タスク指示 + AI品質レビュー
+- Developer: 要件実装 + 自己品質チェック
+- 3回反復で品質スコア自動改善
+- 修正提案の自動生成・適用
 
-**複数シナリオのテスト：**
-```bash
-python examples/poc/automated_worker_coordination.py test
-```
+### シナリオ2: 🤝 手動協調開発
 
-### オプション2: 🤝 手動協調システム（学習目的）
-
-**AI品質チェック機能付きのWorker協調を手動で体験：**
-
-**👈 左pane（Queen Worker）での操作：**
-
-```bash
-# タスク作成
+**👈 左pane (Queen Worker):**
+```python
+# タスク管理と品質監視
 python examples/poc/enhanced_feature_development.py queen
 ```
 
-**👉 右pane（Developer Worker）での操作：**
-
-`Alt + →` でDeveloper Workerのpaneに移動し：
-
-```bash
-# 実装作業
+**👉 右pane (Developer Worker):**
+```python
+# 実装と品質チェック
 python examples/poc/enhanced_feature_development.py developer
 ```
 
-**👈 左pane（Queen Worker）に戻って：**
-
-```bash
-# AI品質レビュー実行
+**👈 左pane (AI品質レビュー):**
+```python
+# AI による包括的品質評価
 python examples/poc/enhanced_feature_development.py queen --review
 ```
 
-**🎯 期待する結果：** 
-- Queen Worker: AI品質チェック付きタスク管理完了
-- Developer Worker: 自己品質チェック付き実装完了
-- AI による品質スコア評価と修正提案の確認
-
-### オプション3: 🧪 個別機能テスト
-
-**AI機能の個別テスト：**
-
-```bash
-# AI品質チェック機能テスト
-python examples/poc/enhanced_feature_development.py test-ai
-
-# 自動修正提案システムテスト
-python examples/poc/enhanced_feature_development.py test-fix
-
-# 協調システム監視
-python examples/poc/automated_worker_coordination.py monitor
-```
-
-**🎯 期待する結果：** 
-- ✅ AI品質チェック機能の動作確認
-- ✅ 修正提案生成機能の確認  
-- ✅ Worker間通信の監視機能確認
-
-### 従来機能（基本通信テスト）
-
-**基本的なWorker間通信をテストしたい場合：**
+### シナリオ3: 🧪 基本通信テスト
 
 ```bash
 # 左pane
 python examples/quickstart/01_basic_communication.py queen
 
-# 右pane  
+# 右pane
 python examples/quickstart/01_basic_communication.py developer
 ```
 
-**💡 ヒント：** 新機能（オプション1）から始めることを強く推奨します！
+---
 
-## 🔧 基本操作
+## ⚠️ トラブルシューティング
 
-### tmux操作
-- **pane切り替え**: `Alt + ← / →` (楽！) または `Ctrl+B` → 矢印キー  
-- **マウス移動**: クリックでpane移動
-- **セッション終了**: `Ctrl+B` → `d` (デタッチ)
-- **セッション復帰**: `tmux attach-session -t hive-small-colony`
+### よくある問題
 
-### Hive操作
+#### Q1: tmuxセッションが見つからない
 ```bash
-# 通信状況確認
-./scripts/check-comb.sh
-
-# タスク配布
-./scripts/distribute-nectar.sh examples/simple-task.json
-
-# 成果物収集
-./scripts/collect-honey.sh auto
-
-# Hive終了
-./scripts/shutdown-hive.sh
-```
-
-## 🎬 実用例：AI品質保証付きWebアプリ開発
-
-### 方法1: 🚀 完全自動化（推奨）
-
-```bash
-# カスタムタスクで自動協調実行
-python examples/poc/automated_worker_coordination.py auto
-```
-
-**自動で実行される内容：**
-- Queen: 高品質なタスク指示とAI品質レビュー
-- Developer: 要件に基づく実装と自己品質チェック
-- 3回の反復で品質スコア自動改善
-- 修正提案の自動生成と適用
-
-### 方法2: 🤝 手動協調（学習・カスタマイズ用）
-
-### Queen Worker (左pane) - AI品質チェック付き
-```python
-# Enhanced PoCを使用
-python examples/poc/enhanced_feature_development.py queen
-```
-
-**実行されること：**
-- タスク作成と要件定義
-- 品質基準の設定（型ヒント、docstring、エラーハンドリング）
-- AI品質チェック機能の準備
-
-### Developer Worker (右pane) - 自動修正対応
-```python
-# Enhanced PoCを使用
-python examples/poc/enhanced_feature_development.py developer
-```
-
-**実行されること：**
-- 要件に基づくFlask アプリ実装
-- 自己品質チェック実行
-- 完了報告の送信
-
-### Queen Worker (左pane) - AI品質レビュー
-```python
-# AI品質レビュー実行
-python examples/poc/enhanced_feature_development.py queen --review
-```
-
-**実行されること：**
-- AI による包括的品質評価（スコア算出）
-- 問題の自動検出（型ヒント不足、docstring不足等）
-- 修正提案の自動生成
-- 改善必要事項のフィードバック
-
-### 生成される成果物例
-
-```python
-# examples/poc/quality_calculator.py (自動生成)
-from typing import Union
-
-Number = Union[int, float]
-
-def add(a: Number, b: Number) -> Number:
-    """
-    加算を実行します
-    
-    Args:
-        a: 第一オペランド（数値）
-        b: 第二オペランド（数値）
-    
-    Returns:
-        Number: a + b の計算結果
-    """
-    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
-        raise TypeError("引数は数値である必要があります")
-    return a + b
-```
-
-**🎯 品質保証された成果物の特徴：**
-- ✅ 完全な型アノテーション
-- ✅ Google Style docstrings
-- ✅ 適切なエラーハンドリング
-- ✅ 包括的なテストスイート
-- ✅ AI による品質スコア90点以上
-
-## ⚠️ よくある問題と解決方法
-
-### 問題1: tmuxセッションが起動しない
-```bash
-# 既存セッションがある場合
-tmux kill-session -t hive-small-colony
-./scripts/start-small-hive.sh --force
-```
-
-### 問題2: Python スクリプトでエラーが発生する
-```bash
-# Combモジュールが見つからない場合
-pip install -e .
-
-# プロジェクトディレクトリから実行することを確認
-pwd  # /path/to/hive になっているはず
-
-# 詳細なエラー確認
-python examples/quickstart/01_basic_communication.py queen
-```
-
-### 問題3: Worker間の通信ができない
-```bash
-# Combシステムの診断
-./scripts/check-comb.sh --verbose
-
-# ディレクトリ構造の確認・修復
-./scripts/check-comb.sh --fix
+# セッション一覧確認
+tmux list-sessions
 
 # 強制再起動
 ./scripts/start-small-hive.sh --force
 ```
 
-### 問題4: スクリプトの実行でヘルプが表示される
+#### Q2: Worker間通信ができない
 ```bash
-# 引数を正しく指定してください
-python examples/quickstart/01_basic_communication.py queen  # Queen Worker用
-python examples/quickstart/01_basic_communication.py developer  # Developer Worker用
+# Combディレクトリ確認
+ls -la .hive/comb/messages/
 
-# 引数なしでヘルプを確認
-python examples/quickstart/01_basic_communication.py
+# 通信診断と修復
+./scripts/check-comb.sh --fix
 ```
 
-## 📚 次のステップ
-
-### 🚀 新機能をさらに活用する
-- **[PoC実行ガイド](poc-guide.md)** - 全機能の詳細解説（推奨）
-- **自動協調システム**: より複雑なプロジェクトでのテスト
-- **AI品質チェック**: カスタム品質基準の設定
-- **修正提案システム**: 独自のエラーパターン追加
-
-### 詳細を学ぶ
-- [セットアップガイド](setup-guide.md) - 詳細な環境構築
-- [Comb API仕様](comb-api.md) - 通信システムの詳細
-- [トラブルシューティング](troubleshooting.md) - 問題解決
-- [Enhanced PoC仕様](../examples/poc/enhanced_feature_development.py) - AI機能詳細
-
-### 実践してみる
+#### Q3: 依存関係エラー
 ```bash
-# AI品質保証付きプロジェクト開発
-python examples/poc/enhanced_feature_development.py queen
-python examples/poc/enhanced_feature_development.py developer  
-python examples/poc/enhanced_feature_development.py queen --review
+# クリーン再インストール
+make clean
+make install
 
-# 完全自動化プロジェクト
+# Combモジュール確認
+pip install -e .
+```
+
+#### Q4: Python スクリプトエラー
+```bash
+# プロジェクトディレクトリ確認
+pwd  # /path/to/hive であることを確認
+
+# 詳細エラー確認
+python examples/quickstart/01_basic_communication.py queen
+```
+
+### ログ確認
+```bash
+# 📄 起動ログ
+ls -la .hive/logs/hive-startup-*.log
+
+# 📄 Worker個別ログ
+ls -la .hive/logs/queen/
+ls -la .hive/logs/developer/
+
+# 📄 通信ログ (Markdown)
+cat .hive/comb/communication_logs/$(date +%Y-%m-%d)/summary_*.md
+```
+
+---
+
+## 🔄 開発ワークフロー
+
+### 1. 日常的な開発フロー
+```bash
+# 🌅 朝の起動
+./scripts/start-small-hive.sh
+
+# 💼 作業実行
+tmux attach-session -t hive-small-colony
+# ... 協調開発作業 ...
+
+# 🌙 夕方の終了 (成果物自動収集)
+./scripts/shutdown-hive.sh --collect
+```
+
+### 2. 品質保証フロー
+```bash
+# ✅ コミット前チェック
+make pr-ready
+
+# 🔍 詳細テスト
+make test-cov
+
+# 📝 品質レポート
+./scripts/collect-honey.sh
+```
+
+### 3. 継続的改善フロー
+```bash
+# 📈 メトリクス確認
+./scripts/check-comb.sh
+
+# 🚀 自律的品質改善
 python examples/poc/automated_worker_coordination.py auto
-
-# 複数難易度でのテスト
-python examples/poc/automated_worker_coordination.py test
 ```
 
-### システムを拡張する
-```bash
-# カスタム協調設定
-# automated_worker_coordination.py をコピーして設定変更
+---
 
-# カスタム品質基準
-# enhanced_feature_development.py の quality_standards をカスタマイズ
+## 📈 システム機能概要
 
-# 独自の修正パターン追加
-# PythonFixPatterns クラスに新しいパターンメソッド追加
-```
+### 🧠 Queen Coordinator (63% カバレッジ)
+- 全体調整・負荷分散・緊急対応
+- AI品質レビュー・修正提案
+- タスク配布・優先度管理
 
-### Phase 2 機能（準備中）
-- **Colony管理システム**: 複数Workerの自動スケーリング
-- **分散実行基盤**: 大規模プロジェクト対応
-- **リアルタイム監視ダッシュボード**: Web UI での進捗確認
+### 💻 Developer Worker
+- 要件実装・品質チェック
+- 自己診断・改善提案
+- テスト作成・実行
 
-## 🎉 成功！
+### 💬 Comb Communication (85% カバレッジ)
+- ファイルベース非同期メッセージング
+- Markdown形式通信ログ
+- リアルタイム監視
 
-これでHive Small Colonyが動作しています！Queen WorkerとDeveloper Workerが協調して開発作業を行う準備が整いました。
+### 📝 Work Log Manager (95% カバレッジ)
+- 作業履歴・技術決定記録
+- AI学習・改善基盤
+- 日次サマリー生成
 
-次の目標：
-- [ ] Worker間での実際のプロジェクト協調
-- [ ] 成果物（Honey）の品質確認
-- [ ] 作業ログ（Work Log）の確認
-- [ ] より複雑なタスクの実行
+---
 
-**🍯 Sweet coding with Hive!**
+## 🎯 次のステップ
+
+### 初心者向け
+1. **[Setup Guide](setup-guide.md)** - 詳細セットアップ
+2. **[Comb API](comb-api.md)** - Worker間通信の詳細
+3. **[Troubleshooting](troubleshooting.md)** - 問題解決
+
+### 上級者向け
+1. **[PoC Guide](poc-guide.md)** - 自律的エージェント開発開始
+2. カスタムWorker作成
+3. 独自タスクフロー実装
+
+### 開発者向け
+1. コード貢献ガイド
+2. アーキテクチャ深堀り
+3. パフォーマンス最適化
+
+---
+
+## 💡 Tips & Best Practices
+
+### 効率的な使い方
+- **定期的な成果物収集**: `./scripts/collect-honey.sh`
+- **通信状況の監視**: `./scripts/check-comb.sh`
+- **品質チェックの習慣化**: `make quality`
+- **自動化の活用**: PoC例で協調開発パターン学習
+
+### 推奨環境
+- **ターミナル**: iTerm2, Windows Terminal, Gnome Terminal
+- **エディタ**: VS Code, Neovim, Emacs
+- **Git**: 最新版推奨
+- **Python**: 3.11+ (型チェック最適化)
+
+### セキュリティ注意事項
+- 機密情報をWorker間で共有しない
+- ログファイルに認証情報を記録しない
+- `.hive` ディレクトリを `.gitignore` に追加
+
+---
+
+## 🏆 成功指標
+
+### 基本動作確認
+- ✅ tmuxセッション正常起動
+- ✅ Worker間通信確立
+- ✅ 基本タスク実行成功
+
+### 協調開発確認
+- ✅ Queen→Developer指示伝達
+- ✅ Developer→Queen進捗報告
+- ✅ 品質チェック自動実行
+
+### 自律化確認
+- ✅ AI品質レビュー動作
+- ✅ 修正提案自動生成
+- ✅ 反復改善サイクル動作
+
+---
+
+**🎉 これでHiveシステムの基本的な使い方をマスターしました！**  
+**自律的マルチエージェント開発の世界をお楽しみください！**
 
 ---
 
@@ -348,5 +407,3 @@ python examples/poc/automated_worker_coordination.py test
 - **Documentation**: [完全なREADME](README.md)
 - **Examples**: `examples/` ディレクトリ
 - **Logs**: `.hive/logs/` で詳細ログを確認
-
-このガイドで10分以内にHiveを使い始めることができます。より詳細な情報は各ドキュメントをご参照ください！
