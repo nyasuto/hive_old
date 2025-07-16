@@ -127,6 +127,7 @@ ignore_errors = true
 module = [
     "hive.agents.*",
     "tests.agents.*",
+    "agents.distributed.*",
 ]
 ignore_errors = true
 
