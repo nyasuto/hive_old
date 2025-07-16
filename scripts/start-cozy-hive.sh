@@ -34,8 +34,8 @@ echo "🔧 Creating tmux session: $SESSION_NAME"
 tmux new-session -d -s "$SESSION_NAME" -n "beekeeper" -c "$BASE_DIR"
 
 # 初期化メッセージ
-tmux send-keys -t "$SESSION_NAME:beekeeper" "echo '🐝 BeeKeeper Pane Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:beekeeper" "echo 'Ready to receive user requests...'" C-m
+tmux send-keys -t "$SESSION_NAME:beekeeper" "echo '🐝 BeeKeeper Pane Initialized'" Enter
+tmux send-keys -t "$SESSION_NAME:beekeeper" "echo 'Ready to receive user requests...'" Enter
 
 # Worker定義配列
 declare -a WORKERS=("queen" "developer" "tester" "analyzer" "documenter" "reviewer")
@@ -57,11 +57,11 @@ for i in "${!WORKERS[@]}"; do
     tmux new-window -t "$SESSION_NAME:$window_num" -n "$worker" -c "$BASE_DIR"
     
     # 初期化メッセージ
-    tmux send-keys -t "$SESSION_NAME:$worker" "echo '$emoji $name Worker Initialized'" C-m
-    tmux send-keys -t "$SESSION_NAME:$worker" "echo 'Starting Claude Code daemon...'" C-m
+    tmux send-keys -t "$SESSION_NAME:$worker" "echo '$emoji $name Worker Initialized'" Enter
+    tmux send-keys -t "$SESSION_NAME:$worker" "echo 'Starting Claude Code daemon...'" Enter
     
     # Claude起動（バックグラウンドで並列実行）
-    tmux send-keys -t "$SESSION_NAME:$worker" "claude --dangerously-skip-permissions" C-m &
+    tmux send-keys -t "$SESSION_NAME:$worker" "claude --dangerously-skip-permissions" Enter &
 done
 
 echo "⏳ Waiting for all Claude instances to initialize (30 seconds)..."
@@ -71,7 +71,7 @@ echo "📋 Loading role templates..."
 # 全Workerにroleテンプレートを並列ロード
 for worker in "${WORKERS[@]}"; do
     echo "📝 Loading $worker role template..."
-    tmux send-keys -t "$SESSION_NAME:$worker" "cat $BASE_DIR/templates/roles/$worker.md" C-m &
+    tmux send-keys -t "$SESSION_NAME:$worker" "cat $BASE_DIR/templates/roles/$worker.md" Enter &
 done
 
 # ロード完了を待機
