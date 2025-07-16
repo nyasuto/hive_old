@@ -45,6 +45,11 @@ class WorkerCommunicator:
         default_config = {
             "session_name": "cozy-hive",
             "workers": {
+                "queen": {
+                    "tmux_pane": "cozy-hive:queen",
+                    "claude_command": "claude-code --role=queen",
+                    "timeout": 300,
+                },
                 "developer": {
                     "tmux_pane": "cozy-hive:developer",
                     "claude_command": "claude-code --role=developer",
@@ -66,7 +71,7 @@ class WorkerCommunicator:
                     "timeout": 120,
                 },
                 "reviewer": {
-                    "tmux_pane": "cozy-hive:reviewer-",
+                    "tmux_pane": "cozy-hive:reviewer",
                     "claude_command": "claude-code --role=reviewer",
                     "timeout": 180,
                 },

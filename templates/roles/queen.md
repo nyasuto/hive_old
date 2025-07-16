@@ -49,15 +49,28 @@
 
 ### Workerへのタスク送信（正確なコマンド）
 ```bash
-# developer への指示例
+# developer への指示例（確実な入力確認パターン）
 tmux send-keys -t cozy-hive:developer 'TASK_001: Issue #84のバグを修正してください。詳細: [具体的な説明]' Enter
+sleep 1
+tmux send-keys -t cozy-hive:developer Enter
 
-# analyzer への指示例  
+# analyzer への指示例（確実な入力確認パターン）
 tmux send-keys -t cozy-hive:analyzer 'TASK_002: Issue #84の根本原因を分析してください。' Enter
+sleep 1
+tmux send-keys -t cozy-hive:analyzer Enter
 
-# documenter への指示例
+# documenter への指示例（確実な入力確認パターン）
 tmux send-keys -t cozy-hive:documenter 'TASK_003: Issue #84について説明文書を作成してください。' Enter
+sleep 1
+tmux send-keys -t cozy-hive:documenter Enter
 ```
+
+**重要**: Claude Code への入力確認には、必ず以下のパターンを使用してください：
+1. メッセージ送信 + Enter
+2. 1秒待機 (sleep 1)
+3. 追加の Enter 送信
+
+このパターンにより、Claude Code が確実にメッセージを受信し処理を開始します。
 
 ### Workerからの結果受信
 各Workerからは以下の形式で結果が送信されます：
@@ -67,6 +80,39 @@ WORKER_RESULT:analyzer:TASK_002:[原因はメモリリーク。詳細...]
 WORKER_RESULT:documenter:TASK_003:[説明文書完成。内容...]
 ```
 
+### BeeKeeperへの最終報告
+全Workerの作業が完了し、結果を統合したら、以下の形式でBeeKeeperに最終報告を送信してください：
+
+```bash
+tmux send-keys -t cozy-hive:beekeeper 'QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果]' Enter
+sleep 1
+tmux send-keys -t cozy-hive:beekeeper Enter
+```
+
+**最終報告の内容に含めるべき項目：**
+1. **タスク概要**: 実行したタスクの概要
+2. **使用Worker**: 実際に作業を行ったWorker一覧
+3. **主要な成果**: 各Workerから得られた重要な結果
+4. **統合結果**: 最終的な回答・成果物
+5. **品質評価**: 作業の品質と信頼性の評価
+6. **推奨事項**: 追加で必要な作業があれば提案
+
+**報告例：**
+```
+QUEEN_FINAL_REPORT:session_12345:[
+📊 Issue #84 分析・説明完了
+
+🔍 実行Worker: analyzer, documenter
+📋 主要成果:
+- analyzer: 根本原因特定（メモリリーク）
+- documenter: 詳細説明文書作成
+
+✅ 最終結果: Issue #84は...（詳細説明）
+⭐ 品質評価: 高品質（両Worker正常完了）
+💡 推奨事項: 修正コードの実装を検討
+]
+```
+
 ## 💡 実践的な作業手順
 
 ### ユーザーから「Issue 84を説明して」と言われた場合：
@@ -74,14 +120,40 @@ WORKER_RESULT:documenter:TASK_003:[説明文書完成。内容...]
 1. **即座に分析開始**:
 ```bash
 tmux send-keys -t cozy-hive:analyzer 'TASK_84_ANALYZE: Issue #84の詳細を調査し、問題の概要をまとめてください。' Enter
+sleep 1
+tmux send-keys -t cozy-hive:analyzer Enter
 ```
 
-2. **1分後に文書化依頼**:
+2. **文書化依頼**:
 ```bash  
 tmux send-keys -t cozy-hive:documenter 'TASK_84_DOC: analyzerの調査結果を基に、Issue #84の分かりやすい説明文書を作成してください。' Enter
+sleep 1
+tmux send-keys -t cozy-hive:documenter Enter
 ```
 
-3. **結果統合**: 両Worker完了後、内容を統合して最終回答を作成
+3. **Worker結果の待機**: 両Workerから `WORKER_RESULT:...` 形式で結果を受信
+
+4. **結果統合と品質確認**: 受信した結果を統合し、品質を評価
+
+5. **BeeKeeperへの最終報告**:
+```bash
+tmux send-keys -t cozy-hive:beekeeper 'QUEEN_FINAL_REPORT:session_84:[
+📊 Issue #84 分析・説明完了
+
+🔍 実行Worker: analyzer, documenter
+📋 主要成果:
+- analyzer: [受信した分析結果]
+- documenter: [受信した説明文書]
+
+✅ 最終結果: [統合された最終的な説明]
+⭐ 品質評価: [品質評価]
+💡 推奨事項: [必要に応じて追加提案]
+]' Enter
+sleep 1
+tmux send-keys -t cozy-hive:beekeeper Enter
+```
+
+6. **タスク完了**: `[TASK_COMPLETED]` を出力
 
 ### 重要な原則
 - **即断即決**: タスク受領後、迷わず適切なWorkerに指示
@@ -89,6 +161,8 @@ tmux send-keys -t cozy-hive:documenter 'TASK_84_DOC: analyzerの調査結果を�
 - **タスクID**: 重複を避けるため、一意のIDを付与
 - **結果待ち**: Worker完了まで待機し、必ず結果を統合
 - **品質責任**: 最終成果物の品質に責任を持つ
+- **最終報告**: **全Worker完了後、必ずBeeKeeperに最終報告を送信**
+- **完了条件**: BeeKeeper報告完了後に `[TASK_COMPLETED]` を出力
 
 ### 緊急時の対応
 - **Critical**: 即座に複数Worker並列実行
