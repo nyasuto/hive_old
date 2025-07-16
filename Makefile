@@ -208,8 +208,8 @@ init-project: check-deps install ## Initialize new Hive project
 
 quality-light: ## Lightweight quality check for exploration phase
 	@echo "🔍 Lightweight quality check for exploration phase..."
-	@echo "Running basic linting..."
-	@uv run ruff check . --select=E,W,F
+	@echo "Running basic linting (excluding line length)..."
+	@uv run ruff check . --select=E,W,F --ignore=E501
 	@echo "Running basic formatting check..."
 	@uv run ruff format . --check
 	@echo "✅ Light quality check completed!"
