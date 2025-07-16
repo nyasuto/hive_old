@@ -1,0 +1,359 @@
+---
+# Protocol Configuration for Hive Distributed System
+# Issue #101: プロトコル定義システム実装
+
+# プロトコルバージョン設定
+protocol:
+  # 現在使用中のプロトコルバージョン
+  current_version: "1.1"
+  
+  # サポートされているプロトコルバージョン
+  supported_versions:
+    - "1.0"
+    - "1.1"
+    - "2.0"
+  
+  # 下位互換性マトリックス
+  compatibility_matrix:
+    "1.0":
+      - "1.1"
+    "1.1":
+      - "1.0"
+      - "2.0"
+    "2.0":
+      - "1.1"
+  
+  # プロトコル機能フラグ
+  features:
+    correlation_id: true
+    message_encryption: false
+    message_compression: false
+    batch_processing: true
+    priority_queuing: true
+    message_persistence: true
+
+# メッセージ設定
+message:
+  # デフォルトメッセージ設定
+  defaults:
+    priority: "medium"
+    max_retries: 3
+    ttl_seconds: 3600  # 1時間
+    content_type: "application/json"
+    encoding: "utf-8"
+  
+  # メッセージサイズ制限
+  size_limits:
+    max_content_size: 1048576  # 1MB
+    max_header_size: 4096      # 4KB
+    max_total_size: 1052672    # 1MB + 4KB
+  
+  # タイムアウト設定
+  timeouts:
+    processing_timeout: 300    # 5分
+    delivery_timeout: 600      # 10分
+    response_timeout: 30       # 30秒
+    heartbeat_interval: 60     # 1分
+
+# 検証設定
+validation:
+  # 検証モード
+  strict_mode: false
+  
+  # 必須フィールド検証
+  required_fields:
+    header:
+      - "message_id"
+      - "protocol_version"
+      - "message_type"
+      - "priority"
+      - "timestamp"
+      - "sender_id"
+      - "receiver_id"
+    payload:
+      - "content"
+  
+  # フォーマット検証
+  formats:
+    message_id: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    agent_id: "^[a-zA-Z0-9_-]{1,64}$"
+    correlation_id: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+  
+  # 許可されたコンテンツタイプ
+  allowed_content_types:
+    - "application/json"
+    - "text/plain"
+    - "application/xml"
+    - "application/yaml"
+  
+  # 許可されたエンコーディング
+  allowed_encodings:
+    - "utf-8"
+    - "utf-16"
+    - "ascii"
+
+# メッセージタイプ設定
+message_types:
+  # 基本メッセージタイプ
+  basic:
+    - "request"
+    - "response"
+    - "notification"
+    - "error"
+  
+  # タスク管理メッセージタイプ
+  task_management:
+    - "task_assignment"
+    - "task_completion"
+    - "task_status"
+    - "task_cancel"
+  
+  # 分散エージェント通信メッセージタイプ
+  agent_communication:
+    - "agent_heartbeat"
+    - "agent_registration"
+    - "agent_discovery"
+    - "agent_shutdown"
+  
+  # システム管理メッセージタイプ
+  system_management:
+    - "system_status"
+    - "system_command"
+    - "system_alert"
+  
+  # 特殊メッセージタイプ
+  special:
+    - "nectar_distribution"
+    - "urgent_notification"
+  
+  # メッセージタイプ固有の設定
+  type_specific:
+    task_assignment:
+      required_fields:
+        - "task_id"
+        - "task_type"
+        - "task_data"
+      default_priority: "medium"
+      default_ttl: 1800  # 30分
+    
+    task_completion:
+      required_fields:
+        - "task_id"
+        - "result"
+        - "success"
+      default_priority: "high"
+      default_ttl: 3600  # 1時間
+    
+    agent_heartbeat:
+      required_fields:
+        - "agent_id"
+        - "status"
+      default_priority: "low"
+      default_ttl: 60    # 1分
+    
+    system_alert:
+      required_fields:
+        - "alert_type"
+        - "alert_message"
+        - "severity"
+      default_priority: "high"
+      default_ttl: 7200  # 2時間
+
+# 優先度設定
+priorities:
+  # 優先度レベル
+  levels:
+    low: 1
+    medium: 2
+    high: 3
+    urgent: 4
+    critical: 5
+  
+  # 優先度別の処理設定
+  processing:
+    critical:
+      max_queue_size: 1000
+      processing_timeout: 60
+      retry_interval: 5
+    urgent:
+      max_queue_size: 5000
+      processing_timeout: 120
+      retry_interval: 10
+    high:
+      max_queue_size: 10000
+      processing_timeout: 300
+      retry_interval: 30
+    medium:
+      max_queue_size: 50000
+      processing_timeout: 600
+      retry_interval: 60
+    low:
+      max_queue_size: 100000
+      processing_timeout: 1200
+      retry_interval: 120
+
+# ステータス設定
+statuses:
+  # 利用可能なステータス
+  available:
+    - "pending"
+    - "processing"
+    - "completed"
+    - "failed"
+    - "cancelled"
+    - "expired"
+  
+  # ステータス遷移ルール
+  transitions:
+    pending:
+      - "processing"
+      - "cancelled"
+      - "expired"
+    processing:
+      - "completed"
+      - "failed"
+      - "cancelled"
+    completed:
+      []  # 終了状態
+    failed:
+      - "pending"  # リトライ用
+    cancelled:
+      []  # 終了状態
+    expired:
+      []  # 終了状態
+
+# エージェント設定
+agents:
+  # エージェントタイプ
+  types:
+    - "queen"
+    - "worker"
+    - "beekeeper"
+    - "developer"
+    - "system"
+  
+  # エージェント別設定
+  type_specific:
+    queen:
+      max_concurrent_tasks: 100
+      heartbeat_interval: 30
+      priority_boost: 1
+    worker:
+      max_concurrent_tasks: 50
+      heartbeat_interval: 60
+      priority_boost: 0
+    beekeeper:
+      max_concurrent_tasks: 200
+      heartbeat_interval: 15
+      priority_boost: 2
+    developer:
+      max_concurrent_tasks: 10
+      heartbeat_interval: 120
+      priority_boost: 0
+    system:
+      max_concurrent_tasks: 1000
+      heartbeat_interval: 10
+      priority_boost: 3
+
+# セキュリティ設定
+security:
+  # 認証設定
+  authentication:
+    enabled: false
+    token_expiry: 3600  # 1時間
+    refresh_threshold: 300  # 5分
+  
+  # 暗号化設定
+  encryption:
+    enabled: false
+    algorithm: "AES-256-GCM"
+    key_rotation_interval: 86400  # 24時間
+  
+  # レート制限
+  rate_limiting:
+    enabled: true
+    max_messages_per_second: 1000
+    max_messages_per_minute: 30000
+    burst_capacity: 5000
+  
+  # アクセス制御
+  access_control:
+    enabled: false
+    default_policy: "allow"
+    message_type_restrictions: {}
+
+# 監視・ログ設定
+monitoring:
+  # メトリクス収集
+  metrics:
+    enabled: true
+    collection_interval: 60  # 1分
+    retention_period: 604800  # 1週間
+  
+  # ログ設定
+  logging:
+    enabled: true
+    level: "info"
+    format: "structured"
+    destinations:
+      - "file"
+      - "console"
+  
+  # アラート設定
+  alerts:
+    enabled: true
+    thresholds:
+      message_queue_size: 10000
+      processing_time: 300
+      error_rate: 0.05
+      expired_message_rate: 0.01
+
+# パフォーマンス設定
+performance:
+  # バッチ処理設定
+  batch_processing:
+    enabled: true
+    max_batch_size: 100
+    batch_timeout: 1000  # 1秒
+  
+  # キューイング設定
+  queuing:
+    max_queue_size: 100000
+    queue_type: "priority"
+    persistence: true
+  
+  # 並行処理設定
+  concurrency:
+    max_workers: 10
+    worker_timeout: 300
+    queue_timeout: 60
+  
+  # メモリ管理
+  memory:
+    max_memory_usage: 1073741824  # 1GB
+    gc_threshold: 0.8
+    cleanup_interval: 300
+
+# 開発・デバッグ設定
+development:
+  # デバッグモード
+  debug_mode: true
+  
+  # 詳細ログ
+  verbose_logging: true
+  
+  # テストモード
+  test_mode: false
+  
+  # 模擬設定
+  simulation:
+    enabled: false
+    message_delay: 0
+    failure_rate: 0.0
+    network_latency: 0
+  
+  # 検証設定
+  validation:
+    skip_format_validation: false
+    skip_type_validation: false
+    skip_size_validation: false
