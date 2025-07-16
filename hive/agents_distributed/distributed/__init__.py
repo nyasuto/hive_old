@@ -5,6 +5,7 @@ Distributed Agents Package
 tmux統合とpane間通信を提供
 """
 
+from .claude_daemon import ClaudeCommandBuilder, ClaudeDaemon
 from .tmux_manager import PaneMessenger, TmuxManager
 
-__all__ = ["TmuxManager", "PaneMessenger"]
+__all__ = ["TmuxManager", "PaneMessenger", "ClaudeDaemon", "ClaudeCommandBuilder"]
