@@ -1,0 +1,49 @@
+---
+# Hive分散システム tmux設定ファイル
+# Issue #96: tmux統合基盤システム
+
+session:
+  name: "hive"
+  base_directory: "/Users/yast/git/hive"
+  
+panes:
+  beekeeper:
+    window: 0
+    name: "beekeeper"
+    startup_delay: 2
+    description: "ユーザーリクエスト受付・初期タスク分散"
+    
+  queen:
+    window: 1
+    name: "queen"
+    startup_delay: 5
+    description: "タスク管理・サブタスク分散・進捗監視"
+    
+  developer1:
+    window: 2
+    name: "developer1"
+    startup_delay: 8
+    description: "コード実行・開発作業・結果レポート"
+    
+  developer2:
+    window: 3
+    name: "developer2"
+    startup_delay: 11
+    description: "コード実行・開発作業・結果レポート（拡張用）"
+    enabled: false
+
+communication:
+  message_prefix: "HIVE_MESSAGE:"
+  heartbeat_interval: 30
+  response_timeout: 60
+  max_retries: 3
+
+logging:
+  level: "INFO"
+  file: "logs/tmux_manager.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+system:
+  auto_cleanup: true
+  session_timeout: 3600  # 1時間
+  backup_interval: 300   # 5分
