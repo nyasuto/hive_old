@@ -1,41 +1,86 @@
-# Hive Examples
+# 🐝 Hive Examples - 新アーキテクチャ
 
-このディレクトリにはHiveシステムの使用例が含まれます。
+## 概要
 
-## サンプルプロジェクト
+新アーキテクチャ（プロトコル定義システム + 分散エージェント）に基づくPoC実装とテストスクリプトを提供します。
 
-### Web App Hive (`web-app-hive/`)
-Webアプリケーション開発でのHive使用例：
-- React + Express.js アプリケーション
-- Frontend Worker + Backend Worker協調
-- 完全なフロントエンド〜バックエンド開発フロー
+## 📁 ディレクトリ構成
 
-### API Development Hive (`api-development-hive/`)
-API開発でのHive使用例：
-- REST API開発
-- OpenAPI仕様書生成
-- テスト駆動開発（TDD）
-
-### Data Analysis Hive (`data-analysis-hive/`)
-データ分析でのHive使用例：
-- Python データ分析パイプライン
-- Jupyter Notebook + スクリプト生成
-- レポート自動生成
-
-## サンプル実行方法
-
-```bash
-# サンプルプロジェクトの実行
-cd examples/web-app-hive
-../../scripts/start-small-hive.sh --project=web-app
-
-# または Makefile 経由
-make run-example EXAMPLE=web-app-hive
+```
+examples/
+├── tests/                    # テストスクリプト
+│   ├── protocols_test.py     # 新プロトコルシステムテスト
+│   └── README.md
+└── poc/                      # 新アーキテクチャPoC
+    ├── demo_issue_solver.py  # Issue解決デモ（メイン）
+    ├── issue_solver_agent.py # Issue解決エージェント
+    ├── claude_daemon_demo.py # Claude永続デーモンデモ
+    ├── tmux_demo.py          # tmux統合デモ
+    └── README_issue_solver.md # Issue解決ドキュメント
 ```
 
-## カスタムプロジェクト作成
+## 🚀 クイックスタート
 
-1. **テンプレート選択**: 最も近いサンプルをコピー
-2. **設定カスタマイズ**: Nectar、Worker prompts を調整
-3. **ワークフロー定義**: プロジェクト固有のタスクフローを定義
-4. **品質基準設定**: プロジェクト要件に応じた品質基準を設定
+### 1. 新プロトコルシステム確認
+```bash
+# 新プロトコルの動作確認
+python examples/tests/protocols_test.py
+```
+
+### 2. 分散エージェント環境起動
+```bash
+# 分散エージェント起動
+./scripts/start_hive_distributed.sh
+
+# 通信確認
+./scripts/check-comb.sh
+```
+
+### 3. Issue解決デモ実行
+```bash
+# メインデモ実行
+python examples/poc/demo_issue_solver.py
+
+# 自然言語指示
+python examples/poc/issue_solver_agent.py "Issue 64を解決する"
+```
+
+## 🎯 新アーキテクチャの特徴
+
+### BeeKeeper - Queen - Worker 協調
+- **BeeKeeper**: 自然言語による指示・成果物受け取り
+- **Queen**: 戦略策定・タスク分散・結果統合
+- **Worker**: 専門的な並列実行
+
+### プロトコル定義システム
+- **統一メッセージ形式**: MessageProtocol
+- **厳密バリデーション**: ProtocolValidator
+- **バージョン管理**: 互換性チェック
+
+### 分散処理基盤
+- **tmux統合**: セッション管理・永続化
+- **Claude永続デーモン**: 常駐プロセス
+- **Worker-paneマッピング**: 効率的な分散実行
+
+## 📖 関連ドキュメント
+
+- [新アーキテクチャ Issue解決ガイド](../docs/new_architecture_issue_guide.md)
+- [PoC実装ガイド](../docs/poc-guide.md)
+- [Issue解決エージェントドキュメント](poc/README_issue_solver.md)
+
+## 🔧 トラブルシューティング
+
+### プロトコルエラー
+```bash
+python examples/tests/protocols_test.py
+```
+
+### 分散エージェントエラー
+```bash
+./scripts/check-comb.sh
+./scripts/start_hive_distributed.sh
+```
+
+---
+
+**注意**: このディレクトリは新アーキテクチャ専用です。旧実装は削除されています。
