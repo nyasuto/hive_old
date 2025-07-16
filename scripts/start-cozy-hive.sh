@@ -34,8 +34,8 @@ echo "🔧 Creating tmux session: $SESSION_NAME"
 tmux new-session -d -s "$SESSION_NAME" -n "beekeeper" -c "$BASE_DIR"
 
 # 初期化メッセージ
-tmux send-keys -t "$SESSION_NAME:beekeeper" "echo '🐝 BeeKeeper Pane Initialized'" Enter
-tmux send-keys -t "$SESSION_NAME:beekeeper" "echo 'Ready to receive user requests...'" Enter
+tmux send-keys -t "$SESSION_NAME:beekeeper" "echo '🐝 BeeKeeper Pane Initialized'" C-m
+tmux send-keys -t "$SESSION_NAME:beekeeper" "echo 'Ready to receive user requests...'" C-m
 
 # Worker定義配列
 declare -a WORKERS=("queen" "developer" "tester" "analyzer" "documenter" "reviewer")
@@ -57,21 +57,41 @@ for i in "${!WORKERS[@]}"; do
     tmux new-window -t "$SESSION_NAME:$window_num" -n "$worker" -c "$BASE_DIR"
     
     # 初期化メッセージ
-    tmux send-keys -t "$SESSION_NAME:$worker" "echo '$emoji $name Worker Initialized'" Enter
-    tmux send-keys -t "$SESSION_NAME:$worker" "echo 'Starting Claude Code daemon...'" Enter
+    tmux send-keys -t "$SESSION_NAME:$worker" "echo '$emoji $name Worker Initialized'" C-m
+    tmux send-keys -t "$SESSION_NAME:$worker" "echo 'Starting Claude Code daemon...'" C-m
     
     # Claude起動（バックグラウンドで並列実行）
-    tmux send-keys -t "$SESSION_NAME:$worker" "claude --dangerously-skip-permissions" Enter &
+    # C-mを2回送信してClaude Codeでの確実な起動
+    tmux send-keys -t "$SESSION_NAME:$worker" "claude --dangerously-skip-permissions" C-m
 done
 
-echo "⏳ Waiting for all Claude instances to initialize (30 seconds)..."
-sleep 30
+echo "⏳ Waiting for all Claude instances to initialize (20 seconds)..."
+sleep 20
 
 echo "📋 Loading role templates..."
 # 全Workerにroleテンプレートを並列ロード
 for worker in "${WORKERS[@]}"; do
     echo "📝 Loading $worker role template..."
-    tmux send-keys -t "$SESSION_NAME:$worker" "cat $BASE_DIR/templates/roles/$worker.md" Enter &
+    
+    # ファイル内容をスクリプト内で読み込み変数に格納
+    if [[ -f "$BASE_DIR/templates/roles/$worker.md" ]]; then
+        role_content=$(cat "$BASE_DIR/templates/roles/$worker.md")
+        echo "  └─ Template size: $(echo "$role_content" | wc -c) characters"
+        
+        # テンプレート内容を明示的な指示付きで送信
+        instruction_text="以下があなたの役割です。理解して実行してください：
+        $role_content
+        "
+        
+        tmux send-keys -t "$SESSION_NAME:$worker" "$instruction_text" Enter 
+        Sleep 1
+        tmux send-keys -t "$SESSION_NAME:$worker"  Enter 
+
+    else
+        echo "⚠️  Warning: Role template not found for $worker"
+        tmux send-keys -t "$SESSION_NAME:$worker" "echo 'Role template not found for $worker'" Enter
+        sleep 1
+    fi
 done
 
 # ロード完了を待機

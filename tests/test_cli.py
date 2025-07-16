@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 
 from hive.cli_core import HiveCLI, MessageInfo, WorkerInfo
+from hive.tmux_integration import HiveTmuxIntegration
 
 
 class TestHiveCLI:
@@ -53,8 +54,11 @@ class TestHiveCLI:
     def test_detect_current_worker_from_env(self) -> None:
         """環境変数からworker検出テスト"""
         with patch.dict(os.environ, {"HIVE_WORKER_NAME": "backend"}):
-            cli = HiveCLI()
-            assert cli.current_worker == "backend"
+            with patch.object(
+                HiveTmuxIntegration, "get_current_worker", return_value=None
+            ):
+                cli = HiveCLI()
+                assert cli.current_worker == "backend"
 
     def test_is_in_tmux_false(self) -> None:
         """tmux環境外の判定テスト"""
