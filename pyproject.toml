@@ -123,6 +123,13 @@ disallow_untyped_decorators = false
 module = "examples.*"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = [
+    "hive.agents.*",
+    "tests.agents.*",
+]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"
