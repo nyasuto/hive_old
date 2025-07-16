@@ -476,15 +476,41 @@ class IssueSolverQueenCoordinator:
         await self._assign_resolution_tasks(resolution_plan)
 
         # 解決プロセス監視
-        resolution_result = await self._monitor_resolution_progress()
+        try:
+            resolution_result = await self._monitor_resolution_progress()
+            self.logger.info(f"Resolution result: {resolution_result}")
+        except Exception as e:
+            self.logger.error(f"Error in resolution monitoring: {e}")
+            resolution_result = {
+                "status": "error",
+                "error": str(e),
+                "completed_steps": 0,
+                "total_steps": 0,
+                "issues_encountered": [],
+                "total_time": 0,
+            }
 
         # 結果検証
-        validation_result = await self._validate_resolution(resolution_result)
+        try:
+            validation_result = await self._validate_resolution(resolution_result)
+            self.logger.info(f"Validation result: {validation_result}")
+        except Exception as e:
+            self.logger.error(f"Error in validation: {e}")
+            validation_result = {
+                "success": False,
+                "status": "validation_error",
+                "error": str(e),
+                "overall_score": 0,
+                "recommendations": [],
+            }
 
         # Work Log完了
-        self.comb_api.complete_task(
-            f"Issue #{issue_analysis['issue_number']} resolution completed: {validation_result['status']}"
-        )
+        try:
+            self.comb_api.complete_task(
+                f"Issue #{issue_analysis['issue_number']} resolution completed: {validation_result.get('status', 'unknown')}"
+            )
+        except Exception as e:
+            self.logger.error(f"Error completing task: {e}")
 
         return {
             "issue_number": issue_analysis["issue_number"],
@@ -560,7 +586,7 @@ class IssueSolverQueenCoordinator:
         }
 
         success = self.comb_api.send_message(
-            to_worker="developer",
+            to_worker="issue_solver_developer",
             content=assignment,
             message_type=MessageType.REQUEST,
             priority=MessagePriority.HIGH,
@@ -595,19 +621,40 @@ class IssueSolverQueenCoordinator:
         start_time = datetime.now()
 
         # 進捗監視ループ（デモ用に簡略化）
-        for _cycle in range(10):  # 最大10サイクル監視
+        for cycle in range(10):  # 最大10サイクル監視
+            self.logger.info(
+                f"Monitoring cycle {cycle + 1}/10, current status: {monitoring_result['status']}"
+            )
             await asyncio.sleep(5)  # 5秒間隔
 
             # Developer Workerからの進捗確認
-            messages = self.comb_api.receive_messages()
+            try:
+                messages = self.comb_api.receive_messages()
+                self.logger.info(f"Received {len(messages)} messages")
 
-            for message in messages:
-                if message.from_worker == "developer":
-                    await self._handle_developer_progress(message, monitoring_result)
+                for message in messages:
+                    if message.from_worker == "issue_solver_developer":
+                        self.logger.info(
+                            f"Processing developer message: {message.content.get('type', 'unknown')}"
+                        )
+                        await self._handle_developer_progress(
+                            message, monitoring_result
+                        )
+
+            except Exception as e:
+                self.logger.error(f"Error receiving messages: {e}")
 
             # 完了チェック
             if monitoring_result["status"] == "completed":
+                self.logger.info("Resolution completed, breaking monitoring loop")
                 break
+
+        # タイムアウト時の処理
+        if monitoring_result["status"] != "completed":
+            self.logger.warning(
+                f"Monitoring timed out after 10 cycles, status: {monitoring_result['status']}"
+            )
+            monitoring_result["status"] = "timeout"
 
         monitoring_result["total_time"] = (datetime.now() - start_time).total_seconds()
 
@@ -628,6 +675,10 @@ class IssueSolverQueenCoordinator:
                     "result": content.get("result", {}),
                     "timestamp": datetime.now().isoformat(),
                 }
+            )
+
+            self.logger.info(
+                f"👑 Queen: Received step completion for step {content.get('step', 0)}"
             )
 
             # 進捗記録
@@ -672,6 +723,7 @@ class IssueSolverQueenCoordinator:
         # 簡易検証（実際にはより詳細な検証が必要）
         if resolution_result["status"] == "completed":
             validation["success"] = True
+            validation["status"] = "validation_passed"
             validation["overall_score"] = 85
 
             # 成功基準チェック
@@ -683,6 +735,10 @@ class IssueSolverQueenCoordinator:
                         "details": "Automated validation passed",
                     }
                 )
+        else:
+            validation["success"] = False
+            validation["status"] = "validation_failed"
+            validation["overall_score"] = 0
 
         # 改善提案
         if resolution_result["issues_encountered"]:
@@ -706,11 +762,19 @@ class IssueSolverDeveloperWorker:
         """Issue解決監視開始"""
         self.logger.info("💻 Developer: Starting issue resolution monitoring")
 
+        monitoring_cycles = 0
         while True:
             try:
+                monitoring_cycles += 1
+                self.logger.info(f"💻 Developer: Monitoring cycle {monitoring_cycles}")
+
                 messages = self.comb_api.receive_messages()
+                self.logger.info(f"💻 Developer: Received {len(messages)} messages")
 
                 for message in messages:
+                    self.logger.info(
+                        f"💻 Developer: Processing message from {message.from_worker}"
+                    )
                     if message.from_worker == "issue_solver_queen":
                         await self._handle_queen_assignment(message)
 
@@ -725,11 +789,18 @@ class IssueSolverDeveloperWorker:
         content = message.content
         action = content.get("action", "unknown")
 
+        self.logger.info(f"💻 Developer: Handling action: {action}")
+
         if action == "resolve_issue":
             self.current_issue = content["issue_data"]
             self.resolution_plan = content["resolution_plan"]
 
+            self.logger.info(
+                f"💻 Developer: Starting resolution of issue {self.current_issue['issue_number']}"
+            )
             await self._execute_issue_resolution()
+        else:
+            self.logger.warning(f"💻 Developer: Unknown action: {action}")
 
     async def _execute_issue_resolution(self) -> None:
         """Issue解決実行"""
@@ -872,11 +943,15 @@ class IssueSolverDeveloperWorker:
             "timestamp": datetime.now().isoformat(),
         }
 
-        self.comb_api.send_message(
+        success = self.comb_api.send_message(
             to_worker="issue_solver_queen",
             content=report,
             message_type=MessageType.NOTIFICATION,
             priority=MessagePriority.MEDIUM,
+        )
+
+        self.logger.info(
+            f"💻 Developer: Sent step {step_number} completion report, success: {success}"
         )
 
     async def _report_resolution_completion(self) -> None:
@@ -892,11 +967,15 @@ class IssueSolverDeveloperWorker:
             "timestamp": datetime.now().isoformat(),
         }
 
-        self.comb_api.send_message(
+        success = self.comb_api.send_message(
             to_worker="issue_solver_queen",
             content=completion_report,
             message_type=MessageType.NOTIFICATION,
             priority=MessagePriority.HIGH,
+        )
+
+        self.logger.info(
+            f"💻 Developer: Sent resolution completion report, success: {success}"
         )
 
 
