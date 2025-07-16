@@ -65,9 +65,15 @@ class TestIssueSolverAgent:
             }
         )
 
+        # Create agent with mocked components
+        from hive.agents.issue_solver.agent import IssueSolverAgent
+        agent = IssueSolverAgent()
+        agent.prompt_parser = mock_parser_instance
+        agent.analyzer = mock_analyzer_instance
+
         # コーディネーターの戻り値をモック
         with patch.object(
-            self.agent.coordinator, "process", new_callable=AsyncMock
+            agent.coordinator, "process", new_callable=AsyncMock
         ) as mock_coord:
             mock_coord.return_value = {
                 "success": True,
@@ -80,7 +86,7 @@ class TestIssueSolverAgent:
                 },
             }
 
-            result = await self.agent.process("Issue 64を解決する")
+            result = await agent.process("Issue 64を解決する")
 
             assert result["success"] is True
             assert result["mode"] == "solve"
