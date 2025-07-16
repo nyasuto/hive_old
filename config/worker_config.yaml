@@ -1,0 +1,44 @@
+session_name: cozy-hive
+workers:
+  developer:
+    tmux_pane: "cozy-hive:developer"
+    claude_command: "claude-code --role=developer"
+    timeout: 300
+    description: "Development tasks, code implementation, bug fixes"
+    
+  tester:
+    tmux_pane: "cozy-hive:tester"
+    claude_command: "claude-code --role=tester"
+    timeout: 180
+    description: "Testing, quality assurance, test case generation"
+    
+  analyzer:
+    tmux_pane: "cozy-hive:analyzer"
+    claude_command: "claude-code --role=analyzer"
+    timeout: 240
+    description: "Code analysis, investigation, root cause analysis"
+    
+  documenter:
+    tmux_pane: "cozy-hive:documenter"
+    claude_command: "claude-code --role=documenter"
+    timeout: 120
+    description: "Documentation creation, explanation, user guides"
+    
+  reviewer:
+    tmux_pane: "cozy-hive:reviewer-"
+    claude_command: "claude-code --role=reviewer"
+    timeout: 180
+    description: "Code review, quality validation, security checks"
+
+# Communication settings
+communication:
+  temp_dir: "/tmp/hive_worker_comm"
+  max_concurrent_tasks: 5
+  retry_attempts: 3
+  retry_delay: 2
+
+# Monitoring settings
+monitoring:
+  health_check_interval: 30
+  worker_heartbeat_timeout: 60
+  log_level: "INFO"
