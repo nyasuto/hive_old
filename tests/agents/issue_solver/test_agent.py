@@ -67,6 +67,7 @@ class TestIssueSolverAgent:
 
         # Create agent with mocked components
         from hive.agents.issue_solver.agent import IssueSolverAgent
+
         agent = IssueSolverAgent()
         agent.prompt_parser = mock_parser_instance
         agent.analyzer = mock_analyzer_instance
