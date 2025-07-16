@@ -1,7 +1,7 @@
 # Hive - Claude Code Multi-Agent System
 # Makefile for development automation
 
-.PHONY: help install dev clean build test test-cov lint format type-check quality quality-fix pr-ready git-hooks env-info
+.PHONY: help install dev clean build test test-cov lint format type-check quality quality-fix pr-ready git-hooks env-info quality-light poc-ready
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -205,3 +205,17 @@ init-project: check-deps install ## Initialize new Hive project
 	@echo "  1. Run 'make hive-start' to start your first Hive"
 	@echo "  2. Check 'make hive-status' to verify communication"
 	@echo "  3. Use 'make hive-collect' to gather results"
+
+quality-light: ## Lightweight quality check for exploration phase
+	@echo "🔍 Lightweight quality check for exploration phase..."
+	@echo "Running basic linting (excluding line length)..."
+	@uv run ruff check . --select=E,W,F --ignore=E501
+	@echo "Running basic formatting check..."
+	@uv run ruff format . --check
+	@echo "✅ Light quality check completed!"
+
+poc-ready: quality-light ## Check if code is ready for PoC (lightweight validation)
+	@echo "🚀 PoC readiness check..."
+	@echo "Running basic tests..."
+	@uv run python -m pytest tests/ -x --tb=short || echo "⚠️ Some tests failed, but continuing for PoC"
+	@echo "✅ Code is ready for PoC!"

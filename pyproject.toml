@@ -128,6 +128,17 @@ module = [
     "hive.agents.*",
     "tests.agents.*",
     "agents.distributed.*",
+    "hive.agents_distributed.*",
+    "examples.poc.*",
+]
+ignore_errors = true
+
+# Exploration phase: More lenient type checking
+[[tool.mypy.overrides]]
+module = [
+    "*.poc.*",
+    "*.experimental.*",
+    "*.draft.*",
 ]
 ignore_errors = true
 
