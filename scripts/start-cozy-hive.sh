@@ -5,11 +5,11 @@
 
 set -e
 
-SESSION_NAME="hive"
+SESSION_NAME="cozy-hive"
 BASE_DIR="/Users/yast/git/hive"
 CONFIG_FILE="$BASE_DIR/config/tmux_config.yaml"
 
-echo "🐝 Starting Hive Distributed System..."
+echo "🐝 Starting Cozy Hive System..."
 
 # 既存セッションをチェック
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -92,7 +92,7 @@ sleep 2
 # BeeKeeperウィンドウに戻る
 tmux select-window -t "$SESSION_NAME:beekeeper"
 
-echo "✅ Hive Distributed System started successfully!"
+echo "✅ Cozy Hive System started successfully!"
 echo ""
 echo "📋 Available panes:"
 echo "  - beekeeper  (window 0) - User request handling"
@@ -103,7 +103,7 @@ echo "  - analyzer   (window 4) - Analysis and investigation"
 echo "  - documenter (window 5) - Documentation creation"
 echo "  - reviewer   (window 6) - Code review and validation"
 echo ""
-echo "🔗 To attach to the session:"
+echo "🔗 To attach to the cozy session:"
 echo "  tmux attach-session -t $SESSION_NAME"
 echo ""
 echo "🔄 To switch between panes:"
@@ -115,8 +115,8 @@ echo "  Ctrl+b + 4  (Analyzer)"
 echo "  Ctrl+b + 5  (Documenter)"
 echo "  Ctrl+b + 6  (Reviewer)"
 echo ""
-echo "🛑 To stop the system:"
-echo "  ./scripts/stop_hive_distributed.sh"
+echo "🛑 To stop the cozy system:"
+echo "  ./scripts/stop-cozy-hive.sh"
 
 # セッションにアタッチ
 tmux attach-session -t "$SESSION_NAME"

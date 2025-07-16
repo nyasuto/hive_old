@@ -39,7 +39,7 @@ python examples/tests/protocols_test.py
 ### 2. 分散エージェント起動
 ```bash
 # 分散環境起動
-./scripts/start_hive_distributed.sh
+./scripts/start-cozy-hive.sh
 
 # 通信確認
 ./scripts/check-comb.sh

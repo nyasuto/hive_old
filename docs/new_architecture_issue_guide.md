@@ -35,7 +35,7 @@ python examples/tests/protocols_test.py
 ./scripts/check-comb.sh
 
 # 必要に応じて分散エージェント再起動
-./scripts/start_hive_distributed.sh
+./scripts/start-cozy-hive.sh
 ```
 
 ### Step 3: 新アーキテクチャ Issue解決実行 (10分)
@@ -131,8 +131,8 @@ cat config/protocol_config.yaml
 ./scripts/check-comb.sh
 
 # 再起動
-./scripts/stop_hive_distributed.sh
-./scripts/start_hive_distributed.sh
+./scripts/stop-cozy-hive.sh
+./scripts/start-cozy-hive.sh
 ```
 
 ---
