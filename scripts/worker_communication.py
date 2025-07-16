@@ -114,7 +114,7 @@ class WorkerCommunicator:
     async def send_task_to_worker(
         self, worker_name: str, task: dict[str, Any]
     ) -> dict[str, Any]:
-        """Send task to specific worker via tmux"""
+        """Send task to specific worker via tmux direct communication"""
         if not self.check_tmux_session():
             raise WorkerCommunicationError(
                 f"Tmux session '{self.session_name}' not found"
@@ -132,29 +132,21 @@ class WorkerCommunicator:
             **task,
         }
 
-        # Create task file
-        task_file = self.temp_dir / f"task_{task_id}.json"
-        with open(task_file, "w") as f:
-            json.dump(task_with_id, f, indent=2)
-
-        # Create result file path
-        result_file = self.temp_dir / f"result_{task_id}.json"
-
-        # Send task to worker
+        # Get pane name
         pane_name = self.config["workers"][worker_name]["tmux_pane"]
 
-        # Create command to execute in worker pane
-        command = self._create_worker_command(worker_name, task_file, result_file)
+        # Create message for Claude worker
+        message = self._create_worker_message(worker_name, task_with_id)
 
         try:
-            # Send command to tmux pane
+            # Send message to Claude worker via tmux
             subprocess.run(
-                ["tmux", "send-keys", "-t", pane_name, command, "Enter"], check=True
+                ["tmux", "send-keys", "-t", pane_name, message, "Enter"], check=True
             )
 
-            # Wait for result
-            timeout = self.config["workers"][worker_name].get("timeout", 300)
-            result = await self._wait_for_result(result_file, timeout)
+            # Wait for response and capture result
+            timeout = self.config["workers"][worker_name].get("timeout", 120)
+            result = await self._wait_for_claude_response(pane_name, timeout)
 
             return {
                 "task_id": task_id,
@@ -170,99 +162,105 @@ class WorkerCommunicator:
             ) from e
         except TimeoutError as e:
             raise WorkerCommunicationError(f"Worker {worker_name} timed out") from e
-        finally:
-            # Cleanup files
-            for file_path in [task_file, result_file]:
-                if file_path.exists():
-                    file_path.unlink()
 
-    def _create_worker_command(
-        self, worker_name: str, task_file: Path, result_file: Path
-    ) -> str:
-        """Create command to execute in worker pane"""
-        # For now, we'll use a simple Python command to process the task
-        # In a full implementation, this would integrate with Claude Code
-        return f'''python3 -c "
-import json
-import time
-from pathlib import Path
+    def _create_worker_message(self, worker_name: str, task: dict[str, Any]) -> str:
+        """Create message to send to Claude worker"""
+        issue_number = task.get("issue_number", "N/A")
+        instruction = task.get("instruction", "")
+        task_type = task.get("task_type", "general_task")
 
-# Read task
-with open('{task_file}', 'r') as f:
-    task = json.load(f)
+        # Create role-specific message
+        role_context = {
+            "documenter": f"あなたはDocumenterとして、Issue #{issue_number}について説明してください。",
+            "developer": f"あなたはDeveloperとして、Issue #{issue_number}の実装を行ってください。",
+            "tester": f"あなたはTesterとして、Issue #{issue_number}のテストを作成してください。",
+            "analyzer": f"あなたはAnalyzerとして、Issue #{issue_number}を分析してください。",
+            "reviewer": f"あなたはReviewerとして、Issue #{issue_number}をレビューしてください。",
+        }
 
-# Simulate worker processing
-print(f'🏗️ {{task[\"worker_name\"].capitalize()}} Worker: Processing task {{task[\"task_id\"][:8]}}...')
-time.sleep(1)  # Simulate work
+        role_message = role_context.get(worker_name, f"Task: {task_type}")
 
-# Create result based on worker type
-if task['worker_name'] == 'documenter':
-    result = {{
-        'task_id': task['task_id'],
-        'worker_type': 'documenter',
-        'status': 'completed',
-        'output': 'GitHub Issue information retrieved and formatted',
-        'content': {{
-            'issue_number': task.get('issue_number', 'N/A'),
-            'issue_title': 'Example Issue Title',
-            'issue_body': 'This is example issue content retrieved from GitHub',
-            'labels': ['bug', 'priority: medium'],
-            'assignees': [],
-            'status': 'open'
-        }},
-        'processing_time': 1.0,
-        'timestamp': task['timestamp']
-    }}
-elif task['worker_name'] == 'developer':
-    result = {{
-        'task_id': task['task_id'],
-        'worker_type': 'developer',
-        'status': 'completed',
-        'output': 'Code implementation completed',
-        'content': {{
-            'files_modified': ['main.py', 'utils.py'],
-            'tests_added': ['test_main.py'],
-            'changes_summary': 'Implemented bug fix and added unit tests'
-        }},
-        'processing_time': 2.0,
-        'timestamp': task['timestamp']
-    }}
-else:
-    result = {{
-        'task_id': task['task_id'],
-        'worker_type': task['worker_name'],
-        'status': 'completed',
-        'output': f'{{task[\"worker_name\"].capitalize()}} work completed',
-        'content': {{}},
-        'processing_time': 1.0,
-        'timestamp': task['timestamp']
-    }}
+        task_id = task.get("task_id", "unknown")
+        return f"{role_message}\n\n{instruction}\n\n回答が完了したら、以下のコマンドを実行してQueenに結果を送信してください：\ntmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あなたの回答をここに]' Enter\n\nその後、[TASK_COMPLETED]と出力してください。"
 
-# Write result
-with open('{result_file}', 'w') as f:
-    json.dump(result, f, indent=2)
-
-print(f'✅ {{task[\"worker_name\"].capitalize()}} Worker: Task completed')
-"'''
-
-    async def _wait_for_result(self, result_file: Path, timeout: int) -> dict[str, Any]:
-        """Wait for worker result with timeout"""
+    async def _wait_for_claude_response(
+        self, pane_name: str, timeout: int
+    ) -> dict[str, Any]:
+        """Wait for Claude response via tmux capture-pane"""
         start_time = time.time()
+        last_content = ""
 
         while time.time() - start_time < timeout:
-            if result_file.exists():
-                try:
-                    with open(result_file) as f:
-                        loaded_result = json.load(f)
-                        return loaded_result if loaded_result is not None else {}
-                except (OSError, json.JSONDecodeError):
-                    # File might be being written, wait a bit more
-                    await asyncio.sleep(0.1)
-                    continue
+            try:
+                # Capture pane content
+                result = subprocess.run(
+                    ["tmux", "capture-pane", "-t", pane_name, "-p"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
 
-            await asyncio.sleep(0.5)
+                current_content = result.stdout
 
-        raise TimeoutError(f"Worker result not received within {timeout} seconds")
+                # Check if Claude has completed the task
+                if "[TASK_COMPLETED]" in current_content:
+                    # Extract the response (everything after the last message until [TASK_COMPLETED])
+                    response_text = self._extract_claude_response(current_content)
+
+                    return {
+                        "output": response_text,
+                        "status": "completed",
+                        "content": response_text,
+                        "processing_time": time.time() - start_time,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+                # Check if content has changed (Claude is still working)
+                if current_content != last_content:
+                    last_content = current_content
+                    # Reset timeout if Claude is actively responding
+                    start_time = time.time()
+
+                await asyncio.sleep(2)  # Check every 2 seconds
+
+            except subprocess.SubprocessError as e:
+                raise WorkerCommunicationError(
+                    f"Failed to capture pane {pane_name}: {e}"
+                ) from e
+
+        raise TimeoutError(f"Claude response not received within {timeout} seconds")
+
+    def _extract_claude_response(self, content: str) -> str:
+        """Extract Claude response from tmux pane content"""
+        lines = content.split("\n")
+        response_lines = []
+        collecting = False
+
+        for line in lines:
+            # Skip empty lines and tmux formatting
+            if not line.strip() or line.startswith("∙"):
+                continue
+
+            # Look for the start of Claude's response (after our message)
+            if not collecting and ("あなたは" in line or "Issue #" in line):
+                collecting = True
+                continue
+
+            # Stop collecting when we hit [TASK_COMPLETED]
+            if "[TASK_COMPLETED]" in line:
+                break
+
+            # Collect response lines
+            if collecting:
+                response_lines.append(line.strip())
+
+        # Clean up the response
+        response = "\n".join(response_lines)
+
+        # Remove any remaining tmux artifacts
+        response = response.replace("∙", "").strip()
+
+        return response if response else "Task completed successfully"
 
     async def send_parallel_tasks(
         self, tasks: list[dict[str, Any]]

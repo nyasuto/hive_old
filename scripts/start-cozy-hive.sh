@@ -38,56 +38,74 @@ tmux send-keys -t "$SESSION_NAME:beekeeper" "echo '🐝 BeeKeeper Pane Initializ
 tmux send-keys -t "$SESSION_NAME:beekeeper" "echo 'Ready to receive user requests...'" C-m
 
 # 短い待機
-sleep 2
+sleep 5
 
 # Queenウィンドウを作成
 echo "👑 Creating Queen pane..."
 tmux new-window -t "$SESSION_NAME:1" -n "queen" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:queen" "echo '👑 Queen Pane Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:queen" "echo 'Ready to manage tasks and coordinate workers...'" C-m
+tmux send-keys -t "$SESSION_NAME:queen" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:queen" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:queen" "cat $BASE_DIR/templates/roles/queen.md" C-m
 
-# 短い待機
-sleep 3
+# Claude起動を待機
+sleep 8
 
 # Developer Worker作成
 echo "👨‍💻 Creating Developer Worker..."
 tmux new-window -t "$SESSION_NAME:2" -n "developer" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:developer" "echo '👨‍💻 Developer Worker Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:developer" "echo 'Ready to execute development tasks...'" C-m
+tmux send-keys -t "$SESSION_NAME:developer" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:developer" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:developer" "cat $BASE_DIR/templates/roles/developer.md" C-m
 
-sleep 2
+sleep 5
 
 # Tester Worker作成
 echo "🧪 Creating Tester Worker..."
 tmux new-window -t "$SESSION_NAME:3" -n "tester" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:tester" "echo '🧪 Tester Worker Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:tester" "echo 'Ready to execute testing tasks...'" C-m
+tmux send-keys -t "$SESSION_NAME:tester" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:tester" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:tester" "cat $BASE_DIR/templates/roles/tester.md" C-m
 
-sleep 2
+sleep 5
 
 # Analyzer Worker作成
 echo "🔍 Creating Analyzer Worker..."
 tmux new-window -t "$SESSION_NAME:4" -n "analyzer" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:analyzer" "echo '🔍 Analyzer Worker Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:analyzer" "echo 'Ready to execute analysis tasks...'" C-m
+tmux send-keys -t "$SESSION_NAME:analyzer" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:analyzer" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:analyzer" "cat $BASE_DIR/templates/roles/analyzer.md" C-m
 
-sleep 2
+sleep 5
 
 # Documenter Worker作成
 echo "📝 Creating Documenter Worker..."
 tmux new-window -t "$SESSION_NAME:5" -n "documenter" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:documenter" "echo '📝 Documenter Worker Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:documenter" "echo 'Ready to execute documentation tasks...'" C-m
+tmux send-keys -t "$SESSION_NAME:documenter" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:documenter" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:documenter" "cat $BASE_DIR/templates/roles/documenter.md" C-m
 
-sleep 2
+sleep 5
 
 # Reviewer Worker作成
 echo "👀 Creating Reviewer Worker..."
 tmux new-window -t "$SESSION_NAME:6" -n "reviewer" -c "$BASE_DIR"
 tmux send-keys -t "$SESSION_NAME:reviewer" "echo '👀 Reviewer Worker Initialized'" C-m
-tmux send-keys -t "$SESSION_NAME:reviewer" "echo 'Ready to execute review tasks...'" C-m
+tmux send-keys -t "$SESSION_NAME:reviewer" "echo 'Starting Claude Code daemon...'" C-m
+tmux send-keys -t "$SESSION_NAME:reviewer" "claude --dangerously-skip-permissions" C-m
+sleep 20
+tmux send-keys -t "$SESSION_NAME:reviewer" "cat $BASE_DIR/templates/roles/reviewer.md" C-m
 
-sleep 2
+sleep 5
 
 # BeeKeeperウィンドウに戻る
 tmux select-window -t "$SESSION_NAME:beekeeper"
