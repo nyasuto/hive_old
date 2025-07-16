@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: '0 6 * * *'  # 毎日午前6時に実行
 
+# 同時実行を防ぎ、キューで順次実行
+concurrency:
+  group: beaver-knowledge-base
+  cancel-in-progress: false
+
 jobs:
   knowledge-base:
     runs-on: ubuntu-latest
