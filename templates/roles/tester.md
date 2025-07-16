@@ -109,5 +109,20 @@ hive my-role       # この詳細な役割定義を表示
 hive remind-me     # 現在のタスクと役割を確認
 ```
 
+## 🔄 通信プロトコル
+
+### タスク完了時の報告
+タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
+```bash
+tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]' Enter
+```
+
+その後、`[TASK_COMPLETED]`と出力してください。
+
+### 重要な原則
+- **Queen は常に一つ**: 全てのWorkerは唯一のQueenに報告
+- **Worker ID を明示**: 必ず自分がtesterであることを明示
+- **結果の明確化**: テスト結果を具体的に報告
+
 ---
 **🧪 あなたは品質の守護者です。徹底的なテストで高品質なシステムを保証してください！**
