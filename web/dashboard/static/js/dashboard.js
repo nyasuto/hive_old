@@ -85,7 +85,10 @@ class HiveDashboard {
     
     // ダッシュボードデータ更新処理
     handleDashboardUpdate(data) {
-        console.log('📊 Dashboard update received:', data.timestamp);
+        // 詳細ログは開発時のみ有効化
+        if (window.location.search.includes('debug=true')) {
+            console.log('📊 Dashboard update received:', data.timestamp);
+        }
         this.lastUpdateTime = new Date();
         
         // Worker状態更新
@@ -170,10 +173,15 @@ class HiveDashboard {
             return `
                 <div class="message-item fade-in" data-type="${message.message_type}">
                     <div class="message-header">
-                        <span class="message-time">${timestamp}</span>
-                        <span class="message-arrow">${arrow}</span>
-                        <span class="message-source">${message.source}</span>
-                        <span class="message-target">${message.target}</span>
+                        <div class="message-meta">
+                            <span class="message-time">${timestamp}</span>
+                            <span class="message-type">${message.message_type}</span>
+                        </div>
+                        <div class="message-flow">
+                            <span class="message-source">${message.source}</span>
+                            <span class="message-arrow">${arrow}</span>
+                            <span class="message-target">${message.target}</span>
+                        </div>
                     </div>
                     <div class="message-content">${message.message}</div>
                 </div>
