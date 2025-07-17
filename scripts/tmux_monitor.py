@@ -11,6 +11,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # プロジェクトルートをPythonパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -156,7 +157,7 @@ class TMuxSessionInfo:
     def __init__(self, session_name: str = "cozy-hive"):
         self.session_name = session_name
 
-    def get_session_status(self) -> dict[str, any]:
+    def get_session_status(self) -> dict[str, Any]:
         """セッション状態の詳細取得"""
         try:
             # セッション存在確認
@@ -217,7 +218,7 @@ class TMuxSessionInfo:
             }
 
 
-async def main():
+async def main() -> None:
     """デモ実行"""
     print("🔍 TMux Monitor - Hive Watch Phase 1")
     print("=" * 50)

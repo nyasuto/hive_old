@@ -8,6 +8,7 @@ import asyncio
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # プロジェクトルートをPythonパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,15 +18,23 @@ import importlib.util
 
 from scripts.hive_cli import HiveCLI
 
-spec = importlib.util.spec_from_file_location(
-    "hive_watch", Path(__file__).parent / "hive_watch.py"
-)
-hive_watch_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(hive_watch_module)
-HiveWatch = hive_watch_module.HiveWatch
+
+def _get_hive_watch() -> Any:
+    """HiveWatchを動的にimportして取得"""
+    spec = importlib.util.spec_from_file_location(
+        "hive_watch_module", Path(__file__).parent / "hive_watch.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError("Failed to load hive_watch module")
+    hive_watch_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hive_watch_module)
+    return hive_watch_module.HiveWatch
 
 
-async def test_basic_functionality():
+HiveWatch = _get_hive_watch()
+
+
+async def test_basic_functionality() -> bool:
     """基本機能テスト"""
     print("🧪 Hive Watch Phase 1 テスト開始")
     print("=" * 50)
@@ -84,7 +93,7 @@ async def test_basic_functionality():
     return True
 
 
-async def test_monitoring_features():
+async def test_monitoring_features() -> bool:
     """監視機能テスト"""
     print("\n🔍 監視機能テスト")
     print("=" * 50)
@@ -115,7 +124,7 @@ async def test_monitoring_features():
     return True
 
 
-async def test_parallel_messaging():
+async def test_parallel_messaging() -> bool:
     """並列メッセージ送信テスト"""
     print("\n🚀 並列メッセージ送信テスト")
     print("=" * 50)
@@ -153,7 +162,7 @@ async def test_parallel_messaging():
         return False
 
 
-async def main():
+async def main() -> bool:
     """メインテスト実行"""
     print("🔬 Hive Watch Phase 1 統合テスト")
     print("Issue #125 - 基本監視機能実装検証")

@@ -78,7 +78,7 @@ class CommunicationLogger:
 class MessageParser:
     """通信メッセージの解析"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.patterns = {
             "task_assignment": r"TASK_(\w+)_(\w+):",
             "worker_result": r"WORKER_RESULT:(\w+):(\w+):",
@@ -332,7 +332,7 @@ class HiveWatch:
                     continue
 
 
-async def main():
+async def main() -> None:
     """メイン実行関数"""
     parser = argparse.ArgumentParser(
         description="Hive Watch - リアルタイム通信監視システム"

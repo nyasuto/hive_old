@@ -20,8 +20,24 @@ from uuid import uuid4
 # プロジェクトルートをPythonパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.hive_watch import HiveWatchCommunicator
+# 循環importを避けるため、HiveWatchCommunicatorを動的にimport
+import importlib.util
+import sys
+from pathlib import Path
+
 from scripts.worker_communication import WorkerCommunicationError
+
+
+def _get_hive_watch_communicator() -> Any:
+    """HiveWatchCommunicatorを動的にimportして取得"""
+    spec = importlib.util.spec_from_file_location(
+        "hive_watch_module", Path(__file__).parent / "hive_watch.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError("Failed to load hive_watch module")
+    hive_watch_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hive_watch_module)
+    return hive_watch_module.HiveWatchCommunicator
 
 
 class HiveCLI:
@@ -29,6 +45,7 @@ class HiveCLI:
 
     def __init__(self, session_name: str = "cozy-hive"):
         self.session_name = session_name
+        HiveWatchCommunicator = _get_hive_watch_communicator()
         self.communicator = HiveWatchCommunicator(session_name)
         self.cli_version = "1.0.0-alpha"
 
@@ -201,7 +218,8 @@ class HiveCLI:
 
     async def list_workers(self) -> dict[str, Any]:
         """Worker一覧と状態を取得"""
-        return self.communicator.monitor_worker_status()
+        status: dict[str, Any] = self.communicator.monitor_worker_status()
+        return status
 
     async def get_worker_history(self, worker: str, lines: int = 20) -> str:
         """Worker履歴を取得"""
@@ -255,7 +273,7 @@ class HiveCLI:
                 print(f"   ⏱️  {task_id} ({elapsed}s) → {worker}")
 
 
-async def main():
+async def main() -> None:
     """メイン実行関数"""
     parser = argparse.ArgumentParser(description="Hive CLI - 透過的通信監視機能付きCLI")
     parser.add_argument("--session", default="cozy-hive", help="tmuxセッション名")
@@ -334,6 +352,8 @@ async def main():
             spec = importlib.util.spec_from_file_location(
                 "hive_watch", Path(__file__).parent / "hive_watch.py"
             )
+            if spec is None or spec.loader is None:
+                raise ImportError("Failed to load hive_watch module")
             hive_watch_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(hive_watch_module)
 
