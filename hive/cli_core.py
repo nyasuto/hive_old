@@ -361,14 +361,16 @@ class HiveCLI:
             worker_dir.mkdir(exist_ok=True)
 
             # ROLEファイルの生成
-            self._generate_role_file(worker, variables)
+            self._generate_role_file(worker, variables, hive_dir)
 
             # 初期タスクファイルの生成
             if worker in template["initial_tasks"]:
-                self._generate_tasks_file(worker, template["initial_tasks"][worker])
+                self._generate_tasks_file(
+                    worker, template["initial_tasks"][worker], hive_dir
+                )
 
         # プロジェクト設定ファイルの作成
-        self._generate_project_config(template, project_name)
+        self._generate_project_config(template, project_name, hive_dir)
 
         print(f"✅ プロジェクト '{project_name}' のブートストラップが完了しました")
         print("📁 設定ファイル: .hive/")
@@ -456,7 +458,9 @@ class HiveCLI:
         else:
             print("\n📝 現在のタスク: まだ設定されていません")
 
-    def _generate_role_file(self, worker: str, variables: dict[str, str]) -> None:
+    def _generate_role_file(
+        self, worker: str, variables: dict[str, str], hive_dir: Path | None = None
+    ) -> None:
         """Workerの役割ファイルを生成"""
         template_path = self.project_root / "templates" / "roles" / f"{worker}.md"
         if not template_path.exists():
@@ -472,12 +476,16 @@ class HiveCLI:
                 f"{{{{{var_name}}}}}", var_value
             )
 
-        # ファイルに書き込み
-        role_file = self.project_root / ".hive" / "workers" / worker / "ROLE.md"
+        # ファイルに書き込み（hive_dirが指定されていない場合はデフォルトを使用）
+        if hive_dir is None:
+            hive_dir = self.project_root / ".hive"
+        role_file = hive_dir / "workers" / worker / "ROLE.md"
         with open(role_file, "w", encoding="utf-8") as f:
             f.write(template_content)
 
-    def _generate_tasks_file(self, worker: str, tasks: list[str]) -> None:
+    def _generate_tasks_file(
+        self, worker: str, tasks: list[str], hive_dir: Path | None = None
+    ) -> None:
         """Workerの初期タスクファイルを生成"""
         tasks_content = f"# {worker.title()} Worker - 初期タスク\n\n"
         tasks_content += "## 🎯 現在のタスク\n\n"
@@ -488,12 +496,14 @@ class HiveCLI:
         tasks_content += "\n## ✅ 完了したタスク\n\n"
         tasks_content += "（まだありません）\n"
 
-        tasks_file = self.project_root / ".hive" / "workers" / worker / "tasks.md"
+        if hive_dir is None:
+            hive_dir = self.project_root / ".hive"
+        tasks_file = hive_dir / "workers" / worker / "tasks.md"
         with open(tasks_file, "w", encoding="utf-8") as f:
             f.write(tasks_content)
 
     def _generate_project_config(
-        self, template: dict[str, Any], project_name: str
+        self, template: dict[str, Any], project_name: str, hive_dir: Path | None = None
     ) -> None:
         """プロジェクト設定ファイルを生成"""
         config = {
@@ -505,7 +515,9 @@ class HiveCLI:
             "workers": self.VALID_WORKERS,
         }
 
-        config_file = self.project_root / ".hive" / "config.json"
+        if hive_dir is None:
+            hive_dir = self.project_root / ".hive"
+        config_file = hive_dir / "config.json"
         with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
 

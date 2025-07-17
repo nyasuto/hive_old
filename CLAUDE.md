@@ -118,7 +118,7 @@ Closes #[issue_number]
 ## Project Specific
 
 ### Tech Stack
-- **Language**: Python 3.9+
+- **Language**: Python 3.12+
 - **Build System**: Make + Shell scripts
 - **Communication**: tmux + Claude Code API
 - **Project Language**: 日本語
