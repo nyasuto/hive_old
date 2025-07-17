@@ -589,11 +589,13 @@ Issue番号: {parsed_request.get("issue_number", "N/A")}
         print("\n💡 Worker状態確認方法:")
         print("  tmux attach-session -t cozy-hive  # セッション全体を表示")
         print("  # または個別Worker確認:")
-        
+
         workers = ["queen", "analyzer", "documenter", "developer", "tester", "reviewer"]
         for worker in workers:
-            print(f"  tmux capture-pane -t cozy-hive:{worker} -p | tail -5  # {worker}の最新状況")
-        
+            print(
+                f"  tmux capture-pane -t cozy-hive:{worker} -p | tail -5  # {worker}の最新状況"
+            )
+
         print("\n⌨️  便利なキーボードショートカット (tmux内):")
         print("  Ctrl+b → w    # window一覧表示")
         print("  Ctrl+b → q    # pane番号表示")
@@ -603,22 +605,24 @@ Issue番号: {parsed_request.get("issue_number", "N/A")}
     def _show_current_worker_status(self) -> None:
         """現在のWorker状態を簡易表示"""
         print("\n🔍 現在のWorker状態:")
-        
+
         workers = ["queen", "analyzer", "documenter", "developer", "tester", "reviewer"]
         active_workers = []
-        
+
         for worker in workers:
             if self.worker_communicator.check_worker_pane(worker):
                 active_workers.append(f"✅ {worker}")
             else:
                 active_workers.append(f"❌ {worker}")
-        
+
         # Display in a nice format
         for i in range(0, len(active_workers), 3):
-            row = "  " + "    ".join(active_workers[i:i+3])
+            row = "  " + "    ".join(active_workers[i : i + 3])
             print(row)
-        
-        print(f"\n📈 活性Worker数: {len([w for w in active_workers if '✅' in w])}/{len(workers)}")
+
+        print(
+            f"\n📈 活性Worker数: {len([w for w in active_workers if '✅' in w])}/{len(workers)}"
+        )
 
 
 class DistributedBeeKeeperAgent:
@@ -702,7 +706,9 @@ class DistributedBeeKeeperAgent:
                     queen_response = coord["queen_response"]
                     if isinstance(queen_response, dict):
                         if "result" in queen_response:
-                            output = queen_response['result'].get('output', 'タスク完了')
+                            output = queen_response["result"].get(
+                                "output", "タスク完了"
+                            )
                             # Truncate long outputs for better readability
                             if len(output) > 200:
                                 output = output[:200] + "... [結果が長いため省略]"
@@ -712,9 +718,11 @@ class DistributedBeeKeeperAgent:
                     else:
                         response_text = str(queen_response)
                         if len(response_text) > 200:
-                            response_text = response_text[:200] + "... [結果が長いため省略]"
+                            response_text = (
+                                response_text[:200] + "... [結果が長いため省略]"
+                            )
                         print(f"  ✅ {response_text}")
-                
+
                 print("\n🎊 分散処理が正常に完了しました！")
                 print("📋 詳細な結果はQueenが各Workerと連携して作成しました")
         else:
