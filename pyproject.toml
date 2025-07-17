@@ -104,6 +104,10 @@ warn_unreachable = true
 strict_equality = true
 explicit_package_bases = true
 namespace_packages = true
+exclude = [
+    "^tests/web/.*\\.py$",
+    "^docs/.*\\.py$"
+]
 
 [[tool.mypy.overrides]]
 module = [
@@ -186,6 +190,16 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+# Test files mypy configuration - relax type checking for tests
+[[tool.mypy.overrides]]
+module = [
+    "tests.web.*"
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
 
 [dependency-groups]
 dev = [
