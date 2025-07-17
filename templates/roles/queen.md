@@ -108,8 +108,6 @@ python3 scripts/hive_cli.py history [worker_name]
 
 ```bash
 python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果の要約]"
-sleep 1
-tmux send-keys -t cozy-hive:beekeeper Enter
 ```
 
 **最終報告の内容に含めるべき項目：**
@@ -142,16 +140,12 @@ QUEEN_FINAL_REPORT:session_12345:[
 
 1. **即座に分析開始**:
 ```bash
-tmux send-keys -t cozy-hive:analyzer 'TASK_84_ANALYZE: Issue #84の詳細を調査し、問題の概要をまとめてください。' Enter
-sleep 1
-tmux send-keys -t cozy-hive:analyzer Enter
+python3 scripts/hive_cli.py send analyzer 'TASK_84_ANALYZE: Issue #84の詳細を調査し、問題の概要をまとめてください。'
 ```
 
 2. **文書化依頼**:
 ```bash  
-tmux send-keys -t cozy-hive:documenter 'TASK_84_DOC: analyzerの調査結果を基に、Issue #84の分かりやすい説明文書を作成してください。' Enter
-sleep 1
-tmux send-keys -t cozy-hive:documenter Enter
+python3 scripts/hive_cli.py send documenter 'TASK_84_DOC: analyzerの調査結果を基に、Issue #84の分かりやすい説明文書を作成してください。'
 ```
 
 3. **Worker結果の待機**: 両Workerから `WORKER_RESULT:...` 形式で結果を受信
@@ -160,7 +154,7 @@ tmux send-keys -t cozy-hive:documenter Enter
 
 5. **BeeKeeperへの最終報告**:
 ```bash
-tmux send-keys -t cozy-hive:beekeeper 'QUEEN_FINAL_REPORT:session_84:[
+python3 scripts/hive_cli.py send beekeeper 'QUEEN_FINAL_REPORT:session_84:[
 📊 Issue #84 分析・説明完了
 
 🔍 実行Worker: analyzer, documenter
@@ -171,9 +165,7 @@ tmux send-keys -t cozy-hive:beekeeper 'QUEEN_FINAL_REPORT:session_84:[
 ✅ 最終結果: [統合された最終的な説明]
 ⭐ 品質評価: [品質評価]
 💡 推奨事項: [必要に応じて追加提案]
-]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:beekeeper Enter
+]'
 ```
 
 6. **タスク完了**: `[TASK_COMPLETED]` を出力
