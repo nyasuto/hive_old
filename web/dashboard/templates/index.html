@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐝 Hive Dashboard - Real-time Monitoring</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Real-time monitoring dashboard for Hive distributed multi-agent system">
+    <meta name="author" content="Hive Development Team">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐝</text></svg>">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="🐝 Hive Dashboard">
+    <meta property="og:description" content="Real-time monitoring for distributed AI agent system">
+    <meta property="og:type" content="website">
+    
+    <!-- Performance optimization -->
+    <link rel="dns-prefetch" href="//localhost">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="hive-logo">🐝</div>
+            <h1>Hive Dashboard</h1>
+            <div class="loading-spinner"></div>
+            <p>Connecting to distributed system...</p>
+        </div>
+    </div>
+    
+    <!-- Main Application -->
+    <div id="app">
+        <!-- Dashboard content will be populated by JavaScript -->
+        <div class="loading">
+            <span>🔌 Initializing WebSocket connection...</span>
+        </div>
+    </div>
+    
+    <!-- Error Fallback -->
+    <div id="error-fallback" class="error-fallback" style="display: none;">
+        <div class="error-content">
+            <h1>❌ Dashboard Error</h1>
+            <p>Something went wrong while loading the dashboard.</p>
+            <div class="error-actions">
+                <button onclick="location.reload()" class="btn-primary">🔄 Reload Page</button>
+                <button onclick="window.history.back()" class="btn-secondary">← Go Back</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- JavaScript -->
+    <script>
+        // Global configuration
+        window.HIVE_CONFIG = {
+            websocketUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
+            apiBaseUrl: `${window.location.origin}/api`,
+            refreshInterval: 1000,
+            maxReconnectAttempts: 5,
+            heartbeatInterval: 30000
+        };
+        
+        // Performance monitoring
+        window.addEventListener('load', () => {
+            console.log('📊 Page load performance:');
+            console.log('- DOM Content Loaded:', performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd);
+            console.log('- Load Complete:', performance.getEntriesByType('navigation')[0].loadEventEnd);
+            
+            // Hide loading screen
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                }, 1000);
+            }
+        });
+        
+        // Error boundary
+        window.addEventListener('error', (event) => {
+            console.error('❌ Page error:', event.error);
+            
+            // Show error fallback if critical error
+            if (event.error && event.error.name === 'TypeError') {
+                const app = document.getElementById('app');
+                const errorFallback = document.getElementById('error-fallback');
+                
+                if (app && errorFallback) {
+                    app.style.display = 'none';
+                    errorFallback.style.display = 'flex';
+                }
+            }
+        });
+        
+        // Service Worker registration (future enhancement)
+        if ('serviceWorker' in navigator) {
+            console.log('🔧 Service Worker support detected (future enhancement)');
+        }
+        
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.add('dark-mode');
+        }
+        
+        // WebSocket connection status logging
+        function logConnectionStatus(status) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`🔌 [${timestamp}] WebSocket ${status}`);
+        }
+    </script>
+    
+    <!-- Charts Module -->
+    <script src="/static/js/charts.js"></script>
+    
+    <!-- Flow Visualization Module -->
+    <script src="/static/js/flow-visualization.js"></script>
+    
+    <!-- Main Dashboard Script -->
+    <script src="/static/js/dashboard.js"></script>
+    
+    <!-- Analytics placeholder (future enhancement) -->
+    <script>
+        // Analytics integration will be added in Phase 3C
+        console.log('📈 Analytics ready for integration');
+    </script>
+    
+    <!-- Inline styles for loading -->
+    <style>
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .hive-logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .loading-content h1 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top: 3px solid #f39c12;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        .error-fallback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .error-content {
+            text-align: center;
+            color: white;
+            padding: 2rem;
+        }
+        
+        .error-actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #666;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #777;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
