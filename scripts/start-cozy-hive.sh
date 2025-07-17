@@ -12,17 +12,23 @@ CONFIG_FILE="$BASE_DIR/config/tmux_config.yaml"
 
 # オプション解析
 ENABLE_WATCH=true
+ENABLE_DASHBOARD=true
 while [[ $# -gt 0 ]]; do
     case $1 in
         --no-watch)
             ENABLE_WATCH=false
             shift
             ;;
+        --no-dashboard)
+            ENABLE_DASHBOARD=false
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
-            echo "  --no-watch    Hive Watch監視を無効化"
-            echo "  -h, --help    ヘルプを表示"
+            echo "  --no-watch       Hive Watch監視を無効化"
+            echo "  --no-dashboard   ダッシュボードサーバーを無効化"
+            echo "  -h, --help       ヘルプを表示"
             exit 0
             ;;
         *)
@@ -38,6 +44,11 @@ if [[ "$ENABLE_WATCH" == "true" ]]; then
     echo "⌚ Hive Watch monitoring enabled"
 else
     echo "⌚ Hive Watch monitoring disabled"
+fi
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "📊 Dashboard server enabled"
+else
+    echo "📊 Dashboard server disabled"
 fi
 
 # 既存セッションをチェック
@@ -131,12 +142,38 @@ done
 echo "⏳ Waiting for role templates to load..."
 sleep 5
 
+# Dashboard サーバー起動
+DASHBOARD_WINDOW=7
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "📊 Starting Dashboard servers..."
+    
+    # Dashboard専用ウィンドウ作成
+    tmux new-window -t "$SESSION_NAME:$DASHBOARD_WINDOW" -n "dashboard" -c "$BASE_DIR/web/dashboard"
+    
+    # API Server (上部ペイン)
+    tmux send-keys -t "$SESSION_NAME:dashboard" "echo '📊 Hive Dashboard - TypeScript + Vue.js版'" C-m
+    tmux send-keys -t "$SESSION_NAME:dashboard" "echo '🔧 Starting Python API Server (port 8000)...'" C-m
+    tmux send-keys -t "$SESSION_NAME:dashboard" "uvicorn api.dashboard_api:app --reload --port 8000" C-m
+    
+    # ペインを分割してVue.js開発サーバー（下部ペイン）
+    tmux split-window -t "$SESSION_NAME:dashboard" -v -c "$BASE_DIR/web/dashboard"
+    tmux send-keys -t "$SESSION_NAME:dashboard" "echo '🌐 Starting Vue.js Dev Server (port 3000)...'" C-m
+    tmux send-keys -t "$SESSION_NAME:dashboard" "sleep 3 && npm run dev" C-m
+    
+    echo "✅ Dashboard servers started on window $DASHBOARD_WINDOW"
+    echo "  - API Server: http://localhost:8000"
+    echo "  - Dashboard: http://localhost:3000"
+    sleep 2
+    
+    DASHBOARD_WINDOW=$((DASHBOARD_WINDOW + 1))
+fi
+
 # Hive Watch監視システム起動
 if [[ "$ENABLE_WATCH" == "true" ]]; then
     echo "⌚ Starting Hive Watch monitoring system..."
     
     # Hive Watch専用ウィンドウ作成
-    tmux new-window -t "$SESSION_NAME:7" -n "hive-watch" -c "$BASE_DIR"
+    tmux new-window -t "$SESSION_NAME:$DASHBOARD_WINDOW" -n "hive-watch" -c "$BASE_DIR"
     
     # Hive Watch初期化
     tmux send-keys -t "$SESSION_NAME:hive-watch" "echo '⌚ Hive Watch - リアルタイム監視システム'" C-m
@@ -149,7 +186,7 @@ if [[ "$ENABLE_WATCH" == "true" ]]; then
     # Python監視システム起動
     tmux send-keys -t "$SESSION_NAME:hive-watch" "python3 scripts/hive_watch.py --monitor --interval 2.0" C-m
     
-    echo "✅ Hive Watch started on window 7 (hive_cli integrated monitoring)"
+    echo "✅ Hive Watch started on window $DASHBOARD_WINDOW (hive_cli integrated monitoring)"
     sleep 2
 fi
 
@@ -166,8 +203,13 @@ echo "  - tester     (window 3) - Testing and quality assurance"
 echo "  - analyzer   (window 4) - Analysis and investigation"
 echo "  - documenter (window 5) - Documentation creation"
 echo "  - reviewer   (window 6) - Code review and validation"
+window_num=7
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "  - dashboard  (window $window_num) - TypeScript Dashboard (API + Vue.js) 📊"
+    window_num=$((window_num + 1))
+fi
 if [[ "$ENABLE_WATCH" == "true" ]]; then
-    echo "  - hive-watch (window 7) - Real-time monitoring system ⌚"
+    echo "  - hive-watch (window $window_num) - Real-time monitoring system ⌚"
 fi
 echo ""
 echo "🔗 To attach to the cozy session:"
@@ -181,8 +223,13 @@ echo "  Ctrl+b + 3  (Tester)"
 echo "  Ctrl+b + 4  (Analyzer)"
 echo "  Ctrl+b + 5  (Documenter)"
 echo "  Ctrl+b + 6  (Reviewer)"
+window_num=7
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "  Ctrl+b + $window_num  (Dashboard) 📊"
+    window_num=$((window_num + 1))
+fi
 if [[ "$ENABLE_WATCH" == "true" ]]; then
-    echo "  Ctrl+b + 7  (Hive Watch) ⌚"
+    echo "  Ctrl+b + $window_num  (Hive Watch) ⌚"
 fi
 echo ""
 echo "🔄 Hive CLI Commands (Worker Communication):"
@@ -190,6 +237,13 @@ echo "  - Send message: python3 scripts/hive_cli.py send [worker] '[message]'"
 echo "  - Check status: python3 scripts/hive_cli.py status"
 echo "  - View history: python3 scripts/hive_cli.py history [worker]"
 echo ""
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "📊 Dashboard URLs:"
+    echo "  - TypeScript Dashboard: http://localhost:3000"
+    echo "  - API Documentation: http://localhost:8000/docs"
+    echo "  - Demo Page: http://localhost:3000/demo.html"
+    echo ""
+fi
 if [[ "$ENABLE_WATCH" == "true" ]]; then
     echo "⌚ Hive Watch Commands (Monitoring):"
     echo "  - View logs: python3 scripts/hive_watch.py --log"
@@ -199,7 +253,15 @@ fi
 echo "🛑 To stop the cozy system:"
 echo "  ./scripts/stop-cozy-hive.sh"
 echo ""
-echo "💡 Pro tip: Use 'Ctrl+b + 7' to quickly check Hive Watch monitoring!"
+dashboard_shortcut=7
+if [[ "$ENABLE_DASHBOARD" == "true" ]]; then
+    echo "💡 Pro tips:"
+    echo "  - Use 'Ctrl+b + $dashboard_shortcut' to check Dashboard servers 📊"
+    dashboard_shortcut=$((dashboard_shortcut + 1))
+fi
+if [[ "$ENABLE_WATCH" == "true" ]]; then
+    echo "  - Use 'Ctrl+b + $dashboard_shortcut' to check Hive Watch monitoring ⌚"
+fi
 
 # セッションにアタッチ
 tmux attach-session -t "$SESSION_NAME"
