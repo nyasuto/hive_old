@@ -315,13 +315,19 @@ class HiveWatch:
                     source = log_entry["source"]
                     target = log_entry["target"]
                     message = log_entry["message"]
-                    msg_type = log_entry["message_type"]
+
+                    # message_type と event_type の両方に対応
+                    msg_type = log_entry.get("message_type") or log_entry.get(
+                        "event_type", "unknown"
+                    )
 
                     arrow = (
                         "→"
-                        if msg_type == "task"
+                        if msg_type in ["task", "direct", "task_start"]
                         else "←"
-                        if msg_type == "result"
+                        if msg_type in ["result", "response", "task_complete"]
+                        else "⚡"
+                        if msg_type in ["parallel_start", "parallel_complete"]
                         else "•"
                     )
                     print(
