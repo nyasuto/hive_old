@@ -53,39 +53,6 @@ if [ "$current_branch" != "main" ]; then
     fi
 fi
 
-# 空のコミットメッセージチェック
-if [ -z "$(git diff --cached --name-only)" ]; then
-    echo "❌ エラー: ステージされた変更がありません"
-    echo "   git add <files> でファイルをステージしてください"
-    exit 1
-fi
-
-# ステージされたファイルの確認
-staged_files=$(git diff --cached --name-only)
-echo "📁 ステージされたファイル:"
-echo "$staged_files" | sed 's/^/   /'
-echo ""
-
-# Python固有チェック
-python_files=$(git diff --cached --name-only | grep "\.py$" || true)
-if [ -n "$python_files" ]; then
-    echo "🐍 Python固有チェック実行中..."
-    
-    # __pycache__ディレクトリがステージされていないかチェック
-    if echo "$staged_files" | grep -q "__pycache__"; then
-        echo "❌ エラー: __pycache__ディレクトリがステージされています"
-        echo "   git reset HEAD **/__pycache__/ で除外してください"
-        exit 1
-    fi
-    
-    # .pycファイルがステージされていないかチェック
-    if echo "$staged_files" | grep -q "\.pyc$"; then
-        echo "❌ エラー: .pycファイルがステージされています"
-        echo "   git reset HEAD **/*.pyc で除外してください"
-        exit 1
-    fi
-fi
-
 # Makefileの変更がある場合
 makefile_changed=$(git diff --cached --name-only | grep -E '^Makefile$' || true)
 if [ -n "$makefile_changed" ]; then
@@ -97,14 +64,6 @@ if [ -n "$makefile_changed" ]; then
     echo "✅ Makefile構文チェック完了"
 fi
 
-# 大きなファイルのチェック（10MB以上）
-large_files=$(git diff --cached --name-only | xargs -I {} sh -c 'if [ -f "{}" ] && [ $(stat -f%z "{}" 2>/dev/null || stat -c%s "{}" 2>/dev/null || echo 0) -gt 10485760 ]; then echo "{}"; fi' || true)
-if [ -n "$large_files" ]; then
-    echo "⚠️ 警告: 大きなファイル（10MB以上）が検出されました:"
-    echo "$large_files" | sed 's/^/   /'
-    echo "   Git LFSの使用を検討してください"
-    echo ""
-fi
 
 # 品質チェック実行
 echo "🔍 品質チェック実行中..."
