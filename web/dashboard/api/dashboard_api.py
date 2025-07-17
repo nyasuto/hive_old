@@ -74,11 +74,11 @@ class DashboardData(BaseModel):
 class ConnectionManager:
     """WebSocket接続管理"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: set[WebSocket] = set()
         self.last_data: DashboardData | None = None
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket) -> None:
         await websocket.accept()
         self.active_connections.add(websocket)
 
@@ -86,10 +86,10 @@ class ConnectionManager:
         if self.last_data:
             await websocket.send_text(self.last_data.model_dump_json())
 
-    def disconnect(self, websocket: WebSocket):
+    def disconnect(self, websocket: WebSocket) -> None:
         self.active_connections.discard(websocket)
 
-    async def broadcast(self, data: DashboardData):
+    async def broadcast(self, data: DashboardData) -> None:
         """全接続クライアントにデータ配信"""
         self.last_data = data
         message = data.model_dump_json()
@@ -108,7 +108,7 @@ class ConnectionManager:
 class HiveDashboardCollector:
     """Hiveシステムからのデータ収集"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.communicator = WorkerCommunicator()
         self.hive_watch = HiveWatch()
         self.worker_emojis = {
@@ -177,7 +177,7 @@ class HiveDashboardCollector:
     def _collect_recent_messages(self, limit: int = 10) -> list[CommunicationMessage]:
         """最近の通信メッセージを収集"""
         log_file = Path("logs/hive_communications.log")
-        messages = []
+        messages: list[CommunicationMessage] = []
 
         if not log_file.exists():
             return messages
@@ -290,7 +290,7 @@ if static_dir.exists():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard_home():
+async def dashboard_home() -> HTMLResponse:
     """ダッシュボードホーム画面"""
     html_file = Path(__file__).parent.parent / "templates" / "index.html"
     if html_file.exists():
@@ -319,7 +319,7 @@ async def dashboard_home():
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket) -> None:
     """WebSocketリアルタイム通信エンドポイント"""
     await manager.connect(websocket)
 
@@ -332,7 +332,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @app.get("/api/status")
-async def get_system_status():
+async def get_system_status() -> dict[str, Any]:
     """システム状態API"""
     data = await collector.collect_dashboard_data()
     return {
@@ -345,27 +345,27 @@ async def get_system_status():
 
 
 @app.get("/api/workers")
-async def get_workers():
+async def get_workers() -> dict[str, Any]:
     """Worker一覧API"""
     data = await collector.collect_dashboard_data()
     return {"workers": [w.model_dump() for w in data.workers]}
 
 
 @app.get("/api/messages")
-async def get_recent_messages(limit: int = 20):
+async def get_recent_messages(limit: int = 20) -> dict[str, Any]:
     """最近のメッセージAPI"""
     messages = collector._collect_recent_messages(limit)
     return {"messages": [m.model_dump() for m in messages]}
 
 
 @app.get("/api/performance")
-async def get_performance_metrics():
+async def get_performance_metrics() -> dict[str, Any]:
     """パフォーマンス指標API"""
     data = await collector.collect_dashboard_data()
     return {"metrics": data.performance_metrics}
 
 
-async def broadcast_dashboard_data():
+async def broadcast_dashboard_data() -> None:
     """定期的なダッシュボードデータ配信"""
     while True:
         try:
@@ -379,7 +379,7 @@ async def broadcast_dashboard_data():
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """アプリケーション起動時処理"""
     print("🐝 Hive Dashboard API starting...")
     print("📊 WebSocket broadcast task starting...")
@@ -389,7 +389,7 @@ async def startup_event():
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """アプリケーション終了時処理"""
     print("👋 Hive Dashboard API shutting down...")
 

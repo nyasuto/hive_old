@@ -143,7 +143,7 @@ def open_browser(url: str) -> None:
         print(f"💡 Manually open: {url}")
 
 
-def main():
+def main() -> None:
     """メイン実行関数"""
     parser = argparse.ArgumentParser(
         description="🐝 Hive Web Dashboard Launcher",
@@ -213,7 +213,7 @@ Examples:
         )
 
         # 非同期でブラウザを開く
-        def delayed_browser_open():
+        def delayed_browser_open() -> None:
             time.sleep(3)  # サーバー起動待機
             open_browser(dashboard_url)
 
