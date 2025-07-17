@@ -2,12 +2,32 @@
 """
 Worker Communication System for Hive Distributed Processing
 
-This module provides communication between issue_solver_agent.py and tmux workers,
-enabling real distributed processing instead of simulation.
+FINAL ARCHITECTURE CONFIRMED:
+This module provides LOW-LEVEL Python API for programmatic automation.
+
+USAGE SEPARATION:
+┌─────────────────────────────────────────────────────────────┐
+│  Manual Operations          │  Automated Processing         │
+│  (Interactive)              │  (Programmatic)               │
+├─────────────────────────────────────────────────────────────┤
+│  • hive_cli.py              │  • worker_communication.py    │
+│  • Worker-to-Worker msgs    │  • issue_solver_agent.py      │
+│  • Queen task distribution  │  • Python async/await APIs    │
+│  • Status checking          │  • Return value processing    │
+│  • History viewing          │  • Error handling & timeouts  │
+└─────────────────────────────────────────────────────────────┘
+
+PRIMARY CONSUMERS:
+- issue_solver_agent.py: Automated issue resolution with Queen coordination
+- Future automation scripts: Batch processing, scheduled tasks, etc.
+- Integration testing: Programmatic Worker communication validation
+
+Both systems share the same tmux infrastructure and Hive Watch monitoring.
 """
 
 import asyncio
 import json
+import os
 import subprocess
 import tempfile
 import time
@@ -28,14 +48,115 @@ class WorkerCommunicationError(Exception):
     pass
 
 
+class HiveWatchLogger:
+    """Integrated Hive Watch logging for transparent monitoring"""
+
+    def __init__(self, enabled: bool = True):
+        self.enabled = enabled and self._should_enable_watch()
+        if self.enabled:
+            self.log_file = Path("logs/hive_communications.log")
+            self.log_file.parent.mkdir(exist_ok=True)
+            self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _should_enable_watch(self) -> bool:
+        """Check if Hive Watch should be enabled"""
+        # Check environment variable first
+        env_setting = os.getenv("HIVE_WATCH_ENABLED", "true").lower()
+        if env_setting in ["false", "0", "no", "off"]:
+            return False
+
+        # Check if monitoring system is available
+        try:
+            hive_watch_path = Path(__file__).parent / "hive_watch.py"
+            return hive_watch_path.exists()
+        except Exception:
+            return False
+
+    def log_communication(
+        self,
+        event_type: str,
+        source: str,
+        target: str,
+        message: str,
+        additional_info: dict[str, Any] | None = None,
+    ) -> None:
+        """Log communication event transparently"""
+        if not self.enabled:
+            return
+
+        try:
+            timestamp = datetime.now().isoformat()
+            log_entry = {
+                "timestamp": timestamp,
+                "session_id": self.session_id,
+                "event_type": event_type,
+                "source": source,
+                "target": target,
+                "message": message[:200] + "..." if len(message) > 200 else message,
+                "additional_info": additional_info or {},
+            }
+
+            # Write to log file
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+
+        except Exception:
+            # Silently ignore logging errors to not interfere with main communication
+            pass
+
+    def log_task_start(
+        self, task_id: str, worker_name: str, task: dict[str, Any]
+    ) -> None:
+        """Log task start event"""
+        self.log_communication(
+            event_type="task_start",
+            source="communicator",
+            target=worker_name,
+            message=f"TASK_START: {task.get('instruction', 'N/A')[:100]}",
+            additional_info={
+                "task_id": task_id,
+                "task_type": task.get("task_type", "unknown"),
+                "issue_number": task.get("issue_number", "N/A"),
+            },
+        )
+
+    def log_task_complete(
+        self, task_id: str, worker_name: str, result: dict[str, Any]
+    ) -> None:
+        """Log task completion event"""
+        self.log_communication(
+            event_type="task_complete",
+            source=worker_name,
+            target="communicator",
+            message=f"TASK_COMPLETE: {result.get('status', 'unknown')}",
+            additional_info={
+                "task_id": task_id,
+                "processing_time": result.get("processing_time", 0),
+                "output_length": len(result.get("output", "")),
+            },
+        )
+
+    def log_task_error(self, task_id: str, worker_name: str, error: str) -> None:
+        """Log task error event"""
+        self.log_communication(
+            event_type="task_error",
+            source=worker_name,
+            target="communicator",
+            message=f"TASK_ERROR: {error}",
+            additional_info={"task_id": task_id},
+        )
+
+
 class WorkerCommunicator:
     """Handles communication between issue solver and tmux workers"""
 
-    def __init__(self, session_name: str = "cozy-hive"):
+    def __init__(self, session_name: str = "cozy-hive", enable_watch: bool = True):
         self.session_name = session_name
         self.config = self._load_config()
         self.temp_dir = Path(tempfile.gettempdir()) / "hive_worker_comm"
         self.temp_dir.mkdir(exist_ok=True)
+        # Initialize Hive Watch logger for transparent monitoring
+        self.watch_logger = HiveWatchLogger(enabled=enable_watch)
 
     def _load_config(self) -> dict[str, Any]:
         """Load worker configuration"""
@@ -137,6 +258,9 @@ class WorkerCommunicator:
             **task,
         }
 
+        # Log task start (Hive Watch integration)
+        self.watch_logger.log_task_start(task_id, worker_name, task_with_id)
+
         # Get pane name
         pane_name = self.config["workers"][worker_name]["tmux_pane"]
 
@@ -151,7 +275,7 @@ class WorkerCommunicator:
             timeout = self.config["workers"][worker_name].get("timeout", 120)
             result = await self._wait_for_claude_response(pane_name, timeout)
 
-            return {
+            final_result = {
                 "task_id": task_id,
                 "worker_name": worker_name,
                 "status": "completed",
@@ -159,12 +283,19 @@ class WorkerCommunicator:
                 "timestamp": datetime.now().isoformat(),
             }
 
+            # Log task completion (Hive Watch integration)
+            self.watch_logger.log_task_complete(task_id, worker_name, result)
+
+            return final_result
+
         except subprocess.SubprocessError as e:
-            raise WorkerCommunicationError(
-                f"Failed to send task to worker {worker_name}: {e}"
-            ) from e
+            error_msg = f"Failed to send task to worker {worker_name}: {e}"
+            self.watch_logger.log_task_error(task_id, worker_name, error_msg)
+            raise WorkerCommunicationError(error_msg) from e
         except TimeoutError as e:
-            raise WorkerCommunicationError(f"Worker {worker_name} timed out") from e
+            error_msg = f"Worker {worker_name} timed out"
+            self.watch_logger.log_task_error(task_id, worker_name, error_msg)
+            raise WorkerCommunicationError(error_msg) from e
 
     async def _send_message_with_confirmation(
         self, pane_name: str, message: str
@@ -304,6 +435,19 @@ tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あな
         if not tasks:
             return []
 
+        # Log parallel task start (Hive Watch integration)
+        worker_names = [task.get("worker_name", "unknown") for task in tasks]
+        self.watch_logger.log_communication(
+            event_type="parallel_start",
+            source="communicator",
+            target="multiple_workers",
+            message=f"PARALLEL_START: {len(tasks)} tasks to {', '.join(set(worker_names))}",
+            additional_info={
+                "task_count": len(tasks),
+                "target_workers": list(set(worker_names)),
+            },
+        )
+
         # Group tasks by worker
         worker_tasks: dict[str, list[dict[str, Any]]] = {}
         for task in tasks:
@@ -325,6 +469,9 @@ tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あな
 
         # Process results
         processed_results: list[dict[str, Any]] = []
+        successful_count = 0
+        error_count = 0
+
         for result in results:
             if isinstance(result, Exception):
                 error_result: dict[str, Any] = {
@@ -333,9 +480,24 @@ tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あな
                     "timestamp": datetime.now().isoformat(),
                 }
                 processed_results.append(error_result)
+                error_count += 1
             else:
                 # result is dict[str, Any] here due to return type of send_task_to_worker
                 processed_results.append(result)  # type: ignore
+                successful_count += 1
+
+        # Log parallel task completion (Hive Watch integration)
+        self.watch_logger.log_communication(
+            event_type="parallel_complete",
+            source="multiple_workers",
+            target="communicator",
+            message=f"PARALLEL_COMPLETE: {successful_count} successful, {error_count} errors",
+            additional_info={
+                "successful_count": successful_count,
+                "error_count": error_count,
+                "total_tasks": len(tasks),
+            },
+        )
 
         return processed_results
 

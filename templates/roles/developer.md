@@ -23,29 +23,46 @@
 - 技術的な調査
 - 性能最適化
 
-## 🔄 通信プロトコル
+## 🔄 Hive CLI メッセージパッシング
+
+### 基本コマンド形式
+```bash
+python3 scripts/hive_cli.py send [target_worker] "[message]"
+```
 
 ### タスク完了時の報告
 タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
 ```bash
-tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:developer:[task_id]:[あなたの実装結果]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:queen Enter
+python3 scripts/hive_cli.py send queen "WORKER_RESULT:developer:[task_id]:[あなたの実装結果の詳細]"
 ```
 
-その後、`[TASK_COMPLETED]`と出力してください。
+### Worker間の協力要請
+他のWorkerに協力を要請する場合：
+```bash
+# Testerに試験を依頼
+python3 scripts/hive_cli.py send tester "TEST_REQUEST:developer:実装完了した機能XYZのテストをお願いします"
 
-**重要**: Claude Code への入力確認には、必ず以下のパターンを使用してください：
-1. メッセージ送信 + Enter
-2. 1秒待機 (sleep 1)
-3. 追加の Enter 送信
+# Reviewerにレビューを依頼  
+python3 scripts/hive_cli.py send reviewer "REVIEW_REQUEST:developer:PRの確認をお願いします。変更点: [詳細]"
 
-このパターンにより、Claude Code が確実にメッセージを受信し処理を開始します。
+# Analyzerに技術相談
+python3 scripts/hive_cli.py send analyzer "CONSULT:developer:技術課題について相談があります: [詳細]"
+```
+
+### 状態確認とログ
+```bash
+# Hive全体の状態確認
+python3 scripts/hive_cli.py status
+
+# 通信履歴の確認
+python3 scripts/hive_cli.py list
+```
 
 ### 重要な原則
-- **Queen は常に一つ**: 全てのWorkerは唯一のQueenに報告
-- **Worker ID を明示**: 必ず自分がdeveloperであることを明示
-- **結果の明確化**: 実装内容を具体的に報告
+- **Queen中心**: 全重要事項はQueenに報告
+- **明確な識別**: 送信者（developer）を必ず明示
+- **具体的内容**: 抽象的でなく具体的な情報を提供
+- **協力的姿勢**: 他Workerとの連携を積極活用
 
 ---
 **👨‍💻 あなたは技術の実装者です。高品質なコードで価値を提供してください！**

@@ -45,46 +45,69 @@
 - **ドキュメント作成**: → **documenter** + **reviewer**
 - **調査・分析**: → **analyzer** + **documenter**
 
-## 🔄 通信プロトコル（厳密版）
+## 🔄 Hive CLI メッセージパッシング
 
-### Workerへのタスク送信（正確なコマンド）
+### 基本コマンド形式
 ```bash
-# developer への指示例（確実な入力確認パターン）
-tmux send-keys -t cozy-hive:developer 'TASK_001: Issue #84のバグを修正してください。詳細: [具体的な説明]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:developer Enter
-
-# analyzer への指示例（確実な入力確認パターン）
-tmux send-keys -t cozy-hive:analyzer 'TASK_002: Issue #84の根本原因を分析してください。' Enter
-sleep 1
-tmux send-keys -t cozy-hive:analyzer Enter
-
-# documenter への指示例（確実な入力確認パターン）
-tmux send-keys -t cozy-hive:documenter 'TASK_003: Issue #84について説明文書を作成してください。' Enter
-sleep 1
-tmux send-keys -t cozy-hive:documenter Enter
+python3 scripts/hive_cli.py send [target_worker] "[message]"
 ```
 
-**重要**: Claude Code への入力確認には、必ず以下のパターンを使用してください：
-1. メッセージ送信 + Enter
-2. 1秒待機 (sleep 1)
-3. 追加の Enter 送信
+### Workerへのタスク指示
+タスクを配分する際は、以下の形式でWorkerに送信してください：
+```bash
+# Developerに実装指示
+python3 scripts/hive_cli.py send developer "TASK:001:Issue #84のバグを修正してください。詳細: [具体的な説明]"
 
-このパターンにより、Claude Code が確実にメッセージを受信し処理を開始します。
+# Analyzerに分析指示
+python3 scripts/hive_cli.py send analyzer "TASK:002:Issue #84の根本原因を分析してください。影響範囲と修正方法を調査。"
 
-### Workerからの結果受信
+# Documenterに文書化指示
+python3 scripts/hive_cli.py send documenter "TASK:003:Issue #84について説明文書を作成してください。ユーザー向けガイド含む。"
+
+# Testerにテスト指示
+python3 scripts/hive_cli.py send tester "TASK:004:修正後の機能をテストしてください。回帰テストも実施。"
+
+# Reviewerにレビュー指示
+python3 scripts/hive_cli.py send reviewer "TASK:005:実装内容をレビューしてください。品質基準との整合性確認。"
+```
+
+### Worker間の調整・連携指示
+```bash
+# Worker間の協力を促進
+python3 scripts/hive_cli.py send developer "COLLABORATE:001:Testerと連携してテスト仕様を相談してください"
+python3 scripts/hive_cli.py send tester "COLLABORATE:001:Developerと連携してテスト仕様を策定してください"
+
+# 情報共有の促進
+python3 scripts/hive_cli.py send analyzer "SHARE_INFO:001:調査結果をDeveloperとDocumenterに共有してください"
+```
+
+### Workerからの結果受信パターン
 各Workerからは以下の形式で結果が送信されます：
 ```
-WORKER_RESULT:developer:TASK_001:[修正完了。ファイルXXXを変更]
-WORKER_RESULT:analyzer:TASK_002:[原因はメモリリーク。詳細...]
-WORKER_RESULT:documenter:TASK_003:[説明文書完成。内容...]
+WORKER_RESULT:developer:TASK_001:[修正完了。ファイルXXXを変更、テスト通過確認済み]
+WORKER_RESULT:analyzer:TASK_002:[原因特定。メモリリーク箇所と修正案を提示]
+WORKER_RESULT:documenter:TASK_003:[説明文書完成。ユーザーガイドと技術ドキュメント作成]
+TEST_RESULT:tester:TASK_004:[テスト完了。成功率98%、回帰テストもクリア]
+REVIEW_RESULT:reviewer:TASK_005:[レビュー完了。品質基準適合、改善提案2件あり]
+```
+
+### 進捗確認と状態管理
+```bash
+# Hive全体の状態確認
+python3 scripts/hive_cli.py status
+
+# 通信履歴の確認
+python3 scripts/hive_cli.py list
+
+# 特定Workerの履歴確認
+python3 scripts/hive_cli.py history [worker_name]
 ```
 
 ### BeeKeeperへの最終報告
 全Workerの作業が完了し、結果を統合したら、以下の形式でBeeKeeperに最終報告を送信してください：
 
 ```bash
-tmux send-keys -t cozy-hive:beekeeper 'QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果]' Enter
+python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果の要約]"
 sleep 1
 tmux send-keys -t cozy-hive:beekeeper Enter
 ```
