@@ -459,7 +459,7 @@ class HiveCLI:
             print("\n📝 現在のタスク: まだ設定されていません")
 
     def _generate_role_file(
-        self, worker: str, variables: dict[str, str], hive_dir: Path = None
+        self, worker: str, variables: dict[str, str], hive_dir: Path | None = None
     ) -> None:
         """Workerの役割ファイルを生成"""
         template_path = self.project_root / "templates" / "roles" / f"{worker}.md"
@@ -484,7 +484,7 @@ class HiveCLI:
             f.write(template_content)
 
     def _generate_tasks_file(
-        self, worker: str, tasks: list[str], hive_dir: Path = None
+        self, worker: str, tasks: list[str], hive_dir: Path | None = None
     ) -> None:
         """Workerの初期タスクファイルを生成"""
         tasks_content = f"# {worker.title()} Worker - 初期タスク\n\n"
@@ -503,7 +503,7 @@ class HiveCLI:
             f.write(tasks_content)
 
     def _generate_project_config(
-        self, template: dict[str, Any], project_name: str, hive_dir: Path = None
+        self, template: dict[str, Any], project_name: str, hive_dir: Path | None = None
     ) -> None:
         """プロジェクト設定ファイルを生成"""
         config = {
