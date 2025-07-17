@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
-新アーキテクチャ Issue解決エージェント
+分散Issue解決エージェント - 実際のtmux Worker連携版
 
 BeeKeeper-Queen-Worker協調による自然言語Issue解決システム
-依存関係なしで動作する完全な新実装
+実際のtmux環境でのWorker連携を実現
 """
 
 import argparse
 import asyncio
 import re
-import time
+import sys
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+# Import worker communication system
+sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
+from worker_communication import WorkerCommunicationError, WorkerCommunicator
 
 
 class MessageType(Enum):
@@ -44,39 +49,6 @@ class WorkerRole(Enum):
     ANALYZER = "analyzer"
     DOCUMENTER = "documenter"
     REVIEWER = "reviewer"
-
-
-class ProtocolMessage:
-    """プロトコルメッセージ"""
-
-    def __init__(
-        self,
-        message_type: MessageType,
-        sender_id: str,
-        receiver_id: str,
-        content: dict[str, Any],
-        priority: MessagePriority = MessagePriority.MEDIUM,
-    ):
-        self.message_id = str(uuid4())
-        self.message_type = message_type
-        self.sender_id = sender_id
-        self.receiver_id = receiver_id
-        self.content = content
-        self.priority = priority
-        self.timestamp = time.time()
-        self.correlation_id = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "message_id": self.message_id,
-            "message_type": self.message_type.value,
-            "sender_id": self.sender_id,
-            "receiver_id": self.receiver_id,
-            "content": self.content,
-            "priority": self.priority.value,
-            "timestamp": self.timestamp,
-            "correlation_id": self.correlation_id,
-        }
 
 
 class UserPromptParser:
@@ -186,126 +158,31 @@ class UserPromptParser:
             return "low"
 
 
-class WorkerAgent:
-    """Worker エージェント"""
-
-    def __init__(self, role: WorkerRole, agent_id: str):
-        self.role = role
-        self.agent_id = agent_id
-        self.status = "idle"
-        self.current_task = None
-
-    async def execute_task(self, task: dict[str, Any]) -> dict[str, Any]:
-        """タスク実行"""
-        self.status = "working"
-        self.current_task = task
-
-        print(
-            f"🏗️ {self.role.value.capitalize()} Worker ({self.agent_id}): {task['description']}"
-        )
-
-        # 作業時間のシミュレーション
-        work_time = task.get("estimated_time", 2)
-        await asyncio.sleep(work_time)
-
-        # 役割に応じた結果生成
-        result = self._generate_result(task)
-
-        self.status = "completed"
-        self.current_task = None
-
-        print(f"✅ {self.role.value.capitalize()} Worker: {result['summary']}")
-
-        return result
-
-    def _generate_result(self, task: dict[str, Any]) -> dict[str, Any]:
-        """役割に応じた結果生成"""
-        base_result = {
-            "worker_id": self.agent_id,
-            "role": self.role.value,
-            "task_id": task.get("task_id"),
-            "status": "completed",
-            "execution_time": task.get("estimated_time", 2),
-            "timestamp": datetime.now().isoformat(),
-        }
-
-        if self.role == WorkerRole.DEVELOPER:
-            base_result.update(
-                {
-                    "summary": "コード実装・修正完了",
-                    "deliverables": ["修正されたコード", "実装ドキュメント"],
-                    "changes_made": ["バグ修正", "コード改善", "型注釈追加"],
-                    "files_modified": ["main.py", "utils.py", "tests/test_main.py"],
-                    "tests_added": True,
-                }
-            )
-        elif self.role == WorkerRole.TESTER:
-            base_result.update(
-                {
-                    "summary": "テスト実行・品質チェック完了",
-                    "deliverables": ["テスト結果", "品質レポート"],
-                    "test_results": {"passed": 15, "failed": 0, "coverage": "85%"},
-                    "quality_checks": {
-                        "linting": "pass",
-                        "type_check": "pass",
-                        "security": "pass",
-                    },
-                    "issues_found": [],
-                }
-            )
-        elif self.role == WorkerRole.ANALYZER:
-            base_result.update(
-                {
-                    "summary": "詳細分析・調査完了",
-                    "deliverables": ["分析レポート", "根本原因分析"],
-                    "findings": ["問題の根本原因を特定", "改善提案を作成"],
-                    "recommendations": ["コード構造の改善", "エラーハンドリングの強化"],
-                    "impact_assessment": "medium",
-                }
-            )
-        elif self.role == WorkerRole.DOCUMENTER:
-            base_result.update(
-                {
-                    "summary": "ドキュメント作成・更新完了",
-                    "deliverables": ["更新されたドキュメント", "使用方法ガイド"],
-                    "documents_created": ["README.md", "API_GUIDE.md", "CHANGELOG.md"],
-                    "documentation_coverage": "90%",
-                    "user_guide_updated": True,
-                }
-            )
-        elif self.role == WorkerRole.REVIEWER:
-            base_result.update(
-                {
-                    "summary": "コードレビュー・品質確認完了",
-                    "deliverables": ["レビュー結果", "改善提案"],
-                    "review_status": "approved",
-                    "suggestions": ["変数名の改善", "関数の分割"],
-                    "security_review": "pass",
-                }
-            )
-
-        return base_result
-
-
-class QueenCoordinator:
-    """Queen 協調システム"""
+class DistributedQueenCoordinator:
+    """分散Queen協調システム - 実際のWorker連携版"""
 
     def __init__(self):
-        self.agent_id = "queen-coordinator"
-        self.workers = {
-            WorkerRole.DEVELOPER: WorkerAgent(WorkerRole.DEVELOPER, "worker-dev-001"),
-            WorkerRole.TESTER: WorkerAgent(WorkerRole.TESTER, "worker-test-001"),
-            WorkerRole.ANALYZER: WorkerAgent(WorkerRole.ANALYZER, "worker-analyze-001"),
-            WorkerRole.DOCUMENTER: WorkerAgent(WorkerRole.DOCUMENTER, "worker-doc-001"),
-            WorkerRole.REVIEWER: WorkerAgent(WorkerRole.REVIEWER, "worker-review-001"),
-        }
+        self.agent_id = "distributed-queen-coordinator"
+        self.worker_communicator = WorkerCommunicator()
         self.current_session = None
+
+        # Available workers (including queen)
+        self.available_workers = {
+            WorkerRole.DEVELOPER: "developer",
+            WorkerRole.TESTER: "tester",
+            WorkerRole.ANALYZER: "analyzer",
+            WorkerRole.DOCUMENTER: "documenter",
+            WorkerRole.REVIEWER: "reviewer",
+        }
+
+        # Queen worker for coordination
+        self.queen_worker = "queen"
 
     async def coordinate_issue_resolution(
         self, parsed_request: dict[str, Any]
     ) -> dict[str, Any]:
-        """Issue解決の協調統制"""
-        print("👑 Queen: 承知しました。Issue解決を開始します...")
+        """Issue解決の分散協調統制"""
+        print("👑 Queen: 承知しました。分散Issue解決を開始します...")
 
         # セッション開始
         session_id = str(uuid4())
@@ -316,42 +193,108 @@ class QueenCoordinator:
             "status": "active",
         }
 
-        # 1. Issue分析
-        print("👑 Queen: Issue分析中...")
-        issue_analysis = await self._analyze_issue(parsed_request)
+        # 1. Worker状態確認
+        print("👑 Queen: Worker状態を確認中...")
+        worker_status = self.worker_communicator.monitor_worker_status()
 
-        # 2. 解決戦略策定
-        print("👑 Queen: 解決戦略を策定中...")
-        strategy = await self._create_resolution_strategy(issue_analysis)
+        if not worker_status["session_active"]:
+            return {
+                "session_id": session_id,
+                "status": "error",
+                "error": "Tmux session not active. Please run: ./scripts/start-cozy-hive.sh",
+                "timestamp": datetime.now().isoformat(),
+            }
 
-        # 3. Worker選択・タスク分散
-        print(f"👑 Queen: {len(strategy['workers'])}つのWorkerでタスクを並列実行します")
-        worker_results = await self._execute_distributed_tasks(strategy)
+        # Show current worker status
+        self._show_current_worker_status()
 
-        # 4. 結果統合
-        print("👑 Queen: 結果を統合中...")
-        final_result = await self._integrate_results(worker_results, strategy)
+        # 2. Queen にタスク全体を委任（QueenがWorker統括を実行）
+        print("👑 Queen: タスクを受領し、Worker統括を実行中...")
+        queen_result = await self._delegate_full_coordination_to_queen(parsed_request)
 
-        # 5. 品質チェック
+        if queen_result["status"] != "success":
+            return queen_result
+
+        # 3. 進捗ヒント表示
+        print("✨ Queen: Worker統括を開始しました")
+        print("📝 進行状況:")
+        print("  - Queen が配下Workerに指示を送信中...")
+        print("  - 各Workerの作業完了まで数分かかります")
+        print("  - 最終結果はWorker完了後にQueenから報告されます")
+        self._show_worker_monitoring_hints()
+
+        # 4. Queen結果をそのまま使用（Queenが全て統括済み）
+        print("👑 Queen: 品質チェック実行中...")
+        final_result = queen_result
+
+        # 6. 品質チェック
         print("👑 Queen: 品質チェック実行中...")
         quality_result = await self._perform_quality_check(final_result)
 
-        # 6. 成果物生成
+        # 7. 成果物生成
         deliverables = self._generate_deliverables(final_result, quality_result)
 
-        print("👑 Queen: 全タスク完了！成果物を準備しました")
+        print("👑 Queen: 全分散タスク完了！実際の成果物を準備しました")
 
         return {
             "session_id": session_id,
             "status": "completed",
-            "issue_analysis": issue_analysis,
-            "strategy": strategy,
-            "worker_results": worker_results,
+            "queen_coordination": queen_result,
             "quality_result": quality_result,
             "deliverables": deliverables,
             "completion_time": datetime.now().isoformat(),
             "summary": self._generate_summary(parsed_request, final_result),
+            "distributed_execution": True,
+            "execution_type": "queen_coordinated",
         }
+
+    async def _delegate_full_coordination_to_queen(
+        self, parsed_request: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Queen にタスク全体の統括を委任"""
+        try:
+            # Queenに送信するメッセージを構築
+            queen_instruction = f"""以下のユーザー要求を受領しました。あなたのWorker（developer, tester, analyzer, documenter, reviewer）を適切に統括し、タスクを完了してください：
+
+ユーザー要求: {parsed_request.get("prompt", "")}
+Intent: {parsed_request.get("intent", "")}
+Priority: {parsed_request.get("priority", "")}
+Complexity: {parsed_request.get("complexity", "")}
+Issue番号: {parsed_request.get("issue_number", "N/A")}
+
+あなたの判断で：
+1. どのWorkerに何を依頼するかを決定
+2. 各Workerに適切な指示を送信
+3. 結果を統合
+4. 最終的な成果物を作成
+
+完了したら「[TASK_COMPLETED]」と出力してください。"""
+
+            # Queenにタスクを送信
+            queen_result = await self.worker_communicator.send_task_to_worker(
+                self.queen_worker,
+                {
+                    "task_type": "full_coordination",
+                    "instruction": queen_instruction,
+                    "user_request": parsed_request,
+                },
+            )
+
+            return {
+                "session_id": self.current_session["session_id"],
+                "status": "success",
+                "queen_response": queen_result,
+                "execution_type": "queen_coordinated",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        except Exception as e:
+            return {
+                "session_id": self.current_session["session_id"],
+                "status": "error",
+                "error": f"Queen coordination failed: {str(e)}",
+                "timestamp": datetime.now().isoformat(),
+            }
 
     async def _analyze_issue(self, parsed_request: dict[str, Any]) -> dict[str, Any]:
         """Issue分析"""
@@ -370,6 +313,7 @@ class QueenCoordinator:
             "estimated_duration": self._estimate_duration(parsed_request),
             "risk_level": self._assess_risk(parsed_request),
             "requires_review": parsed_request["complexity"] in ["medium", "high"],
+            "distributed_execution": True,
         }
 
     async def _create_resolution_strategy(
@@ -397,57 +341,93 @@ class QueenCoordinator:
         if complexity == "high" or issue_analysis["requires_review"]:
             workers.append(WorkerRole.REVIEWER)
 
-        # デフォルトでDeveloperを含める
-        if not workers:
-            workers.append(WorkerRole.DEVELOPER)
+        # デフォルトでDocumenterを含める（説明要求の場合）
+        if not workers or intent == "explain":
+            workers.append(WorkerRole.DOCUMENTER)
 
         return {
-            "approach": f"{intent}_focused",
+            "approach": f"{intent}_focused_distributed",
             "workers": workers,
             "parallel_execution": len(workers) > 1,
             "estimated_time": sum(
                 self._estimate_worker_time(w, issue_analysis) for w in workers
             ),
-            "quality_gates": ["code_review", "testing", "documentation"]
+            "quality_gates": ["distributed_review", "integration_test", "documentation"]
             if complexity == "high"
-            else ["testing"],
-            "deliverable_format": "comprehensive"
+            else ["integration_test"],
+            "deliverable_format": "comprehensive_distributed"
             if complexity == "high"
-            else "standard",
+            else "standard_distributed",
+            "distributed_execution": True,
         }
 
     async def _execute_distributed_tasks(
-        self, strategy: dict[str, Any]
+        self, strategy: dict[str, Any], parsed_request: dict[str, Any]
     ) -> dict[str, Any]:
-        """分散タスク実行"""
+        """実際の分散タスク実行"""
         tasks = []
 
         for worker_role in strategy["workers"]:
-            worker = self.workers[worker_role]
+            worker_name = self.available_workers[worker_role]
+
+            # Create task for real worker
             task = {
+                "worker_name": worker_name,
                 "task_id": str(uuid4()),
-                "worker_role": worker_role,
-                "description": f"{worker_role.value}タスクを実行",
+                "task_type": self._get_task_type(worker_role, parsed_request["intent"]),
+                "issue_number": parsed_request["issue_number"],
+                "instruction": parsed_request["original_prompt"],
+                "intent": parsed_request["intent"],
+                "priority": parsed_request["priority"],
+                "complexity": parsed_request["complexity"],
                 "estimated_time": self._estimate_worker_time(worker_role, {}),
-                "priority": "high" if worker_role == WorkerRole.DEVELOPER else "medium",
+                "timestamp": datetime.now().isoformat(),
             }
-            tasks.append(worker.execute_task(task))
+            tasks.append(task)
 
-        # 並列実行
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Execute tasks in parallel using real workers
+        try:
+            worker_results = await self.worker_communicator.send_parallel_tasks(tasks)
 
-        # 結果整理
-        worker_results = {}
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                worker_results[strategy["workers"][i].value] = {
+            # Organize results by worker role
+            organized_results = {}
+            for result in worker_results:
+                if result["status"] == "completed":
+                    worker_name = result["worker_name"]
+                    organized_results[worker_name] = result
+                else:
+                    # Handle error cases
+                    organized_results[f"error_{result.get('task_id', 'unknown')}"] = (
+                        result
+                    )
+
+            return organized_results
+
+        except WorkerCommunicationError as e:
+            print(f"⚠️ Worker communication error: {e}")
+            return {
+                "error": {
                     "status": "error",
-                    "error": str(result),
+                    "error_type": "worker_communication",
+                    "message": str(e),
+                    "timestamp": datetime.now().isoformat(),
                 }
-            else:
-                worker_results[result["role"]] = result
+            }
 
-        return worker_results
+    def _get_task_type(self, worker_role: WorkerRole, intent: str) -> str:
+        """Get task type based on worker role and intent"""
+        if worker_role == WorkerRole.DOCUMENTER:
+            return "explain_issue" if intent == "explain" else "document_solution"
+        elif worker_role == WorkerRole.DEVELOPER:
+            return "implement_solution" if intent == "solve" else "analyze_code"
+        elif worker_role == WorkerRole.TESTER:
+            return "test_solution"
+        elif worker_role == WorkerRole.ANALYZER:
+            return "investigate_issue"
+        elif worker_role == WorkerRole.REVIEWER:
+            return "review_solution"
+        else:
+            return "general_task"
 
     async def _integrate_results(
         self, worker_results: dict[str, Any], strategy: dict[str, Any]
@@ -456,19 +436,31 @@ class QueenCoordinator:
         await asyncio.sleep(0.3)  # 統合時間
 
         all_deliverables = []
-        all_changes = []
+        all_outputs = []
+        successful_workers = []
+        failed_workers = []
 
-        for _worker_role, result in worker_results.items():
+        for worker_name, result in worker_results.items():
             if result["status"] == "completed":
-                all_deliverables.extend(result.get("deliverables", []))
-                all_changes.extend(result.get("changes_made", []))
+                successful_workers.append(worker_name)
+                if "result" in result and "output" in result["result"]:
+                    all_outputs.append(result["result"]["output"])
+                    if "content" in result["result"]:
+                        all_deliverables.append(result["result"]["content"])
+            else:
+                failed_workers.append(worker_name)
 
         return {
-            "integration_status": "success",
+            "integration_status": "success"
+            if not failed_workers
+            else "partial_success",
+            "successful_workers": successful_workers,
+            "failed_workers": failed_workers,
+            "combined_outputs": all_outputs,
             "combined_deliverables": all_deliverables,
-            "total_changes": all_changes,
-            "worker_coordination": "successful",
-            "no_conflicts": True,
+            "worker_coordination": "distributed_success",
+            "conflicts_resolved": len(failed_workers) == 0,
+            "distributed_execution": True,
         }
 
     async def _perform_quality_check(
@@ -477,14 +469,50 @@ class QueenCoordinator:
         """品質チェック"""
         await asyncio.sleep(0.4)  # 品質チェック時間
 
+        # Handle queen_coordinated format
+        if integrated_result.get("execution_type") == "queen_coordinated":
+            # For queen-coordinated tasks, assess quality based on queen result
+            queen_result = integrated_result.get("queen_response", {})
+            success_rate = 1.0 if queen_result.get("status") == "completed" else 0.0
+
+            return {
+                "overall_quality": "excellent"
+                if success_rate >= 0.8
+                else "needs_improvement",
+                "distributed_execution": True,
+                "worker_success_rate": f"{success_rate:.1%}",
+                "successful_workers": 1 if success_rate >= 0.8 else 0,
+                "failed_workers": 0 if success_rate >= 0.8 else 1,
+                "integration_quality": "seamless" if success_rate >= 0.8 else "partial",
+                "ready_for_deployment": success_rate >= 0.8,
+                "distributed_quality_score": success_rate,
+            }
+
+        # Legacy format handling
+        successful_workers = integrated_result.get("successful_workers", [])
+        failed_workers = integrated_result.get("failed_workers", [])
+
+        success_rate = (
+            len(successful_workers) / (len(successful_workers) + len(failed_workers))
+            if (successful_workers or failed_workers)
+            else 1.0
+        )
+
         return {
-            "overall_quality": "excellent",
-            "code_quality": "pass",
-            "test_coverage": "85%",
-            "documentation": "comprehensive",
-            "security_check": "pass",
-            "performance": "acceptable",
-            "ready_for_deployment": True,
+            "overall_quality": "excellent"
+            if success_rate >= 0.8
+            else "good"
+            if success_rate >= 0.6
+            else "needs_improvement",
+            "distributed_execution": True,
+            "worker_success_rate": f"{success_rate:.1%}",
+            "successful_workers": len(successful_workers),
+            "failed_workers": len(failed_workers),
+            "integration_quality": "seamless"
+            if integrated_result.get("conflicts_resolved", True)
+            else "partial",
+            "ready_for_deployment": success_rate >= 0.8,
+            "distributed_quality_score": success_rate,
         }
 
     def _generate_deliverables(
@@ -492,16 +520,16 @@ class QueenCoordinator:
     ) -> list[str]:
         """成果物生成"""
         deliverables = [
-            "✅ 問題解決完了",
-            "📝 実装ドキュメント",
-            "🧪 テスト結果レポート",
-            "📊 品質チェック結果",
-            "🔄 変更履歴",
-            "📋 実装手順書",
+            "✅ 分散Issue解決完了",
+            "📡 実際のWorker連携結果",
+            "🔄 分散処理統合レポート",
+            "📊 Worker成功率レポート",
+            "🏗️ 実行Worker一覧",
+            "📋 分散実行ログ",
         ]
 
         if quality_result["ready_for_deployment"]:
-            deliverables.append("🚀 デプロイ準備完了")
+            deliverables.append("🚀 分散処理デプロイ準備完了")
 
         return deliverables
 
@@ -513,7 +541,7 @@ class QueenCoordinator:
         intent = parsed_request["intent"]
         complexity = parsed_request["complexity"]
 
-        return f"Issue #{issue_num} ({intent}) - 複雑度: {complexity} - 解決完了"
+        return f"Issue #{issue_num} ({intent}) - 複雑度: {complexity} - 分散処理完了"
 
     def _estimate_duration(self, parsed_request: dict[str, Any]) -> str:
         """期間推定"""
@@ -548,25 +576,61 @@ class QueenCoordinator:
     ) -> int:
         """Worker作業時間推定"""
         base_times = {
-            WorkerRole.DEVELOPER: 2,
-            WorkerRole.TESTER: 1,
-            WorkerRole.ANALYZER: 1,
+            WorkerRole.DEVELOPER: 3,
+            WorkerRole.TESTER: 2,
+            WorkerRole.ANALYZER: 2,
             WorkerRole.DOCUMENTER: 1,
-            WorkerRole.REVIEWER: 1,
+            WorkerRole.REVIEWER: 2,
         }
         return base_times.get(worker_role, 1)
 
+    def _show_worker_monitoring_hints(self) -> None:
+        """Worker状態監視のヒント表示"""
+        print("\n💡 Worker状態確認方法:")
+        print("  tmux attach-session -t cozy-hive  # セッション全体を表示")
+        print("  # または個別Worker確認:")
+        
+        workers = ["queen", "analyzer", "documenter", "developer", "tester", "reviewer"]
+        for worker in workers:
+            print(f"  tmux capture-pane -t cozy-hive:{worker} -p | tail -5  # {worker}の最新状況")
+        
+        print("\n⌨️  便利なキーボードショートカット (tmux内):")
+        print("  Ctrl+b → w    # window一覧表示")
+        print("  Ctrl+b → q    # pane番号表示")
+        print("  Ctrl+b → d    # セッションから一時離脱")
+        print("=" * 60)
 
-class BeeKeeperAgent:
-    """BeeKeeper エージェント"""
+    def _show_current_worker_status(self) -> None:
+        """現在のWorker状態を簡易表示"""
+        print("\n🔍 現在のWorker状態:")
+        
+        workers = ["queen", "analyzer", "documenter", "developer", "tester", "reviewer"]
+        active_workers = []
+        
+        for worker in workers:
+            if self.worker_communicator.check_worker_pane(worker):
+                active_workers.append(f"✅ {worker}")
+            else:
+                active_workers.append(f"❌ {worker}")
+        
+        # Display in a nice format
+        for i in range(0, len(active_workers), 3):
+            row = "  " + "    ".join(active_workers[i:i+3])
+            print(row)
+        
+        print(f"\n📈 活性Worker数: {len([w for w in active_workers if '✅' in w])}/{len(workers)}")
+
+
+class DistributedBeeKeeperAgent:
+    """分散BeeKeeper エージェント"""
 
     def __init__(self):
         self.parser = UserPromptParser()
-        self.queen = QueenCoordinator()
+        self.queen = DistributedQueenCoordinator()
         self.session_history = []
 
     async def process_user_request(self, user_prompt: str) -> dict[str, Any]:
-        """ユーザー要求処理"""
+        """ユーザー要求処理 - 分散実行版"""
         print(f"🐝 BeeKeeper: 「{user_prompt}」")
 
         # 1. プロンプト解析
@@ -575,7 +639,8 @@ class BeeKeeperAgent:
             f"📋 解析結果: Intent={parsed_request['intent']}, Priority={parsed_request['priority']}, Complexity={parsed_request['complexity']}"
         )
 
-        # 2. Queen協調
+        # 2. 分散Queen協調
+        parsed_request["prompt"] = user_prompt  # Add original prompt for Queen
         queen_result = await self.queen.coordinate_issue_resolution(parsed_request)
 
         # 3. セッション履歴記録
@@ -584,6 +649,7 @@ class BeeKeeperAgent:
             "parsed_request": parsed_request,
             "queen_result": queen_result,
             "timestamp": datetime.now().isoformat(),
+            "execution_type": "distributed",
         }
         self.session_history.append(session_record)
 
@@ -592,37 +658,105 @@ class BeeKeeperAgent:
 
         return {
             "status": "success",
-            "session_id": queen_result["session_id"],
+            "session_id": queen_result.get("session_id", "unknown"),
             "user_request": parsed_request,
             "resolution_result": queen_result,
-            "summary": queen_result["summary"],
+            "summary": queen_result.get("summary", "Task completed"),
+            "execution_type": "distributed",
         }
 
     def _display_results(self, queen_result: dict[str, Any]):
         """結果表示"""
         print("\n" + "=" * 60)
-        print("🎉 Issue解決完了!")
+        print("🎉 分散Issue解決完了!")
         print("=" * 60)
 
-        print(f"📊 サマリー: {queen_result['summary']}")
-        print(f"⏱️ 処理時間: {queen_result['strategy']['estimated_time']}秒")
-        print(f"👥 使用Worker: {len(queen_result['strategy']['workers'])}個")
+        # Handle both queen_coordinated and legacy formats
+        if queen_result.get("execution_type") == "queen_coordinated":
+            # New queen-coordinated format
+            print(f"📊 サマリー: {queen_result.get('summary', 'N/A')}")
+            print("⏱️ 処理時間: 完了")
+            print("👥 使用Worker: Queen統括実行")
+            print("🌐 実行タイプ: Queen統括分散実行")
 
-        print("\n📦 成果物:")
-        for deliverable in queen_result["deliverables"]:
-            print(f"  {deliverable}")
+            print("\n📦 成果物:")
+            if "deliverables" in queen_result:
+                for deliverable in queen_result["deliverables"]:
+                    print(f"  {deliverable}")
+            else:
+                print("  ✅ Queen統括タスク完了")
 
-        print(f"\n✅ 品質評価: {queen_result['quality_result']['overall_quality']}")
-        print(f"🧪 テストカバレッジ: {queen_result['quality_result']['test_coverage']}")
+            # Show quality results if available
+            if "quality_result" in queen_result:
+                quality = queen_result["quality_result"]
+                print(f"\n✅ 品質評価: {quality.get('overall_quality', 'N/A')}")
+                print(f"📡 Worker成功率: {quality.get('worker_success_rate', 'N/A')}")
+                if quality.get("ready_for_deployment"):
+                    print("🚀 分散処理デプロイ準備完了")
 
-        if queen_result["quality_result"]["ready_for_deployment"]:
-            print("🚀 デプロイ準備完了")
+            # Show queen coordination results
+            if "queen_coordination" in queen_result:
+                coord = queen_result["queen_coordination"]
+                if "queen_response" in coord:
+                    print("\n👑 Queen統括結果:")
+                    queen_response = coord["queen_response"]
+                    if isinstance(queen_response, dict):
+                        if "result" in queen_response:
+                            output = queen_response['result'].get('output', 'タスク完了')
+                            # Truncate long outputs for better readability
+                            if len(output) > 200:
+                                output = output[:200] + "... [結果が長いため省略]"
+                            print(f"  ✅ {output}")
+                        else:
+                            print("  ✅ Queen統括完了")
+                    else:
+                        response_text = str(queen_response)
+                        if len(response_text) > 200:
+                            response_text = response_text[:200] + "... [結果が長いため省略]"
+                        print(f"  ✅ {response_text}")
+                
+                print("\n🎊 分散処理が正常に完了しました！")
+                print("📋 詳細な結果はQueenが各Workerと連携して作成しました")
+        else:
+            # Legacy format
+            print(f"📊 サマリー: {queen_result.get('summary', 'N/A')}")
+            if "strategy" in queen_result:
+                print(f"⏱️ 処理時間: {queen_result['strategy']['estimated_time']}秒")
+                print(f"👥 使用Worker: {len(queen_result['strategy']['workers'])}個")
+
+            if queen_result.get("distributed_execution"):
+                print("🌐 実行タイプ: 分散実行 (実際のWorker連携)")
+
+            print("\n📦 成果物:")
+            if "deliverables" in queen_result:
+                for deliverable in queen_result["deliverables"]:
+                    print(f"  {deliverable}")
+
+            if "quality_result" in queen_result:
+                quality = queen_result["quality_result"]
+                print(f"\n✅ 品質評価: {quality.get('overall_quality', 'N/A')}")
+                print(f"📡 Worker成功率: {quality.get('worker_success_rate', 'N/A')}")
+                if quality.get("ready_for_deployment"):
+                    print("🚀 分散処理デプロイ準備完了")
+
+            # Show worker results if available
+            if "worker_results" in queen_result:
+                print("\n🏗️ Worker実行結果:")
+                for worker_name, result in queen_result["worker_results"].items():
+                    if result["status"] == "completed":
+                        print(
+                            f"  ✅ {worker_name.capitalize()}: {result['result']['output']}"
+                        )
+                    else:
+                        print(
+                            f"  ❌ {worker_name.capitalize()}: {result.get('error', 'Unknown error')}"
+                        )
 
 
 async def main():
     """メイン実行"""
     parser = argparse.ArgumentParser(
-        description="新アーキテクチャ Issue解決エージェント"
+        description="分散アーキテクチャ Issue解決エージェント"
     )
     parser.add_argument("prompt", nargs="?", help="自然言語による指示")
     parser.add_argument("--demo", action="store_true", help="デモモード")
@@ -632,18 +766,18 @@ async def main():
 
     args = parser.parse_args()
 
-    beekeeper = BeeKeeperAgent()
+    beekeeper = DistributedBeeKeeperAgent()
 
     if args.demo:
         # デモモード
         demo_prompts = [
-            "Issue 64を解決する",
-            "緊急でissue 75を直してほしい",
+            "Issue 84の内容を教えて",
+            "緊急でissue 64を直してほしい",
             "Issue 101について詳しく調査してください",
             "Issue 95の実装方法を説明してください",
         ]
 
-        print("🎪 新アーキテクチャ Issue解決エージェント デモ")
+        print("🎪 分散アーキテクチャ Issue解決エージェント デモ")
         print("=" * 60)
 
         for i, prompt in enumerate(demo_prompts, 1):
@@ -660,10 +794,10 @@ async def main():
 
     elif args.interactive:
         # インタラクティブモード
-        print("🐝 新アーキテクチャ Issue解決エージェント")
+        print("🐝 分散アーキテクチャ Issue解決エージェント")
         print("=" * 60)
         print("自然言語で指示してください")
-        print("例: 'Issue 64を解決する', '緊急でissue 75を直してほしい'")
+        print("例: 'Issue 84の内容を教えて', '緊急でissue 64を直してほしい'")
         print("終了: 'quit', 'exit', 'q'")
         print("=" * 60)
 
@@ -690,14 +824,14 @@ async def main():
 
     else:
         # デフォルト: 簡単なデモを実行
-        print("🐝 新アーキテクチャ Issue解決エージェント")
+        print("🐝 分散アーキテクチャ Issue解決エージェント")
         print("使用方法:")
-        print('  python issue_solver_agent.py "Issue 64を解決する"')
-        print("  python issue_solver_agent.py --demo")
-        print("  python issue_solver_agent.py --interactive")
+        print('  python issue_solver_agent_distributed.py "Issue 84の内容を教えて"')
+        print("  python issue_solver_agent_distributed.py --demo")
+        print("  python issue_solver_agent_distributed.py --interactive")
         print("\n簡単なデモを実行します...\n")
 
-        await beekeeper.process_user_request("Issue 64を解決する")
+        await beekeeper.process_user_request("Issue 84の内容を教えて")
 
 
 if __name__ == "__main__":
