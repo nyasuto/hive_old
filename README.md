@@ -74,16 +74,31 @@ hive --help
 
 ## 🚀 プロジェクト開始
 
-### **クイックスタート**
+### **クイックスタート（推奨）**
 ```bash
-# 1. プロジェクト初期化
+# 1. Hive システムの自動起動
+./scripts/start-cozy-hive.sh
+
+# 2. ブラウザダッシュボードで監視
+python3 scripts/web_dashboard.py
+# → http://localhost:8000 でダッシュボードを確認
+
+# 3. 各 Worker で作業開始
+# tmux session "cozy-hive" に接続
+tmux attach-session -t cozy-hive
+# pane間移動: Ctrl+B → 数字キー (0-6)
+```
+
+### **手動セットアップ（従来方式）**
+```bash
+# プロジェクト初期化
 hive init "my-project"
 
-# 2. tmux session作成
+# tmux session作成
 tmux new-session -d -s hive
 # 必要な数のpaneを作成
 
-# 3. 各paneでClaude Code起動
+# 各paneでClaude Code起動
 # pane 0: claude --dangerously-skip-permissions  (Queen)
 # pane 1: claude --dangerously-skip-permissions  (Architect)
 # pane 2: claude --dangerously-skip-permissions  (Frontend)
@@ -91,9 +106,29 @@ tmux new-session -d -s hive
 # pane 4: claude --dangerously-skip-permissions  (DevOps)
 # pane 5: claude --dangerously-skip-permissions  (Tester)
 
-# 4. テンプレートベース初期化
+# テンプレートベース初期化
 hive bootstrap web-app "タスク管理アプリ"
 ```
+
+### **🌐 ブラウザダッシュボード（Issue #132 実装済み）**
+```bash
+# 基本起動
+python3 scripts/web_dashboard.py
+
+# カスタマイズ
+python3 scripts/web_dashboard.py --port 9000 --no-browser
+
+# アクセス先
+# 📊 ダッシュボード: http://localhost:8000
+# 📡 API仕様書: http://localhost:8000/docs
+# 🔌 WebSocket: ws://localhost:8000/ws
+```
+
+**ダッシュボード機能**：
+- **リアルタイム監視**: Worker状態を1秒間隔で自動更新
+- **通信フロー可視化**: SVGアニメーションで Worker間通信を表示
+- **パフォーマンス分析**: Chart.js による性能指標可視化
+- **レスポンシブデザイン**: モバイル・デスクトップ対応
 
 ### **利用可能なプロジェクトテンプレート**
 ```bash
@@ -145,6 +180,10 @@ hive remind-me             # 役割 + 現在のタスク
 # システム状況確認
 hive status                # 全Worker状況
 hive who                   # アクティブWorker一覧
+
+# ブラウザダッシュボード（Issue #132）
+hive dashboard             # ダッシュボード起動（scripts/web_dashboard.py のエイリアス）
+hive monitor               # リアルタイム監視モード
 ```
 
 ### **Worker識別子**
@@ -295,6 +334,24 @@ hive remind-me
 
 ## 🔧 カスタマイズ
 
+### **ブラウザダッシュボードの設定**
+```bash
+# カスタムポート（デフォルト: 8000）
+python3 scripts/web_dashboard.py --port 9000
+
+# セキュリティ強化（localhost のみ）
+python3 scripts/web_dashboard.py --host localhost
+
+# 自動ブラウザ起動を無効
+python3 scripts/web_dashboard.py --no-browser
+
+# 開発モード無効（本番用）
+python3 scripts/web_dashboard.py --no-reload
+
+# Hive システム未起動でも強制起動
+python3 scripts/web_dashboard.py --force
+```
+
 ### **新しいWorkerの追加**
 ```bash
 # 新Worker用pane作成
@@ -417,6 +474,11 @@ hive my-role                  # 詳細な役割確認
 # CLI動作不良
 hive --help                   # ヘルプ確認
 hive status --debug           # デバッグ情報
+
+# ダッシュボード接続不良
+python3 scripts/web_dashboard.py --check-only  # 依存関係確認
+python3 scripts/web_dashboard.py --port 8001   # 別ポートで起動
+pkill -f web_dashboard.py                      # プロセス強制終了
 ```
 
 ## 🌱 将来の発展
@@ -427,17 +489,24 @@ hive status --debug           # デバッグ情報
 - ファイル添付機能
 - 通信パターン分析
 
-### **Phase 3: 学習・最適化機能（2-3ヶ月後）**
+### **Phase 3: ブラウザダッシュボード（✅ 実装完了 - Issue #132）**
+- ✅ **FastAPI + WebSocket** リアルタイム通信基盤
+- ✅ **Vue.js スタイル** フロントエンド環境
+- ✅ **Chart.js 統合** パフォーマンス可視化
+- ✅ **SVG アニメーション** 通信フロー表示
+- ✅ **レスポンシブデザイン** モバイル・デスクトップ対応
+
+### **Phase 4: 学習・最適化機能（2-3ヶ月後）**
 - Worker間協調パターンの学習
 - 効率的なタスク分担の提案
 - 自動的な役割調整
 - プロジェクト成功パターンの蓄積
 
-### **Phase 4: エンタープライズ機能（6ヶ月後）**
-- Web UI管理画面
-- 大規模チーム対応
-- 外部システム連携
-- セキュリティ強化
+### **Phase 5: エンタープライズ機能（6ヶ月後）**
+- 大規模チーム対応（複数Hive並列実行）
+- 外部システム連携（GitHub/Slack/JIRA統合）
+- セキュリティ強化（認証・認可システム）
+- クラウドデプロイ対応
 
 ## 🤝 コミュニティ
 
