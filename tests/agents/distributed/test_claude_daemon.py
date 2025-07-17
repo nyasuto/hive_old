@@ -16,6 +16,24 @@ from hive.agents_distributed.distributed.claude_daemon import (
 )
 
 
+@pytest.fixture
+def mock_tmux_manager():
+    """TMUXManagerのモックを作成"""
+    mock = Mock()
+    mock.session_exists = True
+    mock.panes = {
+        "queen": "hive:queen",
+        "developer1": "hive:developer1",
+    }
+    return mock
+
+
+@pytest.fixture
+def daemon(mock_tmux_manager):
+    """ClaudeDaemonインスタンスを作成"""
+    return ClaudeDaemon(mock_tmux_manager)
+
+
 class TestClaudeDaemon(unittest.TestCase):
     """ClaudeDaemonのテスト"""
 
@@ -47,8 +65,8 @@ class TestClaudeDaemon(unittest.TestCase):
         assert config["max_retries"] == 3
         assert config["heartbeat_interval"] == 60
 
-    @pytest.mark.asyncio
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_start_daemon_success(self, mock_sleep):
         """デーモン起動成功テスト"""
         # tmux_managerのモック設定
@@ -114,9 +132,9 @@ class TestClaudeDaemon(unittest.TestCase):
         self.daemon.daemon_status["queen"] = {"status": "stopped"}
         assert self.daemon._is_daemon_running("queen") is False
 
-    @pytest.mark.asyncio
     @patch("time.time")
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_send_command_success(self, mock_sleep, mock_time):
         """コマンド送信成功テスト"""
         # 時間のモック
@@ -224,8 +242,8 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result["success"] is True
 
-    @pytest.mark.asyncio
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_stop_daemon(self, mock_sleep):
         """デーモン停止テスト"""
         # デーモンを実行中に設定
@@ -249,8 +267,8 @@ class TestClaudeDaemon(unittest.TestCase):
 
         assert result is True
 
-    @pytest.mark.asyncio
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_restart_daemon(self, mock_sleep):
         """デーモン再起動テスト"""
         # デーモンを実行中に設定
@@ -299,8 +317,8 @@ class TestClaudeDaemon(unittest.TestCase):
         assert status["total_commands"] == 8
         assert status["total_errors"] == 1
 
-    @pytest.mark.asyncio
     @patch("time.time")
+    @pytest.mark.asyncio
     async def test_health_check_healthy(self, mock_time):
         """健康なデーモンのヘルスチェックテスト"""
         mock_time.return_value = 1000.0
@@ -330,8 +348,8 @@ class TestClaudeDaemon(unittest.TestCase):
         assert result["healthy"] is False
         assert result["reason"] == "Daemon not running"
 
-    @pytest.mark.asyncio
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_start_all_daemons(self, mock_sleep):
         """全デーモン起動テスト"""
         # tmux_managerのモック
@@ -346,8 +364,8 @@ class TestClaudeDaemon(unittest.TestCase):
         assert results["queen"] is True
         assert results["developer1"] is True
 
-    @pytest.mark.asyncio
     @patch("asyncio.sleep")
+    @pytest.mark.asyncio
     async def test_stop_all_daemons(self, mock_sleep):
         """全デーモン停止テスト"""
         # デーモンを実行中に設定
@@ -404,6 +422,67 @@ class TestClaudeCommandBuilder(unittest.TestCase):
 
         assert "Please refactor the code in /path/to/code.py" in command
         assert "Add type hints" in command
+
+
+# Non-class async tests to fix warnings
+@pytest.mark.asyncio
+async def test_start_daemon_success_async(daemon, mock_tmux_manager):
+    """デーモン起動成功テスト（関数版）"""
+    # tmux_managerのモック設定
+    mock_tmux_manager.send_to_pane.return_value = True
+    mock_tmux_manager.get_pane_content.return_value = "claude> "
+
+    with patch("asyncio.sleep"):
+        result = await daemon.start_daemon("queen")
+
+    assert result is True
+    assert "queen" in daemon.daemon_status
+    assert daemon.daemon_status["queen"]["status"] == "running"
+
+
+@pytest.mark.asyncio
+async def test_send_command_success_async(daemon, mock_tmux_manager):
+    """コマンド送信成功テスト（関数版）"""
+    # デーモンを実行中に設定
+    daemon.daemon_status["queen"] = {
+        "status": "running",
+        "command_count": 0,
+        "error_count": 0,
+    }
+
+    # tmux_managerのモック
+    mock_tmux_manager.send_to_pane.return_value = True
+    mock_tmux_manager.get_pane_content.return_value = "Response content\nHuman: "
+
+    with patch("time.time", return_value=1000.0):
+        with patch("asyncio.sleep"):
+            result = await daemon.send_command("queen", "test command")
+
+    assert result["success"] is True
+    assert "command_id" in result
+    assert "response" in result
+
+
+@pytest.mark.asyncio
+async def test_health_check_healthy_async(daemon, mock_tmux_manager):
+    """健康なデーモンのヘルスチェックテスト（関数版）"""
+    # デーモンを実行中に設定
+    daemon.daemon_status["queen"] = {
+        "status": "running",
+        "command_count": 0,
+        "error_count": 0,
+    }
+
+    # tmux_managerのモック
+    mock_tmux_manager.send_to_pane.return_value = True
+    mock_tmux_manager.get_pane_content.return_value = "ping\nHuman: "
+
+    with patch("time.time", return_value=1000.0):
+        with patch("asyncio.sleep"):
+            result = await daemon.health_check("queen")
+
+    assert result["healthy"] is True
+    assert "response_time" in result
 
 
 if __name__ == "__main__":

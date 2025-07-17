@@ -95,9 +95,6 @@ class TestIssueSolverAgent:
             assert "resolution_result" in result
             assert "validation_result" in result
 
-    @pytest.mark.skip(
-        reason="Test expectations need update after #87 refactoring - will fix in #89"
-    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
@@ -135,18 +132,20 @@ class TestIssueSolverAgent:
             }
         )
 
+        # エージェントのコンポーネントを実際にモックと置換
+        self.agent.prompt_parser = mock_parser_instance
+        self.agent.analyzer = mock_analyzer_instance
+
         result = await self.agent.process("Issue 64について調査してください")
 
         assert result["success"] is True
         assert result["mode"] == "investigate"
         assert result["issue_number"] == 64
         assert "investigation_result" in result
+        # モックで設定した値が正しく返されることを確認
         assert result["investigation_result"]["issue_summary"]["type"] == "bug"
         assert result["investigation_result"]["issue_summary"]["complexity"] == "medium"
 
-    @pytest.mark.skip(
-        reason="Test expectations need update after #87 refactoring - will fix in #89"
-    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
@@ -201,6 +200,10 @@ class TestIssueSolverAgent:
             }
         )
 
+        # エージェントのコンポーネントを実際にモックと置換
+        self.agent.prompt_parser = mock_parser_instance
+        self.agent.analyzer = mock_analyzer_instance
+
         result = await self.agent.process("Issue 64の内容を説明してください")
 
         assert result["success"] is True
@@ -228,9 +231,6 @@ class TestIssueSolverAgent:
         assert result["success"] is False
         assert "Prompt parsing failed" in result["error"]["message"]
 
-    @pytest.mark.skip(
-        reason="Test expectations need update after #87 refactoring - will fix in #89"
-    )
     @patch("hive.agents.issue_solver.agent.UserPromptParser")
     @patch("hive.agents.issue_solver.agent.IssueAnalyzer")
     @pytest.mark.asyncio
@@ -254,6 +254,10 @@ class TestIssueSolverAgent:
         mock_analyzer_instance.analyze_issue = AsyncMock(
             return_value={"success": False, "error": "Failed to fetch issue data"}
         )
+
+        # エージェントのコンポーネントを実際にモックと置換
+        self.agent.prompt_parser = mock_parser_instance
+        self.agent.analyzer = mock_analyzer_instance
 
         result = await self.agent.process("Issue 64を解決する")
 
