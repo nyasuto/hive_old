@@ -74,8 +74,8 @@ class TestIssueAnalyzer(unittest.TestCase):
             == "feature"
         )
 
-        # No labels - default to feature
-        assert self.analyzer._determine_issue_type("Some title", []) == "feature"
+        # No labels - default to unknown
+        assert self.analyzer._determine_issue_type("Some title", []) == "unknown"
 
     def test_estimate_time(self):
         """時間見積もりテスト"""
