@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/hive-icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐝 Hive Dashboard - Multi-Agent System</title>
+    <meta name="description" content="Hive Multi-Agent System Dashboard - TypeScript Vue.js版" />
+    
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="Hive Dashboard" />
+    <meta property="og:description" content="Multi-Agent System Dashboard" />
+    <meta property="og:type" content="website" />
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#3b82f6" />
+    
+    <!-- iOS specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Hive Dashboard" />
+    
+    <style>
+      /* ローディング画面のスタイル */
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      
+      .loading-logo {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: bounce 1s infinite;
+      }
+      
+      .loading-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+      
+      .loading-subtext {
+        font-size: 1rem;
+        color: #64748b;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e2e8f0;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 2rem;
+      }
+      
+      @keyframes bounce {
+        0%, 100% { transform: translateY(-5px); }
+        50% { transform: translateY(5px); }
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* アプリが読み込まれたらローディング画面を隠す */
+      .app-loaded #loading-screen {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ローディング画面 -->
+    <div id="loading-screen">
+      <div class="loading-logo">🐝</div>
+      <div class="loading-text">Hive Dashboard</div>
+      <div class="loading-subtext">Multi-Agent System v2.0</div>
+      <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Vue.js アプリケーション -->
+    <div id="app"></div>
+    
+    <script type="module" src="/src/main.ts"></script>
+    
+    <script>
+      // ローディング画面を非表示にする
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.body.classList.add('app-loaded');
+          setTimeout(function() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+              loadingScreen.style.display = 'none';
+            }
+          }, 500);
+        }, 1000);
+      });
+      
+      // Service Worker registration (PWA)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Error handling
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+      });
+    </script>
+  </body>
+</html>
