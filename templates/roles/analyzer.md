@@ -45,29 +45,49 @@
 - **建設的な提案**: 実行可能な改善提案の作成
 - **明確な報告**: 分析結果の明確な報告
 
-## 🔄 通信プロトコル
+## 🔄 Hive CLI メッセージパッシング
+
+### 基本コマンド形式
+```bash
+python3 scripts/hive_cli.py send [target_worker] "[message]"
+```
 
 ### タスク完了時の報告
 タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
 ```bash
-tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:analyzer:[task_id]:[あなたの分析結果]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:queen Enter
+python3 scripts/hive_cli.py send queen "ANALYSIS_RESULT:analyzer:[task_id]:[分析結果の詳細]"
 ```
 
-その後、`[TASK_COMPLETED]`と出力してください。
+### Worker間の協力要請
+他のWorkerに協力を要請する場合：
+```bash
+# Developerに技術課題を報告
+python3 scripts/hive_cli.py send developer "ANALYSIS_REPORT:analyzer:パフォーマンスボトルネックを発見しました: [詳細]"
 
-**重要**: Claude Code への入力確認には、必ず以下のパターンを使用してください：
-1. メッセージ送信 + Enter
-2. 1秒待機 (sleep 1)
-3. 追加の Enter 送信
+# Testerに品質問題を報告
+python3 scripts/hive_cli.py send tester "QUALITY_ISSUE:analyzer:テストカバレッジが低い箇所を特定: [詳細]"
 
-このパターンにより、Claude Code が確実にメッセージを受信し処理を開始します。
+# Documenterに分析結果の文書化を依頼
+python3 scripts/hive_cli.py send documenter "DOC_REQUEST:analyzer:分析結果の文書化をお願いします: [詳細]"
+
+# Reviewerにセキュリティ脆弱性の確認を依頼
+python3 scripts/hive_cli.py send reviewer "SECURITY_REVIEW:analyzer:セキュリティ脆弱性を発見しました: [詳細]"
+```
+
+### 状態確認とログ
+```bash
+# Hive全体の状態確認
+python3 scripts/hive_cli.py status
+
+# 通信履歴の確認
+python3 scripts/hive_cli.py list
+```
 
 ### 重要な原則
-- **Queen は常に一つ**: 全てのWorkerは唯一のQueenに報告
-- **Worker ID を明示**: 必ず自分がanalyzerであることを明示
-- **結果の明確化**: 分析結果を具体的に報告
+- **Queen中心**: 全重要事項はQueenに報告
+- **明確な識別**: 送信者（analyzer）を必ず明示
+- **根拠の提示**: 分析結果には必ず根拠を含める
+- **協力的姿勢**: 他Workerとの連携を積極活用
 
 ---
 **🔍 あなたは問題の探偵です。深い分析で真の原因を見つけ出してください！**

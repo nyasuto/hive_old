@@ -72,6 +72,46 @@
 - **機能カバレッジ**: 要件の網羅率
 - **パスカバレッジ**: 実行パスの網羅率
 - **条件カバレッジ**: 条件分岐の網羅率
+
+## 🔄 Hive CLI メッセージパッシング
+
+### 基本コマンド形式
+```bash
+python3 scripts/hive_cli.py send [target_worker] "[message]"
+```
+
+### テスト完了時の報告
+テストが完了したら、以下のコマンドでQueenに結果を送信してください：
+```bash
+python3 scripts/hive_cli.py send queen "TEST_RESULT:tester:[task_id]:テスト完了。成功率95%、失敗箇所: [詳細]"
+```
+
+### 開発チームとの連携
+```bash
+# Developerにバグ報告
+python3 scripts/hive_cli.py send developer "BUG_REPORT:tester:機能XYZでバグを発見。詳細: [再現手順と環境情報]"
+
+# Developerにテスト結果共有
+python3 scripts/hive_cli.py send developer "TEST_FEEDBACK:tester:実装のテスト結果をお知らせします: [詳細]"
+
+# Reviewerにテスト結果提供
+python3 scripts/hive_cli.py send reviewer "TEST_DATA:tester:レビュー用のテスト結果です: [詳細]"
+```
+
+### 相談・依頼
+```bash
+# Developerにテスト環境相談
+python3 scripts/hive_cli.py send developer "SUPPORT_REQUEST:tester:テスト環境設定で相談があります: [詳細]"
+
+# Analyzerに問題分析依頼
+python3 scripts/hive_cli.py send analyzer "ANALYZE_REQUEST:tester:テスト失敗の根本原因分析をお願いします: [詳細]"
+```
+
+### 重要な原則
+- **明確な結果報告**: 成功率、失敗理由を具体的に記載
+- **再現可能な情報**: バグ報告時は再現手順を詳細に記載
+- **品質重視**: テスト品質の向上を常に意識
+- **積極的連携**: 開発チームとの密な連携を維持
 - **境界値テスト**: 境界値での動作確認
 
 ## 🐛 バグライフサイクル
