@@ -176,7 +176,8 @@ class HiveDashboardCollector:
 
     def _collect_recent_messages(self, limit: int = 10) -> list[CommunicationMessage]:
         """最近の通信メッセージを収集"""
-        log_file = Path("logs/hive_communications.log")
+        project_root = Path(__file__).parent.parent.parent.parent
+        log_file = project_root / "logs" / "hive_communications.log"
         messages: list[CommunicationMessage] = []
 
         if not log_file.exists():

@@ -100,4 +100,362 @@ class FlowVisualization {
         activityRing.setAttribute('opacity', '0');
         activityRing.setAttribute('class', 'activity-ring');
         
-        // 絵文字テキスト\n        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');\n        text.setAttribute('x', worker.x);\n        text.setAttribute('y', worker.y + 5);\n        text.setAttribute('text-anchor', 'middle');\n        text.setAttribute('font-size', '20');\n        text.setAttribute('class', 'worker-emoji');\n        text.textContent = worker.emoji;\n        \n        // 名前ラベル\n        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');\n        label.setAttribute('x', worker.x);\n        label.setAttribute('y', worker.y + this.config.nodeRadius + 20);\n        label.setAttribute('text-anchor', 'middle');\n        label.setAttribute('font-size', '12');\n        label.setAttribute('fill', '#cccccc');\n        label.setAttribute('class', 'worker-label');\n        label.textContent = worker.name;\n        \n        // グループに追加\n        group.appendChild(activityRing);\n        group.appendChild(circle);\n        group.appendChild(text);\n        group.appendChild(label);\n        \n        this.svg.appendChild(group);\n        \n        // ノード情報保存\n        this.workerNodes[worker.name] = {\n            element: group,\n            circle: circle,\n            activityRing: activityRing,\n            x: worker.x,\n            y: worker.y,\n            status: 'idle'\n        };\n    }\n    \n    // コントロール初期化\n    initializeControls() {\n        // 再生/一時停止ボタン\n        const playPauseBtn = document.getElementById('flow-play-pause');\n        if (playPauseBtn) {\n            playPauseBtn.addEventListener('click', () => {\n                this.togglePlayPause();\n            });\n        }\n        \n        // クリアボタン\n        const clearBtn = document.getElementById('flow-clear');\n        if (clearBtn) {\n            clearBtn.addEventListener('click', () => {\n                this.clearFlow();\n            });\n        }\n        \n        // スピード選択\n        const speedSelect = document.getElementById('flow-speed-select');\n        if (speedSelect) {\n            speedSelect.addEventListener('change', (e) => {\n                this.animationSpeed = parseFloat(e.target.value);\n                console.log(`🚀 Flow speed changed to ${this.animationSpeed}x`);\n            });\n        }\n    }\n    \n    // メッセージアニメーション追加\n    addMessage(message) {\n        if (!this.isPlaying) return;\n        \n        const sourceNode = this.workerNodes[message.source];\n        const targetNode = this.workerNodes[message.target];\n        \n        if (!sourceNode || !targetNode) {\n            console.warn(`⚠️  Unknown worker: ${message.source} -> ${message.target}`);\n            return;\n        }\n        \n        // メッセージキューに追加\n        this.messageQueue.push({\n            ...message,\n            id: Date.now() + Math.random(),\n            sourceNode,\n            targetNode\n        });\n        \n        // キューが長すぎる場合は古いメッセージを削除\n        if (this.messageQueue.length > this.config.maxMessages) {\n            this.messageQueue.shift();\n        }\n        \n        // アニメーション実行\n        this.animateMessage(this.messageQueue[this.messageQueue.length - 1]);\n    }\n    \n    // メッセージアニメーション実行\n    animateMessage(messageData) {\n        const { sourceNode, targetNode, message_type, message } = messageData;\n        \n        // パスを計算\n        const path = this.calculatePath(sourceNode, targetNode);\n        \n        // アニメーション要素作成\n        const animationGroup = this.createMessageAnimation(path, message_type, message);\n        \n        // アニメーション開始\n        this.startMessageAnimation(animationGroup, messageData);\n        \n        // Worker活動状態更新\n        this.updateWorkerActivity(sourceNode, targetNode, message_type);\n    }\n    \n    // パス計算\n    calculatePath(sourceNode, targetNode) {\n        const dx = targetNode.x - sourceNode.x;\n        const dy = targetNode.y - sourceNode.y;\n        const distance = Math.sqrt(dx * dx + dy * dy);\n        \n        // ノードの境界から開始・終了\n        const startX = sourceNode.x + (dx / distance) * this.config.nodeRadius;\n        const startY = sourceNode.y + (dy / distance) * this.config.nodeRadius;\n        const endX = targetNode.x - (dx / distance) * this.config.nodeRadius;\n        const endY = targetNode.y - (dy / distance) * this.config.nodeRadius;\n        \n        // ベジェ曲線の制御点\n        const midX = (startX + endX) / 2;\n        const midY = (startY + endY) / 2;\n        const controlX = midX + (Math.random() - 0.5) * 100;\n        const controlY = midY - 50;\n        \n        return {\n            startX, startY, endX, endY,\n            controlX, controlY,\n            pathString: `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`\n        };\n    }\n    \n    // メッセージアニメーション要素作成\n    createMessageAnimation(path, messageType, messageText) {\n        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');\n        group.setAttribute('class', 'message-animation');\n        \n        // パス\n        const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');\n        pathElement.setAttribute('d', path.pathString);\n        pathElement.setAttribute('stroke', this.colors[messageType] || this.colors.default);\n        pathElement.setAttribute('stroke-width', '2');\n        pathElement.setAttribute('fill', 'none');\n        pathElement.setAttribute('opacity', '0.6');\n        \n        // メッセージドット\n        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');\n        dot.setAttribute('r', '6');\n        dot.setAttribute('fill', this.colors[messageType] || this.colors.default);\n        dot.setAttribute('stroke', '#ffffff');\n        dot.setAttribute('stroke-width', '2');\n        \n        // メッセージテキスト（ツールチップ用）\n        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');\n        title.textContent = `${messageType}: ${messageText.substring(0, 50)}...`;\n        \n        group.appendChild(pathElement);\n        group.appendChild(dot);\n        group.appendChild(title);\n        \n        this.svg.appendChild(group);\n        \n        return { group, pathElement, dot, path };\n    }\n    \n    // アニメーション開始\n    startMessageAnimation(animationElements, messageData) {\n        const { group, pathElement, dot, path } = animationElements;\n        const duration = this.config.animationDuration / this.animationSpeed;\n        \n        // パスアニメーション\n        const pathLength = pathElement.getTotalLength();\n        pathElement.setAttribute('stroke-dasharray', pathLength);\n        pathElement.setAttribute('stroke-dashoffset', pathLength);\n        \n        // CSS アニメーション\n        pathElement.style.animation = `drawPath ${duration}ms ease-out forwards`;\n        \n        // ドット移動アニメーション\n        let startTime = null;\n        \n        const animateDot = (timestamp) => {\n            if (!startTime) startTime = timestamp;\n            \n            const progress = Math.min((timestamp - startTime) / duration, 1);\n            const point = this.getPointAtProgress(path, progress);\n            \n            dot.setAttribute('cx', point.x);\n            dot.setAttribute('cy', point.y);\n            \n            if (progress < 1) {\n                requestAnimationFrame(animateDot);\n            } else {\n                // アニメーション完了\n                setTimeout(() => {\n                    if (group.parentNode) {\n                        group.parentNode.removeChild(group);\n                    }\n                }, 500); // 0.5秒後に削除\n            }\n        };\n        \n        requestAnimationFrame(animateDot);\n        \n        // アクティブアニメーション追跡\n        this.activeAnimations.push({\n            group,\n            startTime: Date.now(),\n            duration,\n            messageData\n        });\n    }\n    \n    // パス上の点を取得\n    getPointAtProgress(path, progress) {\n        // ベジェ曲線上の点を計算\n        const t = progress;\n        const x = Math.pow(1 - t, 2) * path.startX + \n                 2 * (1 - t) * t * path.controlX + \n                 Math.pow(t, 2) * path.endX;\n        const y = Math.pow(1 - t, 2) * path.startY + \n                 2 * (1 - t) * t * path.controlY + \n                 Math.pow(t, 2) * path.endY;\n        \n        return { x, y };\n    }\n    \n    // Worker活動状態更新\n    updateWorkerActivity(sourceNode, targetNode, messageType) {\n        // 送信側のアクティビティ表示\n        this.showWorkerActivity(sourceNode, 'sending');\n        \n        // 受信側のアクティビティ表示（少し遅延）\n        setTimeout(() => {\n            this.showWorkerActivity(targetNode, 'receiving');\n        }, 500);\n    }\n    \n    // Worker活動表示\n    showWorkerActivity(workerNode, activity) {\n        const ring = workerNode.activityRing;\n        const circle = workerNode.circle;\n        \n        // アクティビティリング表示\n        ring.setAttribute('opacity', '0.8');\n        \n        // 色設定\n        const color = activity === 'sending' ? '#f39c12' : '#27ae60';\n        ring.setAttribute('stroke', color);\n        circle.setAttribute('stroke', color);\n        \n        // パルスアニメーション\n        ring.style.animation = 'pulse 1s ease-out';\n        \n        // 1秒後にリセット\n        setTimeout(() => {\n            ring.setAttribute('opacity', '0');\n            circle.setAttribute('stroke', '#666666');\n            ring.style.animation = '';\n        }, 1000);\n    }\n    \n    // Worker状態更新\n    updateWorkerStatus(workerName, status) {\n        const worker = this.workerNodes[workerName];\n        if (!worker) return;\n        \n        worker.status = status;\n        const circle = worker.circle;\n        \n        // 状態に応じた色設定\n        const statusColors = {\n            'active': '#27ae60',\n            'working': '#f39c12',\n            'idle': '#666666',\n            'inactive': '#444444',\n            'error': '#e74c3c'\n        };\n        \n        circle.setAttribute('fill', statusColors[status] || statusColors.idle);\n    }\n    \n    // 再生/一時停止切り替え\n    togglePlayPause() {\n        this.isPlaying = !this.isPlaying;\n        const btn = document.getElementById('flow-play-pause');\n        \n        if (btn) {\n            btn.textContent = this.isPlaying ? '⏸️ Pause' : '▶️ Play';\n        }\n        \n        console.log(`📊 Flow visualization ${this.isPlaying ? 'resumed' : 'paused'}`);\n    }\n    \n    // フロークリア\n    clearFlow() {\n        // 全てのメッセージアニメーションを削除\n        const messageAnimations = this.svg.querySelectorAll('.message-animation');\n        messageAnimations.forEach(element => {\n            element.remove();\n        });\n        \n        this.messageQueue = [];\n        this.activeAnimations = [];\n        \n        console.log('🗑️  Flow visualization cleared');\n    }\n    \n    // 破棄\n    destroy() {\n        this.clearFlow();\n        this.workerNodes = {};\n    }\n}\n\n// CSS アニメーション定義\nconst style = document.createElement('style');\nstyle.textContent = `\n    @keyframes drawPath {\n        to {\n            stroke-dashoffset: 0;\n        }\n    }\n    \n    @keyframes pulse {\n        0% { \n            transform: scale(1);\n            opacity: 0.8;\n        }\n        50% { \n            transform: scale(1.1);\n            opacity: 1;\n        }\n        100% { \n            transform: scale(1);\n            opacity: 0.8;\n        }\n    }\n    \n    .worker-node {\n        cursor: pointer;\n        transition: all 0.3s ease;\n    }\n    \n    .worker-node:hover .worker-circle {\n        stroke-width: 3;\n        filter: brightness(1.2);\n    }\n    \n    .message-animation {\n        pointer-events: none;\n    }\n`;\ndocument.head.appendChild(style);
+        // 絵文字テキスト
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', worker.x);
+        text.setAttribute('y', worker.y + 5);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '20');
+        text.setAttribute('class', 'worker-emoji');
+        text.textContent = worker.emoji;
+        
+        // 名前ラベル
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', worker.x);
+        label.setAttribute('y', worker.y + this.config.nodeRadius + 20);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-size', '12');
+        label.setAttribute('fill', '#cccccc');
+        label.setAttribute('class', 'worker-label');
+        label.textContent = worker.name;
+        
+        // グループに追加
+        group.appendChild(activityRing);
+        group.appendChild(circle);
+        group.appendChild(text);
+        group.appendChild(label);
+        
+        this.svg.appendChild(group);
+        
+        // ノード情報保存
+        this.workerNodes[worker.name] = {
+            element: group,
+            circle: circle,
+            activityRing: activityRing,
+            x: worker.x,
+            y: worker.y,
+            status: 'idle'
+        };
+    }
+    
+    // コントロール初期化
+    initializeControls() {
+        // 再生/一時停止ボタン
+        const playPauseBtn = document.getElementById('flow-play-pause');
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener('click', () => {
+                this.togglePlayPause();
+            });
+        }
+        
+        // クリアボタン
+        const clearBtn = document.getElementById('flow-clear');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.clearFlow();
+            });
+        }
+        
+        // スピード選択
+        const speedSelect = document.getElementById('flow-speed-select');
+        if (speedSelect) {
+            speedSelect.addEventListener('change', (e) => {
+                this.animationSpeed = parseFloat(e.target.value);
+                console.log(`🚀 Flow speed changed to ${this.animationSpeed}x`);
+            });
+        }
+    }
+    
+    // メッセージアニメーション追加
+    addMessage(message) {
+        if (!this.isPlaying) return;
+        
+        const sourceNode = this.workerNodes[message.source];
+        const targetNode = this.workerNodes[message.target];
+        
+        if (!sourceNode || !targetNode) {
+            console.warn(`⚠️  Unknown worker: ${message.source} -> ${message.target}`);
+            return;
+        }
+        
+        // メッセージキューに追加
+        this.messageQueue.push({
+            ...message,
+            id: Date.now() + Math.random(),
+            sourceNode,
+            targetNode
+        });
+        
+        // キューが長すぎる場合は古いメッセージを削除
+        if (this.messageQueue.length > this.config.maxMessages) {
+            this.messageQueue.shift();
+        }
+        
+        // アニメーション実行
+        this.animateMessage(this.messageQueue[this.messageQueue.length - 1]);
+    }
+    
+    // メッセージアニメーション実行
+    animateMessage(messageData) {
+        const { sourceNode, targetNode, message_type, message } = messageData;
+        
+        // パスを計算
+        const path = this.calculatePath(sourceNode, targetNode);
+        
+        // アニメーション要素作成
+        const animationGroup = this.createMessageAnimation(path, message_type, message);
+        
+        // アニメーション開始
+        this.startMessageAnimation(animationGroup, messageData);
+        
+        // Worker活動状態更新
+        this.updateWorkerActivity(sourceNode, targetNode, message_type);
+    }
+    
+    // パス計算
+    calculatePath(sourceNode, targetNode) {
+        const dx = targetNode.x - sourceNode.x;
+        const dy = targetNode.y - sourceNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // ノードの境界から開始・終了
+        const startX = sourceNode.x + (dx / distance) * this.config.nodeRadius;
+        const startY = sourceNode.y + (dy / distance) * this.config.nodeRadius;
+        const endX = targetNode.x - (dx / distance) * this.config.nodeRadius;
+        const endY = targetNode.y - (dy / distance) * this.config.nodeRadius;
+        
+        // ベジェ曲線の制御点
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2;
+        const controlX = midX + (Math.random() - 0.5) * 100;
+        const controlY = midY - 50;
+        
+        return {
+            startX, startY, endX, endY,
+            controlX, controlY,
+            pathString: `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`
+        };
+    }
+    
+    // メッセージアニメーション要素作成
+    createMessageAnimation(path, messageType, messageText) {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'message-animation');
+        
+        // パス
+        const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathElement.setAttribute('d', path.pathString);
+        pathElement.setAttribute('stroke', this.colors[messageType] || this.colors.default);
+        pathElement.setAttribute('stroke-width', '2');
+        pathElement.setAttribute('fill', 'none');
+        pathElement.setAttribute('opacity', '0.6');
+        
+        // メッセージドット
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('r', '6');
+        dot.setAttribute('fill', this.colors[messageType] || this.colors.default);
+        dot.setAttribute('stroke', '#ffffff');
+        dot.setAttribute('stroke-width', '2');
+        
+        // メッセージテキスト（ツールチップ用）
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = `${messageType}: ${messageText.substring(0, 50)}...`;
+        
+        group.appendChild(pathElement);
+        group.appendChild(dot);
+        group.appendChild(title);
+        
+        this.svg.appendChild(group);
+        
+        return { group, pathElement, dot, path };
+    }
+    
+    // アニメーション開始
+    startMessageAnimation(animationElements, messageData) {
+        const { group, pathElement, dot, path } = animationElements;
+        const duration = this.config.animationDuration / this.animationSpeed;
+        
+        // パスアニメーション
+        const pathLength = pathElement.getTotalLength();
+        pathElement.setAttribute('stroke-dasharray', pathLength);
+        pathElement.setAttribute('stroke-dashoffset', pathLength);
+        
+        // CSS アニメーション
+        pathElement.style.animation = `drawPath ${duration}ms ease-out forwards`;
+        
+        // ドット移動アニメーション
+        let startTime = null;
+        
+        const animateDot = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const point = this.getPointAtProgress(path, progress);
+            
+            dot.setAttribute('cx', point.x);
+            dot.setAttribute('cy', point.y);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateDot);
+            } else {
+                // アニメーション完了
+                setTimeout(() => {
+                    if (group.parentNode) {
+                        group.parentNode.removeChild(group);
+                    }
+                }, 500); // 0.5秒後に削除
+            }
+        };
+        
+        requestAnimationFrame(animateDot);
+        
+        // アクティブアニメーション追跡
+        this.activeAnimations.push({
+            group,
+            startTime: Date.now(),
+            duration,
+            messageData
+        });
+    }
+    
+    // パス上の点を取得
+    getPointAtProgress(path, progress) {
+        // ベジェ曲線上の点を計算
+        const t = progress;
+        const x = Math.pow(1 - t, 2) * path.startX + 
+                 2 * (1 - t) * t * path.controlX + 
+                 Math.pow(t, 2) * path.endX;
+        const y = Math.pow(1 - t, 2) * path.startY + 
+                 2 * (1 - t) * t * path.controlY + 
+                 Math.pow(t, 2) * path.endY;
+        
+        return { x, y };
+    }
+    
+    // Worker活動状態更新
+    updateWorkerActivity(sourceNode, targetNode, messageType) {
+        // 送信側のアクティビティ表示
+        this.showWorkerActivity(sourceNode, 'sending');
+        
+        // 受信側のアクティビティ表示（少し遅延）
+        setTimeout(() => {
+            this.showWorkerActivity(targetNode, 'receiving');
+        }, 500);
+    }
+    
+    // Worker活動表示
+    showWorkerActivity(workerNode, activity) {
+        const ring = workerNode.activityRing;
+        const circle = workerNode.circle;
+        
+        // アクティビティリング表示
+        ring.setAttribute('opacity', '0.8');
+        
+        // 色設定
+        const color = activity === 'sending' ? '#f39c12' : '#27ae60';
+        ring.setAttribute('stroke', color);
+        circle.setAttribute('stroke', color);
+        
+        // パルスアニメーション
+        ring.style.animation = 'pulse 1s ease-out';
+        
+        // 1秒後にリセット
+        setTimeout(() => {
+            ring.setAttribute('opacity', '0');
+            circle.setAttribute('stroke', '#666666');
+            ring.style.animation = '';
+        }, 1000);
+    }
+    
+    // Worker状態更新
+    updateWorkerStatus(workerName, status) {
+        const worker = this.workerNodes[workerName];
+        if (!worker) return;
+        
+        worker.status = status;
+        const circle = worker.circle;
+        
+        // 状態に応じた色設定
+        const statusColors = {
+            'active': '#27ae60',
+            'working': '#f39c12',
+            'idle': '#666666',
+            'inactive': '#444444',
+            'error': '#e74c3c'
+        };
+        
+        circle.setAttribute('fill', statusColors[status] || statusColors.idle);
+    }
+    
+    // 再生/一時停止切り替え
+    togglePlayPause() {
+        this.isPlaying = !this.isPlaying;
+        const btn = document.getElementById('flow-play-pause');
+        
+        if (btn) {
+            btn.textContent = this.isPlaying ? '⏸️ Pause' : '▶️ Play';
+        }
+        
+        console.log(`📊 Flow visualization ${this.isPlaying ? 'resumed' : 'paused'}`);
+    }
+    
+    // フロークリア
+    clearFlow() {
+        // 全てのメッセージアニメーションを削除
+        const messageAnimations = this.svg.querySelectorAll('.message-animation');
+        messageAnimations.forEach(element => {
+            element.remove();
+        });
+        
+        this.messageQueue = [];
+        this.activeAnimations = [];
+        
+        console.log('🗑️  Flow visualization cleared');
+    }
+    
+    // 破棄
+    destroy() {
+        this.clearFlow();
+        this.workerNodes = {};
+    }
+}
+
+// CSS アニメーション定義
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes drawPath {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    
+    @keyframes pulse {
+        0% { 
+            transform: scale(1);
+            opacity: 0.8;
+        }
+        50% { 
+            transform: scale(1.1);
+            opacity: 1;
+        }
+        100% { 
+            transform: scale(1);
+            opacity: 0.8;
+        }
+    }
+    
+    .worker-node {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .worker-node:hover .worker-circle {
+        stroke-width: 3;
+        filter: brightness(1.2);
+    }
+    
+    .message-animation {
+        pointer-events: none;
+    }
+`;
+document.head.appendChild(style);
