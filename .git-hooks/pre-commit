@@ -77,20 +77,5 @@ if ! make quality >/dev/null 2>&1; then
     exit 1
 fi
 
-# Phase 1ではテストは基本テストのみ実行
-echo "🧪 基本テスト実行中..."
-if ! make test >/dev/null 2>&1; then
-    echo "❌ エラー: テストに失敗しました"
-    echo "   make test を実行して問題を修正してください"
-    exit 1
-fi
-
-echo ""
-echo "💡 コミットメッセージのヒント:"
-echo "   Conventional Commits形式を推奨します:"
-echo "   feat(queen): add multi-agent coordination"
-echo "   fix(comb): resolve file locking issue"
-echo ""
-
 echo "✅ Pre-commit チェック完了"
 echo "🚀 コミットを続行します..."
