@@ -24,3 +24,20 @@ updates:
     # 開発依存関係も含める
     allow:
       - dependency-type: "all"
+      
+  # npm依存関係の更新（TypeScript Dashboard）
+  - package-ecosystem: "npm"
+    directory: "/web/dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "dashboard"
+    # 開発依存関係も含める
+    allow:
+      - dependency-type: "all"
+    # セキュリティアップデートは即座に
+    open-pull-requests-limit: 10
