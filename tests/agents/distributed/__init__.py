@@ -1,3 +1,0 @@
-"""
-Distributed Agents Tests Package
-"""

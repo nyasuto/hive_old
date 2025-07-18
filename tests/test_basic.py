@@ -1,39 +1,41 @@
 """
 Basic tests for Hive system modules.
 
-Phase 1 用の基本的なテストスイート。
-各モジュールの基本的なインポートと初期化をテストします。
+現在のアーキテクチャ用の基本的なテストスイート。
+ツールとワーカーモジュールの基本的なインポートと初期化をテストします。
 """
 
 
 class TestBasicImports:
     """Test basic module imports."""
 
-    def test_hive_modules_import(self) -> None:
-        """Test that all Hive modules can be imported."""
-        # Test core modules
-        import comb  # noqa: F401
-        import queen  # noqa: F401
+    def test_current_modules_import(self) -> None:
+        """Test that current architecture modules can be imported."""
+        # Test current modules only
+        # Test that script files exist (without importing due to mypy issues)
+        import os
+
         import tools  # noqa: F401
         import workers  # noqa: F401
 
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        scripts_dir = os.path.join(project_root, "scripts")
+
+        assert os.path.exists(os.path.join(scripts_dir, "hive_cli.py"))
+        assert os.path.exists(os.path.join(scripts_dir, "hive_watch.py"))
+        assert os.path.exists(os.path.join(scripts_dir, "worker_communication.py"))
+
     def test_module_versions(self) -> None:
-        """Test that modules have version information."""
-        import comb
-        import queen
+        """Test that current modules have version information."""
         import tools
         import workers
 
-        # All modules should have version
-        assert hasattr(queen, "__version__")
+        # Current modules should have version
         assert hasattr(workers, "__version__")
-        assert hasattr(comb, "__version__")
         assert hasattr(tools, "__version__")
 
         # Version should be valid
-        assert queen.__version__ == "0.1.0"
         assert workers.__version__ == "0.1.0"
-        assert comb.__version__ == "0.1.0"
         assert tools.__version__ == "0.1.0"
 
 
@@ -41,24 +43,30 @@ class TestProjectStructure:
     """Test project directory structure."""
 
     def test_module_structure(self) -> None:
-        """Test that module structure is correct."""
-        import comb
-        import queen
+        """Test that current module structure is correct."""
         import tools
         import workers
 
-        # Modules should be properly initialized
-        assert queen.__doc__ is not None
+        # Current modules should be properly initialized
         assert workers.__doc__ is not None
-        assert comb.__doc__ is not None
         assert tools.__doc__ is not None
 
 
-# Phase 1 テストのためのダミーテスト
+# 現在のアーキテクチャテスト
 def test_basic_functionality() -> None:
-    """Test basic functionality placeholder."""
-    # Phase 1 では実装はまだないので、基本的な動作確認のみ
-    assert True
+    """Test basic functionality of current architecture."""
+    # 現在のスクリプトベースアーキテクチャの基本動作確認
+    import os
+
+    # 重要なスクリプトファイルが存在することを確認
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    scripts_dir = os.path.join(project_root, "scripts")
+
+    assert os.path.exists(os.path.join(scripts_dir, "hive_cli.py"))
+    assert os.path.exists(os.path.join(scripts_dir, "worker_communication.py"))
+    assert os.path.exists(os.path.join(scripts_dir, "hive_watch.py"))
+    assert os.path.exists(os.path.join(scripts_dir, "start-cozy-hive.sh"))
+    assert os.path.exists(os.path.join(scripts_dir, "stop-cozy-hive.sh"))
 
 
 def test_project_metadata() -> None:
