@@ -1,7 +1,9 @@
 <template>
   <div class="communications-panel">
     <div class="panel-header">
-      <h2 class="panel-title">💬 Communications</h2>
+      <h2 class="panel-title">
+        💬 Communications
+      </h2>
       
       <div class="panel-controls">
         <div class="message-count">
@@ -13,12 +15,24 @@
           class="filter-select"
           @change="applyFilter"
         >
-          <option value="all">All Types</option>
-          <option value="task_assignment">Task Assignment</option>
-          <option value="task_result">Task Result</option>
-          <option value="coordination">Coordination</option>
-          <option value="status_update">Status Update</option>
-          <option value="error">Error</option>
+          <option value="all">
+            All Types
+          </option>
+          <option value="task_assignment">
+            Task Assignment
+          </option>
+          <option value="task_result">
+            Task Result
+          </option>
+          <option value="coordination">
+            Coordination
+          </option>
+          <option value="status_update">
+            Status Update
+          </option>
+          <option value="error">
+            Error
+          </option>
         </select>
         
         <select 
@@ -26,7 +40,9 @@
           class="worker-select"
           @change="applyFilter"
         >
-          <option value="all">All Workers</option>
+          <option value="all">
+            All Workers
+          </option>
           <option 
             v-for="worker in availableWorkers" 
             :key="worker" 
@@ -38,8 +54,8 @@
         
         <button 
           class="control-btn"
-          @click="toggleAutoScroll"
           :class="{ active: autoScroll }"
+          @click="toggleAutoScroll"
         >
           📜 Auto
         </button>
@@ -65,9 +81,16 @@
       class="messages-container"
       @scroll="onScroll"
     >
-      <div v-if="filteredMessages.length === 0" class="empty-state">
-        <div class="empty-icon">📭</div>
-        <p class="empty-text">メッセージがありません</p>
+      <div
+        v-if="filteredMessages.length === 0"
+        class="empty-state"
+      >
+        <div class="empty-icon">
+          📭
+        </div>
+        <p class="empty-text">
+          メッセージがありません
+        </p>
         <p class="empty-subtext">
           {{ selectedFilter !== 'all' || selectedWorker !== 'all' 
             ? 'フィルターを変更してください' 
@@ -75,7 +98,10 @@
         </p>
       </div>
       
-      <div v-else class="messages-list">
+      <div
+        v-else
+        class="messages-list"
+      >
         <MessageItem
           v-for="message in paginatedMessages"
           :key="message.id"
@@ -92,7 +118,7 @@
           class="load-more-trigger"
         >
           <div class="loader">
-            <div class="spinner"></div>
+            <div class="spinner" />
             <span>読み込み中...</span>
           </div>
         </div>
@@ -104,22 +130,22 @@
       <div class="message-stats">
         <div class="stat-group">
           <div class="stat-item">
-            <span class="stat-dot task-assignment"></span>
+            <span class="stat-dot task-assignment" />
             <span class="stat-label">Task</span>
             <span class="stat-value">{{ getMessageCountByType('task_assignment') }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-dot task-result"></span>
+            <span class="stat-dot task-result" />
             <span class="stat-label">Result</span>
             <span class="stat-value">{{ getMessageCountByType('task_result') }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-dot coordination"></span>
+            <span class="stat-dot coordination" />
             <span class="stat-label">Coord</span>
             <span class="stat-value">{{ getMessageCountByType('coordination') }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-dot error"></span>
+            <span class="stat-dot error" />
             <span class="stat-label">Error</span>
             <span class="stat-value">{{ getMessageCountByType('error') }}</span>
           </div>

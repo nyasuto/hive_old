@@ -2,16 +2,26 @@
   <header class="dashboard-header">
     <div class="header-left">
       <div class="logo-section">
-        <h1 class="app-title">🐝 Hive Dashboard</h1>
-        <div class="version-badge">v2.0 TypeScript</div>
+        <h1 class="app-title">
+          🐝 Hive Dashboard
+        </h1>
+        <div class="version-badge">
+          v2.0 TypeScript
+        </div>
       </div>
       
-      <div class="connection-status" :class="connectionStatus.isConnected ? 'connected' : 'disconnected'">
-        <div class="status-indicator"></div>
+      <div
+        class="connection-status"
+        :class="connectionStatus.isConnected ? 'connected' : 'disconnected'"
+      >
+        <div class="status-indicator" />
         <span class="status-text">
           {{ connectionStatus.isConnected ? '接続中' : '切断中' }}
         </span>
-        <span v-if="connectionStatus.reconnectAttempts > 0" class="reconnect-info">
+        <span
+          v-if="connectionStatus.reconnectAttempts > 0"
+          class="reconnect-info"
+        >
           (再接続試行: {{ connectionStatus.reconnectAttempts }})
         </span>
       </div>
@@ -38,25 +48,25 @@
       <div class="header-controls">
         <button 
           class="control-btn"
-          @click="onRefresh"
           :disabled="!connectionStatus.isConnected"
           title="更新"
+          @click="onRefresh"
         >
           🔄 Refresh
         </button>
         
         <button 
           class="control-btn"
-          @click="toggleDebug"
           title="デバッグモード切替"
+          @click="toggleDebug"
         >
           🐛 Debug
         </button>
         
         <button 
           class="control-btn settings-btn"
-          @click="toggleSettings"
           title="設定"
+          @click="toggleSettings"
         >
           ⚙️ Settings
         </button>
@@ -68,10 +78,18 @@
     </div>
     
     <!-- 設定パネル -->
-    <div v-if="showSettings" class="settings-panel">
+    <div
+      v-if="showSettings"
+      class="settings-panel"
+    >
       <div class="settings-header">
         <h3>⚙️ Settings</h3>
-        <button @click="toggleSettings" class="close-btn">✕</button>
+        <button
+          class="close-btn"
+          @click="toggleSettings"
+        >
+          ✕
+        </button>
       </div>
       <div class="settings-content">
         <div class="setting-group">

@@ -5,28 +5,47 @@
     @click="onWorkerClick"
   >
     <div class="worker-header">
-      <div class="worker-avatar">{{ worker.emoji }}</div>
+      <div class="worker-avatar">
+        {{ worker.emoji }}
+      </div>
       <div class="worker-info">
-        <h3 class="worker-name">{{ worker.name }}</h3>
-        <span class="worker-status" :class="worker.status">
+        <h3 class="worker-name">
+          {{ worker.name }}
+        </h3>
+        <span
+          class="worker-status"
+          :class="worker.status"
+        >
           {{ statusText }}
         </span>
       </div>
-      <div class="worker-status-indicator" :class="worker.status"></div>
+      <div
+        class="worker-status-indicator"
+        :class="worker.status"
+      />
     </div>
     
     <div class="worker-details">
-      <div v-if="worker.last_activity" class="last-activity">
+      <div
+        v-if="worker.last_activity"
+        class="last-activity"
+      >
         <span class="label">最終活動:</span>
         <span class="time">{{ formatTime(worker.last_activity) }}</span>
       </div>
       
-      <div v-if="worker.current_task" class="current-task">
+      <div
+        v-if="worker.current_task"
+        class="current-task"
+      >
         <span class="label">現在のタスク:</span>
         <span class="task">{{ worker.current_task }}</span>
       </div>
       
-      <div v-if="worker.performance" class="performance-metrics">
+      <div
+        v-if="worker.performance"
+        class="performance-metrics"
+      >
         <div class="metric">
           <span class="metric-label">完了タスク:</span>
           <span class="metric-value">{{ worker.performance.tasks_completed }}</span>

@@ -8,19 +8,19 @@
       
       <div class="status-summary">
         <div class="status-item active">
-          <span class="status-dot"></span>
+          <span class="status-dot" />
           <span>{{ activeCount }}</span>
         </div>
         <div class="status-item working">
-          <span class="status-dot"></span>
+          <span class="status-dot" />
           <span>{{ workingCount }}</span>
         </div>
         <div class="status-item idle">
-          <span class="status-dot"></span>
+          <span class="status-dot" />
           <span>{{ idleCount }}</span>
         </div>
         <div class="status-item inactive">
-          <span class="status-dot"></span>
+          <span class="status-dot" />
           <span>{{ inactiveCount }}</span>
         </div>
       </div>
@@ -35,10 +35,19 @@
       />
     </div>
     
-    <div v-if="workers.length === 0" class="empty-state">
-      <div class="empty-icon">🏭</div>
-      <p class="empty-text">ワーカーが見つかりません</p>
-      <p class="empty-subtext">システムが起動中です...</p>
+    <div
+      v-if="workers.length === 0"
+      class="empty-state"
+    >
+      <div class="empty-icon">
+        🏭
+      </div>
+      <p class="empty-text">
+        ワーカーが見つかりません
+      </p>
+      <p class="empty-subtext">
+        システムが起動中です...
+      </p>
     </div>
   </div>
 </template>

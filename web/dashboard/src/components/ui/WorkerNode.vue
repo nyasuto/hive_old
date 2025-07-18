@@ -56,7 +56,10 @@
     </text>
     
     <!-- ワーカー名（ホバー時表示） -->
-    <g v-if="isHovered" class="worker-label">
+    <g
+      v-if="isHovered"
+      class="worker-label"
+    >
       <rect
         :x="position.x - labelWidth / 2"
         :y="position.y + nodeRadius + 8"
@@ -78,7 +81,10 @@
     </g>
     
     <!-- タスクアイコン（current_taskがある場合） -->
-    <g v-if="worker.current_task" class="task-indicator">
+    <g
+      v-if="worker.current_task"
+      class="task-indicator"
+    >
       <circle
         :cx="position.x - nodeRadius + 8"
         :cy="position.y - nodeRadius + 8"
@@ -100,7 +106,10 @@
     </g>
     
     <!-- パフォーマンス表示（highlighted時） -->
-    <g v-if="isHighlighted && worker.performance" class="performance-display">
+    <g
+      v-if="isHighlighted && worker.performance"
+      class="performance-display"
+    >
       <rect
         :x="position.x - 60"
         :y="position.y - nodeRadius - 60"

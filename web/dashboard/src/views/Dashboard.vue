@@ -46,19 +46,33 @@
     </div>
     
     <!-- エラー表示 -->
-    <div v-if="error" class="error-overlay">
+    <div
+      v-if="error"
+      class="error-overlay"
+    >
       <div class="error-dialog">
         <div class="error-header">
           <h3>⚠️ 接続エラー</h3>
-          <button @click="clearError" class="close-btn">✕</button>
+          <button
+            class="close-btn"
+            @click="clearError"
+          >
+            ✕
+          </button>
         </div>
         <div class="error-content">
           <p>{{ error }}</p>
           <div class="error-actions">
-            <button @click="manualReconnect" class="retry-btn">
+            <button
+              class="retry-btn"
+              @click="manualReconnect"
+            >
               🔄 再接続
             </button>
-            <button @click="clearError" class="dismiss-btn">
+            <button
+              class="dismiss-btn"
+              @click="clearError"
+            >
               閉じる
             </button>
           </div>
@@ -67,10 +81,18 @@
     </div>
     
     <!-- デバッグモード表示 -->
-    <div v-if="debugMode" class="debug-panel">
+    <div
+      v-if="debugMode"
+      class="debug-panel"
+    >
       <div class="debug-header">
         <h4>🐛 Debug Info</h4>
-        <button @click="toggleDebugMode" class="debug-close">✕</button>
+        <button
+          class="debug-close"
+          @click="toggleDebugMode"
+        >
+          ✕
+        </button>
       </div>
       <div class="debug-content">
         <div class="debug-item">
