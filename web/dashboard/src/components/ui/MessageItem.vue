@@ -89,8 +89,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'click', message: Message): void
-  (e: 'copy', message: Message): void
+  (_e: 'click', _message: Message): void
+  (_e: 'copy', _message: Message): void
 }
 
 const props = defineProps<Props>()

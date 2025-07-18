@@ -153,8 +153,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'click', worker: Worker): void
-  (e: 'hover', workerName: string): void
+  (_e: 'click', _worker: Worker): void
+  (_e: 'hover', _workerName: string): void
 }
 
 const props = defineProps<Props>()
