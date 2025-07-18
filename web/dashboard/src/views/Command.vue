@@ -178,6 +178,16 @@
                   <strong>エラー:</strong>
                   <pre>{{ command.error }}</pre>
                 </div>
+                
+                <div
+                  v-if="command.status === 'executing'"
+                  class="command-progress"
+                >
+                  <div class="progress-indicator">
+                    <div class="progress-spinner" />
+                    <span>実行中...</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -188,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DashboardHeader from '@/components/DashboardHeader.vue'
 import type { ConnectionStatus } from '@/types'
 
@@ -208,6 +218,26 @@ const availableWorkers = ref([
   { id: 'documenter', name: 'Documenter', emoji: '📝', description: 'ドキュメント作成' },
   { id: 'reviewer', name: 'Reviewer', emoji: '👀', description: 'コードレビューと検証' }
 ])
+
+// ワーカー情報をAPIから取得
+const loadAvailableWorkers = async () => {
+  try {
+    const response = await window.fetch('/api/workers')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.workers && data.workers.length > 0) {
+        availableWorkers.value = data.workers.map((worker: any) => ({
+          id: worker.name.toLowerCase(),
+          name: worker.name,
+          emoji: worker.emoji,
+          description: worker.status === 'active' ? 'アクティブ' : 'アイドル'
+        }))
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load workers from API, using defaults:', error)
+  }
+}
 
 // コマンドタイプ定義
 const commandTypes = ref([
@@ -269,24 +299,31 @@ const executeCommand = async () => {
   commandHistory.value.unshift(commandEntry)
   
   try {
-    // hive_cli経由でコマンド実行をシミュレート
+    // 接続状態確認
+    if (!connectionStatus.value.isConnected) {
+      throw new Error('サーバーに接続されていません。接続を確認してください。')
+    }
+    
+    // hive_cli経由でコマンド実行
     const response = await sendCommand(
       selectedWorker.value,
       commandText.value,
       selectedCommandType.value
     )
     
-    // 結果を更新
-    commandEntry.output = response.output
-    commandEntry.status = response.success ? 'completed' : 'failed'
-    if (!response.success) {
-      commandEntry.error = response.error
+    // WebSocketによるリアルタイム更新がない場合の直接更新
+    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+      commandEntry.output = response.output
+      commandEntry.status = response.success ? 'completed' : 'failed'
+      if (!response.success) {
+        commandEntry.error = response.error
+      }
     }
+    // WebSocketが接続されている場合は、WebSocketメッセージで更新される
     
   } catch (error) {
     commandEntry.error = error instanceof Error ? error.message : 'Unknown error'
     commandEntry.status = 'failed'
-  } finally {
     isExecuting.value = false
   }
   
@@ -342,23 +379,120 @@ const getStatusText = (status: string) => {
   return statusMap[status as keyof typeof statusMap] || status
 }
 
-// API通信（デモ用）
-const sendCommand = async (worker: string, message: string, _type: string) => {
-  // デモ用の遅延
-  await new Promise(resolve => setTimeout(resolve, 2000))
+// API通信（実API統合）
+const sendCommand = async (worker: string, message: string, type: string) => {
+  try {
+    const requestBody = {
+      worker: worker,
+      message: message,
+      command_type: type,
+      wait_for_response: true
+    }
+    
+    const response = await window.fetch('/api/command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    
+    return {
+      success: result.success,
+      output: result.response || result.error || 'No response received',
+      error: result.success ? undefined : result.error
+    }
+  } catch (error) {
+    console.error('Command execution failed:', error)
+    return {
+      success: false,
+      output: undefined,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }
+  }
+}
+
+// WebSocket接続管理
+let websocket: WebSocket | null = null
+
+const connectWebSocket = () => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.hostname
+  const port = (import.meta as any).env?.DEV ? '8000' : window.location.port
+  const wsUrl = `${protocol}//${host}:${port}/ws`
   
-  // hive_cli経由のAPI呼び出しをシミュレート
-  const simulatedResponse = {
-    success: Math.random() > 0.2, // 80%成功率
-    output: `${worker}からの応答: "${message}"のタスクを受理しました。`,
-    error: Math.random() > 0.8 ? 'ワーカーが一時的に利用できません' : undefined
+  websocket = new WebSocket(wsUrl)
+  
+  websocket.onopen = () => {
+    console.log('WebSocket connected for commands')
+    connectionStatus.value.isConnected = true
   }
   
-  return simulatedResponse
+  websocket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      
+      // リアルタイムコマンド結果の受信
+      if (data.type === 'command_executed') {
+        const commandResult = data.data
+        
+        // 実行中のコマンドを探して更新
+        const executingCommand = commandHistory.value.find(
+          cmd => cmd.status === 'executing' && cmd.worker === commandResult.worker
+        )
+        
+        if (executingCommand) {
+          executingCommand.output = commandResult.response
+          executingCommand.error = commandResult.error
+          executingCommand.status = commandResult.success ? 'completed' : 'failed'
+        }
+        
+        isExecuting.value = false
+      }
+    } catch (error) {
+      console.error('Failed to parse WebSocket message:', error)
+    }
+  }
+  
+  websocket.onclose = () => {
+    console.log('WebSocket disconnected')
+    connectionStatus.value.isConnected = false
+    
+    // 自動再接続（5秒後）
+    setTimeout(() => {
+      if (!websocket || websocket.readyState === WebSocket.CLOSED) {
+        connectWebSocket()
+      }
+    }, 5000)
+  }
+  
+  websocket.onerror = (error) => {
+    console.error('WebSocket error:', error)
+    connectionStatus.value.isConnected = false
+  }
+}
+
+const disconnectWebSocket = () => {
+  if (websocket) {
+    websocket.close()
+    websocket = null
+  }
 }
 
 onMounted(() => {
   console.log('Command page initialized')
+  loadAvailableWorkers()
+  connectWebSocket()
+})
+
+onUnmounted(() => {
+  disconnectWebSocket()
 })
 </script>
 
@@ -702,6 +836,36 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   color: #374151;
+}
+
+.command-progress {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #eff6ff;
+  border-radius: 4px;
+  border-left: 3px solid #3b82f6;
+}
+
+.progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1d4ed8;
+  font-size: 13px;
+}
+
+.progress-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e7ff;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes pulse {
