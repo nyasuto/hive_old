@@ -1,6 +1,9 @@
 <template>
   <div class="conversations-page">
-    <ConversationHeader />
+    <ConversationHeader 
+      @time-range-change="updateTimeRange"
+      @search="updateSearchQuery"
+    />
     
     <div class="conversations-layout">
       <ConversationSidebar 
@@ -58,7 +61,7 @@ const selectedWorkers = ref<string[]>([])
 const filters = ref<ConversationFilters>({
   workers: [],
   messageTypes: [],
-  timeRange: '24h',
+  timeRange: '1h',
   searchQuery: ''
 })
 
@@ -68,6 +71,18 @@ useWebSocket('ws://localhost:8002/ws')
 // Computed properties
 const filteredMessages = computed(() => {
   let filtered = [...messages.value]
+  
+  // Filter by time range
+  if (filters.value.timeRange !== 'all') {
+    const now = new Date()
+    const timeRangeMs = getTimeRangeInMs(filters.value.timeRange)
+    const cutoffTime = new Date(now.getTime() - timeRangeMs)
+    
+    filtered = filtered.filter(msg => {
+      const messageTime = new Date(msg.timestamp)
+      return messageTime >= cutoffTime
+    })
+  }
   
   // Filter by workers
   if (filters.value.workers.length > 0) {
@@ -100,9 +115,33 @@ const filteredMessages = computed(() => {
   )
 })
 
+// Helper function to convert time range to milliseconds
+const getTimeRangeInMs = (timeRange: string): number => {
+  switch (timeRange) {
+    case '1h':
+      return 60 * 60 * 1000 // 1 hour
+    case '6h':
+      return 6 * 60 * 60 * 1000 // 6 hours
+    case '24h':
+      return 24 * 60 * 60 * 1000 // 24 hours
+    case '7d':
+      return 7 * 24 * 60 * 60 * 1000 // 7 days
+    default:
+      return 0
+  }
+}
+
 // Methods
 const updateFilters = (newFilters: Partial<ConversationFilters>) => {
   filters.value = { ...filters.value, ...newFilters }
+}
+
+const updateTimeRange = (timeRange: string) => {
+  filters.value = { ...filters.value, timeRange }
+}
+
+const updateSearchQuery = (searchQuery: string) => {
+  filters.value = { ...filters.value, searchQuery }
 }
 
 const loadMoreMessages = async () => {
