@@ -3,11 +3,8 @@
     <div class="header-left">
       <div class="logo-section">
         <h1 class="app-title">
-          🐝 Hive Dashboard
+          🐝 Hive
         </h1>
-        <div class="version-badge">
-          v2.0 TypeScript
-        </div>
       </div>
       
       <nav class="nav-tabs">
@@ -282,16 +279,6 @@ onUnmounted(() => {
   font-size: 24px;
   font-weight: 700;
   color: #1e293b;
-}
-
-.version-badge {
-  background: #3b82f6;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
 }
 
 .connection-status {
