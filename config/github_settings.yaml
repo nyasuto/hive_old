@@ -1,0 +1,124 @@
+# GitHub Issue自動作成設定
+# Hive検討結果のGitHub Issue作成機能
+
+# GitHub設定
+github:
+  # リポジトリ設定（自動検出または手動設定）
+  repository:
+    auto_detect: true  # git remoteから自動検出
+    owner: ""          # 手動設定時のリポジトリオーナー
+    name: ""           # 手動設定時のリポジトリ名
+  
+  # Issue設定
+  issue:
+    # 基本設定
+    title_prefix: "[Hive検討結果]"
+    
+    # ラベル設定
+    labels:
+      default:
+        - "hive-result"
+        - "type:proposal"
+      
+      # 優先度ラベル
+      priority:
+        critical: "priority:critical"
+        high: "priority:high"
+        medium: "priority:medium"
+        low: "priority:low"
+      
+      # タイプラベル
+      type:
+        feature: "type:feature"
+        bug: "type:bug"
+        enhancement: "type:enhancement"
+        refactor: "type:refactor"
+        docs: "type:docs"
+        test: "type:test"
+    
+    # アサイン設定
+    assignees:
+      auto_assign: false  # 自動アサイン
+      default_assignee: ""  # デフォルトアサイン先
+    
+    # マイルストーン設定
+    milestone:
+      auto_detect: false  # 自動マイルストーン設定
+      default: ""  # デフォルトマイルストーン
+
+# Hive設定
+hive:
+  # セッション情報
+  session:
+    include_id: true  # セッションIDを含める
+    include_timestamp: true  # タイムスタンプを含める
+    include_workers: true  # 参加ワーカー情報を含める
+  
+  # 結果処理
+  results:
+    # 結果の構造化
+    structure:
+      summary: true  # 概要セクション
+      details: true  # 詳細セクション
+      actions: true  # 推奨アクション
+      workers: true  # ワーカー別結果
+    
+    # 結果の品質チェック
+    quality:
+      min_length: 100  # 最小文字数
+      require_actions: true  # 推奨アクション必須
+      require_summary: true  # 概要必須
+    
+    # 結果の分類
+    classification:
+      auto_priority: true  # 自動優先度判定
+      auto_type: true  # 自動タイプ判定
+      keywords:
+        critical: ["緊急", "クリティカル", "障害", "セキュリティ"]
+        high: ["重要", "バグ", "機能追加", "改善"]
+        medium: ["検討", "提案", "リファクタリング"]
+        low: ["ドキュメント", "メンテナンス", "将来"]
+
+# テンプレート設定
+template:
+  # 使用テンプレート
+  file: "templates/github/issue_template.md"
+  
+  # 変数置換設定
+  variables:
+    session_id: "{{session_id}}"
+    timestamp: "{{timestamp}}"
+    workers: "{{workers}}"
+    summary: "{{summary}}"
+    details: "{{details}}"
+    actions: "{{actions}}"
+    priority: "{{priority}}"
+    type: "{{type}}"
+    
+  # 出力設定
+  output:
+    format: "markdown"
+    encoding: "utf-8"
+    line_ending: "unix"
+
+# 実行設定
+execution:
+  # 実行モード
+  mode: "interactive"  # interactive, batch, auto
+  
+  # 確認設定
+  confirmation:
+    preview: true  # プレビュー表示
+    confirm_create: true  # 作成前確認
+    
+  # エラー処理
+  error_handling:
+    retry_count: 3  # リトライ回数
+    timeout: 30  # タイムアウト（秒）
+    
+  # ログ設定
+  logging:
+    level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+    file: "logs/github_issue_creation.log"
+    include_request: true  # リクエスト内容をログに含める
+    include_response: true  # レスポンス内容をログに含める

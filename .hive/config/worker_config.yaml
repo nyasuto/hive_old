@@ -1,0 +1,30 @@
+communication:
+  heartbeat_interval_seconds: 30
+  message_queue_size: 100
+  sync_interval_seconds: 10
+workers:
+  analyzer:
+    max_concurrent_tasks: 2
+    retry_count: 2
+    role: analyzer
+    timeout_seconds: 180
+  developer:
+    max_concurrent_tasks: 3
+    retry_count: 2
+    role: developer
+    timeout_seconds: 600
+  queen:
+    max_concurrent_tasks: 5
+    retry_count: 3
+    role: coordinator
+    timeout_seconds: 300
+  reviewer:
+    max_concurrent_tasks: 2
+    retry_count: 2
+    role: reviewer
+    timeout_seconds: 240
+  tester:
+    max_concurrent_tasks: 2
+    retry_count: 2
+    role: tester
+    timeout_seconds: 300

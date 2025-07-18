@@ -1,0 +1,13 @@
+files:
+  auto_save_enabled: true
+  auto_save_interval_seconds: 60
+  backup_count: 3
+session:
+  auto_cleanup_days: 30
+  auto_cleanup_enabled: true
+  max_active_sessions: 10
+  session_backup_enabled: true
+templates:
+  analysis_template: analysis_template.md
+  design_template: design_template.md
+  review_template: review_template.md
