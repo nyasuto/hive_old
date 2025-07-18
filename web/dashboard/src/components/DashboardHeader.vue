@@ -152,8 +152,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'refresh'): void
-  (e: 'toggle-debug'): void
+  (_e: 'refresh'): void
+  (_e: 'toggle-debug'): void
 }
 
 defineProps<Props>()
