@@ -73,16 +73,7 @@ type-check: ## Run type checking
 	@echo "Running type checker..."
 	uv run mypy .
 
-quality: ## Run all quality checks with auto-fix and build validation
-	@echo "Running quality checks with auto-fix..."
-	@echo "Auto-fixing linting issues..."
-	@uv run ruff check . --fix || true
-	@echo "Auto-fixing formatting issues..."
-	@uv run ruff format .
-	@echo "Running final validation..."
-	@uv run ruff check .
-	@uv run ruff format . --check
-	@echo "Skipping type check (mypy disabled for this project)"
+quality: lint format type-check  ## Run all quality checks with auto-fix and build validation	
 	@echo "Running dashboard quality checks..."
 	@$(MAKE) dashboard-quality
 	@echo "All quality checks completed!"
