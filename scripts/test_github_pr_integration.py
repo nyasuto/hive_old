@@ -16,7 +16,7 @@ from github_issue_pr_integration import HiveGitHubIntegration
 from queen_github_integration import QueenGitHubIntegration
 
 
-def test_template_loading():
+def test_template_loading() -> None:
     """テンプレート読み込みテスト"""
     print("=== テンプレート読み込みテスト ===")
 
@@ -38,7 +38,7 @@ def test_template_loading():
         return False
 
 
-def test_data_formatting():
+def test_data_formatting() -> None:
     """データフォーマット機能テスト"""
     print("\n=== データフォーマット機能テスト ===")
 
@@ -73,7 +73,7 @@ def test_data_formatting():
         return False
 
 
-def test_session_management():
+def test_session_management() -> None:
     """セッション管理機能テスト"""
     print("\n=== セッション管理機能テスト ===")
 
@@ -98,7 +98,7 @@ def test_session_management():
         return False
 
 
-def test_report_generation():
+def test_report_generation() -> None:
     """レポート生成機能テスト"""
     print("\n=== レポート生成機能テスト ===")
 
@@ -121,7 +121,7 @@ def test_report_generation():
         return False
 
 
-def test_integration_workflow():
+def test_integration_workflow() -> None:
     """統合ワークフロー機能テスト（プレビューモード）"""
     print("\n=== 統合ワークフロー機能テスト ===")
 
@@ -149,7 +149,7 @@ def test_integration_workflow():
         return False
 
 
-def test_helper_functions():
+def test_helper_functions() -> None:
     """ヘルパー関数テスト"""
     print("\n=== ヘルパー関数テスト ===")
 
@@ -174,7 +174,7 @@ def test_helper_functions():
         return False
 
 
-def run_all_tests():
+def run_all_tests() -> None:
     """全テスト実行"""
     print("🐝 GitHub Issue-PR統合機能テスト開始")
     print("=" * 50)
