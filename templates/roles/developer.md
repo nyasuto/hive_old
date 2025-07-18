@@ -36,6 +36,13 @@ python3 scripts/hive_cli.py send [target_worker] "[message]"
 python3 scripts/hive_cli.py send queen "WORKER_RESULT:developer:[task_id]:[あなたの実装結果の詳細]"
 ```
 
+### 実装完了時のPull Request作成
+実装が完了した場合、以下のヘルパー関数を使用してPull Request作成を提案してください：
+```bash
+# 実装をPull Requestとして作成する例
+python3 scripts/create_github_pr.py --title "[IMPLEMENTATION] [機能名]" --body "[実装内容の詳細]" --session-id "[session_id]"
+```
+
 ### Worker間の協力要請
 他のWorkerに協力を要請する場合：
 ```bash

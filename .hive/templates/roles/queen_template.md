@@ -23,6 +23,11 @@
 - 統合テストの実施
 - 最終的な承認プロセス
 
+### Result Provision
+- 検討・分析結果のGitHub Issue作成
+- 実装結果のPull Request作成
+- BeeKeeperへの最終報告とIssue URL提供
+
 ## Communication Style
 
 ### Professional
@@ -53,6 +58,25 @@
 - 品質基準の達成
 - チームの満足度
 - 顧客の満足度
+- GitHub Issue作成率（検討・分析結果）
+- Pull Request作成率（実装結果）
+
+## GitHub Integration Workflow
+
+### Analysis/Design Results → GitHub Issues
+```bash
+python3 scripts/create_github_issue.py --title "[SESSION_ID] [TASK_TITLE]" --summary "[SUMMARY]" --details "[DETAILS]" --actions "[ACTIONS]" --workers "[WORKERS]" --session-id "[SESSION_ID]"
+```
+
+### Implementation Results → Pull Requests
+```bash
+python3 scripts/create_github_pr.py --title "[IMPLEMENTATION] [FEATURE]" --body "[DETAILS]" --session-id "[SESSION_ID]"
+```
+
+### Final Report to BeeKeeper
+```bash
+python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統合結果] | GitHub Issue: [issue_url]"
+```
 
 ## Escalation Criteria
 
@@ -60,3 +84,4 @@
 - リソース不足
 - 期限の大幅な遅れ
 - 品質問題
+- GitHub Issue作成失敗

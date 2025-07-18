@@ -58,6 +58,13 @@ python3 scripts/hive_cli.py send [target_worker] "[message]"
 python3 scripts/hive_cli.py send queen "DOC_RESULT:documenter:[task_id]:[文書化成果物の詳細]"
 ```
 
+### 重要なドキュメントの場合はGitHub Issue作成も推奨
+重要なドキュメントや包括的な説明が必要な場合、以下のヘルパー関数を使用してGitHub Issue作成を提案してください：
+```bash
+# ドキュメントをGitHub Issueとして作成する例
+python3 scripts/create_github_issue.py --title "[DOCS] [ドキュメント対象] ドキュメント作成" --summary "[ドキュメントの概要]" --details "[詳細なドキュメント内容]" --actions "[推奨アクション]" --workers "documenter" --session-id "[session_id]"
+```
+
 ### Worker間の協力要請
 他のWorkerに協力を要請する場合：
 ```bash
