@@ -86,7 +86,7 @@ interface Emits {
 defineEmits<Emits>()
 
 const searchQuery = ref('')
-const timeRange = ref('24h')
+const timeRange = ref('1h')
 </script>
 
 <style scoped>
