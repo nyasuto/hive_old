@@ -1,0 +1,17 @@
+{
+  "name": "Hive Dashboard - Multi-Agent System",
+  "short_name": "Hive Dashboard",
+  "description": "Real-time dashboard for Hive multi-agent system monitoring",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}
