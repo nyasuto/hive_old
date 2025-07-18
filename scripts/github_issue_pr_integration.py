@@ -367,7 +367,7 @@ class HiveGitHubIntegration:
         }
 
 
-def main():
+def main() -> None:
     """テスト用メイン関数"""
     integration = HiveGitHubIntegration()
 

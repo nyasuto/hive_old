@@ -115,8 +115,6 @@ exclude = [
 [[tool.mypy.overrides]]
 module = [
     "libtmux.*",
-    "coloredlogs.*",
-    "watchdog.*",
     "pytest.*",
     "enhanced_feature_development",
 ]
@@ -141,11 +139,6 @@ module = [
     "*.experimental.*",
     "*.draft.*",
     "scripts.*",
-    "scripts.create_github_*",
-    "scripts.github_*",
-    "scripts.test_*",
-    "scripts.queen_*",
-    "scripts.init_*",
     "hive.hive_directory.*",
 ]
 ignore_errors = true

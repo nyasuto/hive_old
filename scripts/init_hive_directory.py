@@ -31,7 +31,7 @@ def setup_logging(verbose: bool = False):
     )
 
 
-def main():
+def main() -> None:
     """
     メイン関数
     """

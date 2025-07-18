@@ -424,7 +424,7 @@ def queen_list_active_sessions() -> list[dict[str, Any]]:
     return integration.list_active_sessions()
 
 
-def main():
+def main() -> None:
     """テスト用メイン関数"""
     integration = QueenGitHubIntegration()
 

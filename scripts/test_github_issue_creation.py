@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from github_issue_helper import HiveGitHubHelper
 
 
-def test_basic_functionality():
+def test_basic_functionality() -> None:
     """基本機能のテスト"""
     print("=== 基本機能テスト ===")
 
@@ -36,7 +36,7 @@ def test_basic_functionality():
     print("\n✅ プレビュー機能テスト完了")
 
 
-def test_worker_results_formatting():
+def test_worker_results_formatting() -> None:
     """ワーカー別結果フォーマットのテスト"""
     print("\n=== ワーカー別結果フォーマットテスト ===")
 
@@ -55,7 +55,7 @@ def test_worker_results_formatting():
     print("\n✅ ワーカー別結果フォーマットテスト完了")
 
 
-def test_log_file_processing():
+def test_log_file_processing() -> None:
     """ログファイル処理のテスト"""
     print("\n=== ログファイル処理テスト ===")
 
@@ -105,7 +105,7 @@ def test_log_file_processing():
     print("\n✅ ログファイル処理テスト完了")
 
 
-def test_batch_processing():
+def test_batch_processing() -> None:
     """バッチ処理のテスト"""
     print("\n=== バッチ処理テスト ===")
 
@@ -144,7 +144,7 @@ def test_batch_processing():
     print("\n✅ バッチ処理テスト完了")
 
 
-def test_configuration_loading():
+def test_configuration_loading() -> None:
     """設定ファイル読み込みのテスト"""
     print("\n=== 設定ファイル読み込みテスト ===")
 
@@ -171,7 +171,7 @@ def test_configuration_loading():
     return True
 
 
-def main():
+def main() -> None:
     """メイン関数"""
     print("🐝 Hive GitHub Issue作成機能テストスイート")
     print("=" * 60)

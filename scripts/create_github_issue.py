@@ -351,7 +351,7 @@ class HiveGitHubIssueCreator:
             return None
 
 
-def main():
+def main() -> None:
     """メイン関数"""
     parser = argparse.ArgumentParser(description="Hive検討結果のGitHub Issue自動作成")
     parser.add_argument("--config", "-c", help="設定ファイルパス")

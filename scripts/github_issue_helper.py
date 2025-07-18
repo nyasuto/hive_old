@@ -310,7 +310,7 @@ def create_issue_from_queen_worker(
     )
 
 
-def main():
+def main() -> None:
     """テスト用メイン関数"""
     helper = HiveGitHubHelper()
 

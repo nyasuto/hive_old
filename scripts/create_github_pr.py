@@ -454,7 +454,7 @@ class HiveGitHubPRCreator:
             return None
 
 
-def main():
+def main() -> None:
     """メイン関数"""
     parser = argparse.ArgumentParser(
         description="Hive実装結果のGitHub Pull Request自動作成"
