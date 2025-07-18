@@ -10,6 +10,7 @@ import asyncio
 import json
 import sys
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -264,11 +265,33 @@ class HiveDashboardCollector:
         }
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> Any:
+    """アプリケーションライフサイクル管理"""
+    # 起動時処理
+    print("🐝 Hive Dashboard API starting...")
+    print("📊 WebSocket broadcast task starting...")
+
+    # バックグラウンドでデータ配信開始
+    broadcast_task = asyncio.create_task(broadcast_dashboard_data())
+
+    yield
+
+    # 終了時処理
+    print("👋 Hive Dashboard API shutting down...")
+    broadcast_task.cancel()
+    try:
+        await broadcast_task
+    except asyncio.CancelledError:
+        pass
+
+
 # FastAPIアプリケーション初期化
 app = FastAPI(
     title="🐝 Hive Dashboard API",
     description="Real-time monitoring dashboard for Hive distributed system",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS設定
@@ -379,28 +402,12 @@ async def broadcast_dashboard_data() -> None:
         await asyncio.sleep(1)  # 1秒間隔
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    """アプリケーション起動時処理"""
-    print("🐝 Hive Dashboard API starting...")
-    print("📊 WebSocket broadcast task starting...")
-
-    # バックグラウンドでデータ配信開始
-    asyncio.create_task(broadcast_dashboard_data())
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """アプリケーション終了時処理"""
-    print("👋 Hive Dashboard API shutting down...")
-
-
 if __name__ == "__main__":
     print("🚀 Starting Hive Dashboard Server...")
-    print("📊 Dashboard: http://localhost:8000")
-    print("🔌 WebSocket: ws://localhost:8000/ws")
-    print("📡 API Docs: http://localhost:8000/docs")
+    print("📊 Dashboard: http://localhost:8002")
+    print("🔌 WebSocket: ws://localhost:8002/ws")
+    print("📡 API Docs: http://localhost:8002/docs")
 
     uvicorn.run(
-        "dashboard_api:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
+        "dashboard_api:app", host="0.0.0.0", port=8002, reload=True, log_level="info"
     )
