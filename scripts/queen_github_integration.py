@@ -11,13 +11,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from github_issue_pr_integration import HiveGitHubIntegration
+from .github_issue_pr_integration import HiveGitHubIntegration
 
 
 class QueenGitHubIntegration:
     """Queen Worker専用 GitHub統合ヘルパー"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初期化"""
         self.integration = HiveGitHubIntegration()
         self.logger = logging.getLogger(__name__)

@@ -12,9 +12,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from create_github_issue import HiveGitHubIssueCreator
-from create_github_pr import HiveGitHubPRCreator
-from github_issue_helper import HiveGitHubHelper
+from .create_github_issue import HiveGitHubIssueCreator
+from .create_github_pr import HiveGitHubPRCreator
+from .github_issue_helper import HiveGitHubHelper
 
 
 class HiveGitHubIntegration:
@@ -39,7 +39,7 @@ class HiveGitHubIntegration:
         self.logger = logging.getLogger(__name__)
 
         # セッション管理
-        self.session_data = {}
+        self.session_data: dict[str, Any] = {}
 
     def create_issue_implementation_workflow(
         self,
@@ -285,7 +285,7 @@ class HiveGitHubIntegration:
             self.logger.error(f"PR作成エラー: {e}")
             return None
 
-    def _save_session_data(self, session_id: str, data: dict[str, Any]):
+    def _save_session_data(self, session_id: str, data: dict[str, Any]) -> None:
         """セッションデータを保存"""
         try:
             session_dir = self.project_root / ".hive" / "sessions"
@@ -312,7 +312,8 @@ class HiveGitHubIntegration:
                 return None
 
             with open(session_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return dict(data) if isinstance(data, dict) else None
 
         except Exception as e:
             self.logger.error(f"セッションデータ読み込みエラー: {e}")
@@ -374,7 +375,7 @@ def main() -> None:
     # テスト用のプレビュー表示
     print("🐝 Hive GitHub統合機能テスト")
     print("実際のGitHub操作は行いません")
-    print(f"設定読み込み: {integration.config is not None}")
+    print(f"設定読み込み: {integration.issue_creator.config is not None}")
     print("Issue作成機能: 利用可能")
     print("PR統合機能: 利用可能")
 

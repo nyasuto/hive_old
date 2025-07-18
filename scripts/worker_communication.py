@@ -37,9 +37,9 @@ from typing import Any
 from uuid import uuid4
 
 try:
-    import yaml  # type: ignore
+    import yaml
 except ImportError:
-    yaml = None
+    yaml = None  # type: ignore
 
 
 class WorkerCommunicationError(Exception):

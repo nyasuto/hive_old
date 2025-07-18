@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from hive.hive_directory import HiveDirectoryManager
 
 
-def setup_logging(verbose: bool = False):
+def setup_logging(verbose: bool = False) -> None:
     """
     ログ設定を初期化
 
@@ -141,7 +141,7 @@ def main() -> None:
 
 def _print_directory_tree(
     path: Path, prefix: str = "", max_depth: int = 3, current_depth: int = 0
-):
+) -> None:
     """
     ディレクトリ構造を表示
 

@@ -313,7 +313,7 @@ class HiveGitHubPRCreator:
         if title_prefix:
             return f"{title_prefix}: {title}"
         else:
-            return title
+            return title if isinstance(title, str) else str(title)
 
     def _get_related_issues_links(self, issue_numbers: list[int]) -> str:
         """関連Issue番号からリンク文字列生成"""

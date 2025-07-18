@@ -13,7 +13,7 @@ from pathlib import Path
 # テスト用のプロジェクトルートを設定
 sys.path.insert(0, str(Path(__file__).parent))
 
-from github_issue_helper import HiveGitHubHelper
+from .github_issue_helper import HiveGitHubHelper
 
 
 def test_basic_functionality() -> None:
@@ -144,7 +144,7 @@ def test_batch_processing() -> None:
     print("\n✅ バッチ処理テスト完了")
 
 
-def test_configuration_loading() -> None:
+def test_configuration_loading() -> bool:
     """設定ファイル読み込みのテスト"""
     print("\n=== 設定ファイル読み込みテスト ===")
 
