@@ -343,7 +343,6 @@ class TestFastAPIEndpoints:
                 target="developer",
                 message_type="task",
                 message="Test message",
-                session_id="session_123",
             )
         ]
 
@@ -361,7 +360,6 @@ class TestFastAPIEndpoints:
                 assert "target" in message
                 assert "message_type" in message
                 assert "message" in message
-                assert "session_id" in message
 
 
 if __name__ == "__main__":
