@@ -138,10 +138,23 @@ module = [
     "*.poc.*",
     "*.experimental.*",
     "*.draft.*",
-    "scripts.*",
+    "scripts.hive_cli",
+    "scripts.hive_watch",
+    "scripts.hive_directory",
     "hive.hive_directory.*",
 ]
 ignore_errors = true
+
+# Phase 1: Type-safe scripts are now enabled
+# Following scripts are ready for type checking:
+# - scripts.create_github_issue
+# - scripts.create_github_pr
+# - scripts.github_issue_helper
+# - scripts.github_issue_pr_integration
+# - scripts.queen_github_integration
+# - scripts.init_hive_directory
+# - scripts.test_github_issue_creation
+# - scripts.test_github_pr_integration
 
 [tool.pytest.ini_options]
 minversion = "7.0"
