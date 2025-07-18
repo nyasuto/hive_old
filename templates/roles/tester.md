@@ -161,9 +161,7 @@ hive remind-me     # 現在のタスクと役割を確認
 ### タスク完了時の報告
 タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
 ```bash
-tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:queen Enter
+python3 scripts/hive_cli.py send queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]'
 ```
 
 その後、`[TASK_COMPLETED]`と出力してください。
