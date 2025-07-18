@@ -193,12 +193,16 @@ class HiveDashboardCollector:
                     try:
                         log_entry = json.loads(line.strip())
 
+                        # Handle both message_type and event_type fields
+                        msg_type = log_entry.get("message_type") or log_entry.get(
+                            "event_type", "unknown"
+                        )
+
                         message = CommunicationMessage(
                             timestamp=log_entry["timestamp"],
                             source=log_entry["source"],
                             target=log_entry["target"],
-                            message_type=log_entry.get("message_type")
-                            or log_entry.get("event_type", "unknown"),
+                            message_type=msg_type,
                             message=log_entry["message"][:100] + "..."
                             if len(log_entry["message"]) > 100
                             else log_entry["message"],
