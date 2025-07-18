@@ -9,6 +9,7 @@
       <ConversationSidebar 
         :workers="workers"
         :selected-workers="selectedWorkers"
+        :messages="messages"
         @update-filters="updateFilters"
       />
       

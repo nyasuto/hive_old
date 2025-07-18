@@ -133,6 +133,17 @@ interface QuickFilter {
 interface Props {
   workers: Worker[]
   selectedWorkers: string[]
+  messages: Message[]
+}
+
+interface Message {
+  id: string
+  timestamp: string
+  source: string
+  target: string
+  messageType: string
+  message: string
+  sessionId?: string
 }
 
 interface Emits {
@@ -149,24 +160,14 @@ const emit = defineEmits<Emits>()
 const selectedWorkers = ref<string[]>([...props.selectedWorkers])
 const selectedMessageTypes = ref<string[]>([])
 
-// Message types configuration
+// Message types configuration - matches actual data from API
 const messageTypes = ref<MessageType[]>([
   { value: 'direct', label: 'Direct Message', icon: '💬', count: 45 },
-  { value: 'response', label: 'Response', icon: '↩️', count: 32 },
-  { value: 'task', label: 'Task Assignment', icon: '📋', count: 18 },
-  { value: 'status', label: 'Status Update', icon: '📊', count: 12 },
-  { value: 'error', label: 'Error', icon: '⚠️', count: 3 },
-  { value: 'coordination', label: 'Coordination', icon: '🤝', count: 8 }
+  { value: 'response', label: 'Response', icon: '↩️', count: 32 }
 ])
 
-// Quick filters
+// Quick filters - updated to match actual data
 const quickFilters = ref<QuickFilter[]>([
-  {
-    name: 'errors',
-    label: 'Errors Only',
-    icon: '⚠️',
-    messageTypes: ['error']
-  },
   {
     name: 'queen-conversations',
     label: 'Queen Conversations',
@@ -174,16 +175,22 @@ const quickFilters = ref<QuickFilter[]>([
     workers: ['queen']
   },
   {
-    name: 'recent-activity',
-    label: 'Recent Activity',
-    icon: '🕐',
-    messageTypes: ['direct', 'response']
+    name: 'direct-messages',
+    label: 'Direct Messages',
+    icon: '💬',
+    messageTypes: ['direct']
   },
   {
-    name: 'task-related',
-    label: 'Task Related',
-    icon: '📋',
-    messageTypes: ['task', 'status']
+    name: 'responses',
+    label: 'Responses',
+    icon: '↩️',
+    messageTypes: ['response']
+  },
+  {
+    name: 'all-communications',
+    label: 'All Communications',
+    icon: '📡',
+    messageTypes: ['direct', 'response']
   }
 ])
 
@@ -247,10 +254,27 @@ const applyQuickFilter = (filter: QuickFilter) => {
   updateFilters()
 }
 
+// Update message counts when messages change
+const updateMessageCounts = () => {
+  const counts: Record<string, number> = {}
+  
+  props.messages.forEach(message => {
+    counts[message.messageType] = (counts[message.messageType] || 0) + 1
+  })
+  
+  messageTypes.value.forEach(type => {
+    type.count = counts[type.value] || 0
+  })
+}
+
 // Watch for prop changes
 watch(() => props.selectedWorkers, (newVal) => {
   selectedWorkers.value = [...newVal]
 }, { deep: true })
+
+watch(() => props.messages, () => {
+  updateMessageCounts()
+}, { deep: true, immediate: true })
 </script>
 
 <style scoped>

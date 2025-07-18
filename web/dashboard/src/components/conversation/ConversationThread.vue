@@ -266,10 +266,10 @@ const getMessageTypeIcon = (type: string): string => {
   const icons: Record<string, string> = {
     direct: '💬',
     response: '↩️',
-    task: '📋',
-    status: '📊',
     error: '⚠️',
-    coordination: '🤝'
+    task_start: '🚀',
+    task_complete: '✅',
+    test: '🧪'
   }
   return icons[type] || '💬'
 }
@@ -278,10 +278,10 @@ const formatMessageType = (type: string): string => {
   const labels: Record<string, string> = {
     direct: 'Direct',
     response: 'Response',
-    task: 'Task',
-    status: 'Status',
     error: 'Error',
-    coordination: 'Coordination'
+    task_start: 'Task Start',
+    task_complete: 'Task Complete',
+    test: 'Test'
   }
   return labels[type] || type
 }
@@ -534,7 +534,17 @@ watch(() => props.messages.length, async () => {
   color: #991b1b;
 }
 
-.type-task {
+.type-task_start {
+  background: #ddd6fe;
+  color: #5b21b6;
+}
+
+.type-task_complete {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.type-test {
   background: #fef3c7;
   color: #92400e;
 }
