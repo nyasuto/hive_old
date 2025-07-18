@@ -10,6 +10,21 @@
         </div>
       </div>
       
+      <nav class="nav-tabs">
+        <router-link
+          to="/"
+          class="nav-tab"
+        >
+          📊 Dashboard
+        </router-link>
+        <router-link
+          to="/conversations"
+          class="nav-tab"
+        >
+          💬 Conversations
+        </router-link>
+      </nav>
+      
       <div
         class="connection-status"
         :class="connectionStatus.isConnected ? 'connected' : 'disconnected'"
@@ -510,6 +525,47 @@ onUnmounted(() => {
     right: auto;
     width: 90%;
     max-width: 400px;
+  }
+}
+
+/* Navigation tabs */
+.nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nav-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.nav-tab:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.nav-tab.router-link-active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .header-left {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .nav-tabs {
+    justify-content: center;
   }
 }
 </style>
