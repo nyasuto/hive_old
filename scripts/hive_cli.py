@@ -124,32 +124,34 @@ class HiveCLI:
         """
         直接メッセージ送信の内部実装
 
-        beekeeperとworkerで異なる送信方式を使用：
-        - beekeeper: echo方式（コンソール表示）
-        - worker: Claude Code方式（対話型）
+        worker_config.yamlのdelivery_method設定に基づいて送信方式を選択：
+        - echo: echo方式（コンソール表示）
+        - claude_interactive: Claude Code方式（対話型）
         """
         if not self.communicator.check_worker_pane(worker):
             raise WorkerCommunicationError(f"Worker pane '{worker}' not found")
 
-        pane_name = self.communicator.config["workers"][worker]["tmux_pane"]
+        worker_config = self.communicator.config["workers"][worker]
+        pane_name = worker_config["tmux_pane"]
+        delivery_method = worker_config.get("delivery_method", "claude_interactive")
         start_time = time.time()
 
-        if worker == "beekeeper":
-            # beekeeperは単純なecho方式
-            return await self._send_to_beekeeper(
-                pane_name, message, task_id, start_time
+        if delivery_method == "echo":
+            # echo方式（コンソール表示）
+            return await self._send_to_console(
+                pane_name, worker, message, task_id, start_time
             )
         else:
-            # 他のworkerはClaude Code方式
+            # Claude Code方式（対話型通信）
             return await self._send_to_claude_worker(
                 pane_name, worker, message, task_id, start_time
             )
 
-    async def _send_to_beekeeper(
-        self, pane_name: str, message: str, task_id: str, start_time: float
+    async def _send_to_console(
+        self, pane_name: str, worker: str, message: str, task_id: str, start_time: float
     ) -> dict[str, Any]:
-        """beekeeperペインへのecho方式送信"""
-        print(f"📤 Sending to beekeeper (echo): {message[:50]}...")
+        """コンソールペインへのecho方式送信"""
+        print(f"📤 Sending to {worker} (echo): {message[:50]}...")
 
         # timestamp付きメッセージとしてecho
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -171,10 +173,10 @@ class HiveCLI:
 
         return {
             "task_id": task_id,
-            "worker_name": "beekeeper",
+            "worker_name": worker,
             "status": "completed",
             "result": {
-                "content": f"Message displayed on beekeeper console: {message}",
+                "content": f"Message displayed on {worker} console: {message}",
                 "processing_time": processing_time,
                 "message_sent": message,
                 "delivery_method": "echo",
