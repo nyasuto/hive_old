@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/views/Dashboard.vue'
 import Conversations from '@/views/Conversations.vue'
+import Command from '@/views/Command.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,11 @@ const router = createRouter({
       path: '/conversations',
       name: 'conversations',
       component: Conversations
+    },
+    {
+      path: '/command',
+      name: 'command',
+      component: Command
     }
   ]
 })

@@ -23,6 +23,12 @@
         >
           💬 Conversations
         </router-link>
+        <router-link
+          to="/command"
+          class="nav-tab"
+        >
+          🎯 Commands
+        </router-link>
       </nav>
       
       <div
