@@ -73,6 +73,15 @@ useWebSocket('ws://localhost:8002/ws')
 const filteredMessages = computed(() => {
   let filtered = [...messages.value]
   
+  // Filter out system messages (CLI_RESPONSE: Success etc.)
+  filtered = filtered.filter(msg => {
+    // Hide CLI system response messages
+    if (msg.message.startsWith('CLI_RESPONSE:')) {
+      return false
+    }
+    return true
+  })
+  
   // Filter by time range
   if (filters.value.timeRange !== 'all') {
     const now = new Date()
