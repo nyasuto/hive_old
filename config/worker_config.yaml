@@ -1,40 +1,55 @@
 session_name: cozy-hive
 workers:
+  beekeeper:
+    tmux_pane: "cozy-hive:beekeeper"
+    claude_command: "echo"  # 現在はecho方式（非Claude）
+    timeout: 10
+    description: "User request handling, message display console"
+    delivery_method: "echo"  # echo: コンソール表示 | claude_interactive: Claude Code対話型
+    # 注意: delivery_methodを"claude_interactive"に変更し、claude_commandを
+    # "claude --dangerously-skip-permissions"に変更すればClaude Codeワーカーに転換可能
+    
   queen:
     tmux_pane: "cozy-hive:queen"
     claude_command: "claude-code --role=queen"
     timeout: 300
     description: "Project management, coordination, strategic decisions"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
     
   developer:
     tmux_pane: "cozy-hive:developer"
     claude_command: "claude-code --role=developer"
     timeout: 300
     description: "Development tasks, code implementation, bug fixes"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
     
   tester:
     tmux_pane: "cozy-hive:tester"
     claude_command: "claude-code --role=tester"
     timeout: 180
     description: "Testing, quality assurance, test case generation"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
     
   analyzer:
     tmux_pane: "cozy-hive:analyzer"
     claude_command: "claude-code --role=analyzer"
     timeout: 240
     description: "Code analysis, investigation, root cause analysis"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
     
   documenter:
     tmux_pane: "cozy-hive:documenter"
     claude_command: "claude-code --role=documenter"
     timeout: 120
     description: "Documentation creation, explanation, user guides"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
     
   reviewer:
     tmux_pane: "cozy-hive:reviewer"
     claude_command: "claude-code --role=reviewer"
     timeout: 180
     description: "Code review, quality validation, security checks"
+    delivery_method: "claude_interactive"  # Claude Code対話型（デフォルト）
 
 # Communication settings
 communication:

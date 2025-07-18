@@ -124,18 +124,70 @@ class HiveCLI:
         """
         直接メッセージ送信の内部実装
 
-        現在のworker_communication.pyの複雑な処理をラップ：
-        1. メッセージ + Enter
-        2. 1秒待機
-        3. 追加Enter確認
-        4. レスポンス待機
+        worker_config.yamlのdelivery_method設定に基づいて送信方式を選択：
+        - echo: echo方式（コンソール表示）
+        - claude_interactive: Claude Code方式（対話型）
         """
         if not self.communicator.check_worker_pane(worker):
             raise WorkerCommunicationError(f"Worker pane '{worker}' not found")
 
-        pane_name = self.communicator.config["workers"][worker]["tmux_pane"]
+        worker_config = self.communicator.config["workers"][worker]
+        pane_name = worker_config["tmux_pane"]
+        delivery_method = worker_config.get("delivery_method", "claude_interactive")
         start_time = time.time()
 
+        if delivery_method == "echo":
+            # echo方式（コンソール表示）
+            return await self._send_to_console(
+                pane_name, worker, message, task_id, start_time
+            )
+        else:
+            # Claude Code方式（対話型通信）
+            return await self._send_to_claude_worker(
+                pane_name, worker, message, task_id, start_time
+            )
+
+    async def _send_to_console(
+        self, pane_name: str, worker: str, message: str, task_id: str, start_time: float
+    ) -> dict[str, Any]:
+        """コンソールペインへのecho方式送信"""
+        print(f"📤 Sending to {worker} (echo): {message[:50]}...")
+
+        # timestamp付きメッセージとしてecho
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted_message = f"[{timestamp}] 📨 {message}"
+
+        subprocess.run(
+            [
+                "tmux",
+                "send-keys",
+                "-t",
+                pane_name,
+                f"echo '{formatted_message}'",
+                "Enter",
+            ],
+            check=True,
+        )
+
+        processing_time = time.time() - start_time
+
+        return {
+            "task_id": task_id,
+            "worker_name": worker,
+            "status": "completed",
+            "result": {
+                "content": f"Message displayed on {worker} console: {message}",
+                "processing_time": processing_time,
+                "message_sent": message,
+                "delivery_method": "echo",
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    async def _send_to_claude_worker(
+        self, pane_name: str, worker: str, message: str, task_id: str, start_time: float
+    ) -> dict[str, Any]:
+        """Claude Codeワーカーへの対話型送信"""
         # Step 1: メッセージ送信 + Enter
         print(f"📤 Sending to {worker}: {message[:50]}...")
         subprocess.run(
@@ -164,6 +216,7 @@ class HiveCLI:
                 "content": response_content,
                 "processing_time": processing_time,
                 "message_sent": message,
+                "delivery_method": "claude_interactive",
             },
             "timestamp": datetime.now().isoformat(),
         }
