@@ -33,64 +33,47 @@
         </p>
       </div>
       
-      <div
-        v-for="(group, index) in groupedMessages"
-        :key="index"
-        class="message-group"
-      >
-        <div class="group-header">
-          <span class="group-participants">
-            <span class="participant">{{ group.participants.source.emoji }} {{ group.participants.source.name }}</span>
-            <span class="conversation-arrow">💬</span>
-            <span class="participant">{{ group.participants.target.emoji }} {{ group.participants.target.name }}</span>
-          </span>
-          <span class="group-time">{{ formatGroupTime(group.startTime) }}</span>
-        </div>
-        
-        <div class="messages-list">
-          <div
-            v-for="message in group.messages"
-            :key="message.id"
-            class="message-item"
-            :class="getMessageClass(message)"
-          >
+      <!-- Slack風のメッセージフロー表示 -->
+      <div class="message-list">
+        <div
+          v-for="message in sortedMessages"
+          :key="message.id"
+          class="message-item"
+          :class="getMessageClass(message)"
+        >
+          <div class="message-avatar">
+            <span class="avatar-emoji">{{ getWorkerEmoji(message.source) }}</span>
+          </div>
+          <div class="message-content">
             <div class="message-header">
-              <div class="message-sender">
-                <span class="sender-emoji">{{ getWorkerEmoji(message.source) }}</span>
-                <span class="sender-name">{{ message.source }}</span>
-              </div>
-              <div class="message-meta">
-                <span
-                  class="message-type"
-                  :class="`type-${message.messageType}`"
-                >
-                  {{ getMessageTypeIcon(message.messageType) }} {{ formatMessageType(message.messageType) }}
-                </span>
-                <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-              </div>
+              <span class="sender-name">{{ message.source }}</span>
+              <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+              <span
+                class="message-type"
+                :class="`type-${message.messageType}`"
+              >
+                {{ getMessageTypeIcon(message.messageType) }}
+              </span>
             </div>
-            
-            <div class="message-content">
-              <div class="message-text">
-                {{ message.message }}
-              </div>
-              <div class="message-actions">
-                <button
-                  class="action-btn"
-                  title="Copy message"
-                  @click="copyMessage(message)"
-                >
-                  📋
-                </button>
-                <button
-                  class="action-btn"
-                  title="Show details"
-                  @click="showMessageDetails(message)"
-                >
-                  ℹ️
-                </button>
-              </div>
+            <div class="message-body">
+              {{ message.message }}
             </div>
+          </div>
+          <div class="message-actions">
+            <button
+              class="action-btn"
+              title="Copy message"
+              @click="copyMessage(message)"
+            >
+              📋
+            </button>
+            <button
+              class="action-btn"
+              title="Show details"
+              @click="showMessageDetails(message)"
+            >
+              ℹ️
+            </button>
           </div>
         </div>
       </div>
@@ -169,14 +152,7 @@ interface Message {
   sessionId?: string
 }
 
-interface MessageGroup {
-  participants: {
-    source: { name: string; emoji: string }
-    target: { name: string; emoji: string }
-  }
-  messages: Message[]
-  startTime: string
-}
+// MessageGroup interface removed - using direct message flow
 
 interface Props {
   messages: Message[]
@@ -207,53 +183,10 @@ const workerEmojis: Record<string, string> = {
 }
 
 // Computed properties
-const groupedMessages = computed(() => {
-  const groups: MessageGroup[] = []
-  const groupMap = new Map<string, MessageGroup>()
-  
-  for (const message of props.messages) {
-    const key = `${message.source}-${message.target}`
-    const reverseKey = `${message.target}-${message.source}`
-    
-    let group = groupMap.get(key) || groupMap.get(reverseKey)
-    
-    if (!group) {
-      group = {
-        participants: {
-          source: {
-            name: message.source,
-            emoji: getWorkerEmoji(message.source)
-          },
-          target: {
-            name: message.target,
-            emoji: getWorkerEmoji(message.target)
-          }
-        },
-        messages: [],
-        startTime: message.timestamp
-      }
-      groups.push(group)
-      groupMap.set(key, group)
-    }
-    
-    group.messages.push(message)
-    
-    // Update start time if this message is earlier
-    if (new Date(message.timestamp) < new Date(group.startTime)) {
-      group.startTime = message.timestamp
-    }
-  }
-  
-  // Sort messages within each group by timestamp
-  groups.forEach(group => {
-    group.messages.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-  })
-  
-  // Sort groups by start time (most recent first)
-  return groups.sort((a, b) => 
-    new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+const sortedMessages = computed(() => {
+  // Sort messages by timestamp (newest first for Hive)
+  return [...props.messages].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )
 })
 
@@ -274,17 +207,7 @@ const getMessageTypeIcon = (type: string): string => {
   return icons[type] || '💬'
 }
 
-const formatMessageType = (type: string): string => {
-  const labels: Record<string, string> = {
-    direct: 'Direct',
-    response: 'Response',
-    error: 'Error',
-    task_start: 'Task Start',
-    task_complete: 'Task Complete',
-    test: 'Test'
-  }
-  return labels[type] || type
-}
+// formatMessageType removed - not used in Slack-style layout
 
 const formatTime = (timestamp: string): string => {
   return new Date(timestamp).toLocaleTimeString('ja-JP', {
@@ -294,19 +217,7 @@ const formatTime = (timestamp: string): string => {
   })
 }
 
-const formatGroupTime = (timestamp: string): string => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) {
-    return 'Today ' + formatTime(timestamp)
-  } else if (diffDays === 1) {
-    return 'Yesterday ' + formatTime(timestamp)
-  } else {
-    return date.toLocaleDateString('ja-JP') + ' ' + formatTime(timestamp)
-  }
-}
+// formatGroupTime removed - not needed for Slack-style layout
 
 const formatFullTime = (timestamp: string): string => {
   return new Date(timestamp).toLocaleString('ja-JP')
@@ -346,7 +257,7 @@ const handleScroll = () => {
   }
 }
 
-// Auto-scroll to top when new messages arrive
+// Auto-scroll to top when new messages arrive (Slack-style)
 watch(() => props.messages.length, async () => {
   await nextTick()
   if (messageContainer.value) {
@@ -424,62 +335,24 @@ watch(() => props.messages.length, async () => {
   margin: 0;
 }
 
-.message-group {
-  margin-bottom: 2rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.group-participants {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.participant {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.conversation-arrow {
-  color: #9ca3af;
-}
-
-.group-time {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.messages-list {
+.message-list {
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 .message-item {
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 16px;
   transition: background-color 0.2s;
+  border-radius: 0;
+  min-height: 48px;
 }
 
 .message-item:hover {
   background: #f9fafb;
-}
-
-.message-item:last-child {
-  border-bottom: none;
 }
 
 .message-error {
@@ -487,35 +360,48 @@ watch(() => props.messages.length, async () => {
   border-left: 4px solid #ef4444;
 }
 
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.avatar-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.message-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .message-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.message-sender {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.sender-name {
   font-weight: 600;
   color: #374151;
+  font-size: 0.875rem;
 }
 
-.sender-emoji {
-  font-size: 1.125rem;
-}
-
-.message-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.message-time {
+  color: #6b7280;
   font-size: 0.75rem;
 }
 
 .message-type {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -549,30 +435,21 @@ watch(() => props.messages.length, async () => {
   color: #92400e;
 }
 
-.message-time {
-  color: #6b7280;
-}
-
-.message-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.message-text {
-  flex: 1;
+.message-body {
   color: #374151;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
+  font-size: 0.875rem;
 }
 
 .message-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.2s;
+  margin-left: 8px;
+  flex-shrink: 0;
 }
 
 .message-item:hover .message-actions {
@@ -715,13 +592,41 @@ watch(() => props.messages.length, async () => {
     align-items: flex-start;
   }
   
-  .message-content {
-    flex-direction: column;
+  .message-item {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .avatar-emoji {
+    font-size: 1.25rem;
+  }
+  
+  .message-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .sender-name {
+    font-size: 0.8rem;
+  }
+  
+  .message-time {
+    font-size: 0.7rem;
+  }
+  
+  .message-body {
+    font-size: 0.8rem;
   }
   
   .message-actions {
     opacity: 1;
-    justify-content: flex-end;
+    margin-left: 0;
+    margin-top: 4px;
   }
   
   .message-modal {
