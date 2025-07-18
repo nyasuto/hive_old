@@ -1,14 +1,27 @@
 <template>
   <div class="performance-panel">
     <div class="panel-header">
-      <h2 class="panel-title">📊 Performance Metrics</h2>
+      <h2 class="panel-title">
+        📊 Performance Metrics
+      </h2>
       
       <div class="time-range-selector">
-        <select v-model="selectedTimeRange" @change="updateTimeRange">
-          <option value="5m">5分</option>
-          <option value="15m">15分</option>
-          <option value="1h">1時間</option>
-          <option value="24h">24時間</option>
+        <select
+          v-model="selectedTimeRange"
+          @change="updateTimeRange"
+        >
+          <option value="5m">
+            5分
+          </option>
+          <option value="15m">
+            15分
+          </option>
+          <option value="1h">
+            1時間
+          </option>
+          <option value="24h">
+            24時間
+          </option>
         </select>
       </div>
     </div>
@@ -17,19 +30,30 @@
       <!-- メトリクス概要 -->
       <div class="metrics-overview">
         <div class="metric-card">
-          <div class="metric-icon">⚡</div>
+          <div class="metric-icon">
+            ⚡
+          </div>
           <div class="metric-info">
-            <div class="metric-label">成功率</div>
-            <div class="metric-value" :class="getSuccessRateClass(metrics?.success_rate)">
+            <div class="metric-label">
+              成功率
+            </div>
+            <div
+              class="metric-value"
+              :class="getSuccessRateClass(metrics?.success_rate)"
+            >
               {{ formatPercentage(metrics?.success_rate) }}
             </div>
           </div>
         </div>
         
         <div class="metric-card">
-          <div class="metric-icon">🚀</div>
+          <div class="metric-icon">
+            🚀
+          </div>
           <div class="metric-info">
-            <div class="metric-label">平均応答時間</div>
+            <div class="metric-label">
+              平均応答時間
+            </div>
             <div class="metric-value">
               {{ formatResponseTime(metrics?.avg_response_time) }}
             </div>
@@ -37,9 +61,13 @@
         </div>
         
         <div class="metric-card">
-          <div class="metric-icon">📋</div>
+          <div class="metric-icon">
+            📋
+          </div>
           <div class="metric-info">
-            <div class="metric-label">完了タスク</div>
+            <div class="metric-label">
+              完了タスク
+            </div>
             <div class="metric-value">
               {{ metrics?.completed_tasks || 0 }} / {{ metrics?.total_tasks || 0 }}
             </div>
@@ -47,9 +75,13 @@
         </div>
         
         <div class="metric-card">
-          <div class="metric-icon">👥</div>
+          <div class="metric-icon">
+            👥
+          </div>
           <div class="metric-info">
-            <div class="metric-label">アクティブワーカー</div>
+            <div class="metric-label">
+              アクティブワーカー
+            </div>
             <div class="metric-value">
               {{ metrics?.active_workers || 0 }}
             </div>
@@ -58,8 +90,13 @@
       </div>
       
       <!-- セッション情報 -->
-      <div v-if="session" class="session-info">
-        <h3 class="section-title">🎯 Current Session</h3>
+      <div
+        v-if="session"
+        class="session-info"
+      >
+        <h3 class="section-title">
+          🎯 Current Session
+        </h3>
         <div class="session-details">
           <div class="session-item">
             <span class="session-label">セッションID:</span>
@@ -75,7 +112,10 @@
           </div>
           <div class="session-item">
             <span class="session-label">ステータス:</span>
-            <span class="session-value" :class="session.status">
+            <span
+              class="session-value"
+              :class="session.status"
+            >
               {{ getStatusLabel(session.status) }}
             </span>
           </div>
@@ -91,8 +131,13 @@
       </div>
       
       <!-- リソース使用状況 -->
-      <div v-if="metrics?.memory_usage" class="resource-usage">
-        <h3 class="section-title">💾 Resource Usage</h3>
+      <div
+        v-if="metrics?.memory_usage"
+        class="resource-usage"
+      >
+        <h3 class="section-title">
+          💾 Resource Usage
+        </h3>
         
         <div class="resource-item">
           <div class="resource-header">
@@ -107,11 +152,14 @@
               class="progress-fill"
               :style="{ width: `${metrics.memory_usage.percentage}%` }"
               :class="getMemoryUsageClass(metrics.memory_usage.percentage)"
-            ></div>
+            />
           </div>
         </div>
         
-        <div v-if="metrics.cpu_usage" class="resource-item">
+        <div
+          v-if="metrics.cpu_usage"
+          class="resource-item"
+        >
           <div class="resource-header">
             <span class="resource-label">CPU使用率</span>
             <span class="resource-value">{{ metrics.cpu_usage.toFixed(1) }}%</span>
@@ -121,20 +169,27 @@
               class="progress-fill"
               :style="{ width: `${metrics.cpu_usage}%` }"
               :class="getCpuUsageClass(metrics.cpu_usage)"
-            ></div>
+            />
           </div>
         </div>
       </div>
       
       <!-- パフォーマンス履歴チャート (簡易版) -->
       <div class="performance-chart">
-        <h3 class="section-title">📈 Performance Trend</h3>
+        <h3 class="section-title">
+          📈 Performance Trend
+        </h3>
         <div class="chart-placeholder">
           <div class="chart-message">
             📊 チャート機能は将来のアップデートで実装予定です
           </div>
           <div class="chart-mock">
-            <div v-for="i in 12" :key="i" class="chart-bar" :style="{ height: `${Math.random() * 60 + 10}%` }"></div>
+            <div
+              v-for="i in 12"
+              :key="i"
+              class="chart-bar"
+              :style="{ height: `${Math.random() * 60 + 10}%` }"
+            />
           </div>
         </div>
       </div>

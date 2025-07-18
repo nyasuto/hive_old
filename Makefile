@@ -1,7 +1,7 @@
 # Hive - Claude Code Multi-Agent System
 # Makefile for development automation
 
-.PHONY: help install dev clean build test test-cov lint format type-check quality quality-fix pr-ready git-hooks env-info quality-light poc-ready
+.PHONY: help install dev clean build test test-cov lint format type-check quality quality-fix pr-ready git-hooks env-info quality-light poc-ready dashboard-install dashboard-build dashboard-dev dashboard-test dashboard-quality
 
 # デフォルトターゲット
 .DEFAULT_GOAL := help
@@ -73,7 +73,7 @@ type-check: ## Run type checking
 	@echo "Running type checker..."
 	uv run mypy .
 
-quality: ## Run all quality checks with auto-fix
+quality: ## Run all quality checks with auto-fix and build validation
 	@echo "Running quality checks with auto-fix..."
 	@echo "Auto-fixing linting issues..."
 	@uv run ruff check . --fix || true
@@ -83,9 +83,11 @@ quality: ## Run all quality checks with auto-fix
 	@uv run ruff check .
 	@uv run ruff format . --check
 	@uv run mypy .
+	@echo "Running dashboard quality checks..."
+	@$(MAKE) dashboard-quality
 	@echo "All quality checks completed!"
 
-quality-check: lint format-check type-check ## Run quality checks without auto-fix
+quality-check: lint format-check type-check dashboard-quality ## Run quality checks without auto-fix
 	@echo "All quality checks completed!"
 
 quality-fix: quality ## Auto-fix issues (alias for quality)
@@ -219,3 +221,27 @@ poc-ready: quality-light ## Check if code is ready for PoC (lightweight validati
 	@echo "Running basic tests..."
 	@uv run python -m pytest tests/ -x --tb=short || echo "⚠️ Some tests failed, but continuing for PoC"
 	@echo "✅ Code is ready for PoC!"
+
+# Dashboard-specific commands
+dashboard-install: ## Install dashboard dependencies
+	@echo "📊 Installing dashboard dependencies..."
+	@cd web/dashboard && npm install
+	@echo "✅ Dashboard dependencies installed!"
+
+dashboard-build: dashboard-install ## Build dashboard for production
+	@echo "🔨 Building dashboard..."
+	@cd web/dashboard && npm run build
+	@echo "✅ Dashboard build completed!"
+
+dashboard-dev: dashboard-install ## Start dashboard development server
+	@echo "🚀 Starting dashboard development server..."
+	@cd web/dashboard && npm run dev
+
+dashboard-test: dashboard-install ## Run dashboard tests and quality checks
+	@echo "🧪 Running dashboard tests..."
+	@cd web/dashboard && npm run type-check
+	@cd web/dashboard && npm run lint
+	@echo "✅ Dashboard tests completed!"
+
+dashboard-quality: dashboard-test ## Run dashboard quality checks
+	@echo "✨ Dashboard quality check completed!"

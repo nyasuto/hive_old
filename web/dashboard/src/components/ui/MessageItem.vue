@@ -9,7 +9,10 @@
         <div class="worker-badge source">
           {{ getWorkerEmoji(message.source) }} {{ message.source }}
         </div>
-        <div class="flow-arrow" :class="message.message_type">
+        <div
+          class="flow-arrow"
+          :class="message.message_type"
+        >
           {{ getFlowArrow(message.message_type) }}
         </div>
         <div class="worker-badge target">
@@ -18,7 +21,10 @@
       </div>
       
       <div class="message-meta">
-        <span class="message-type" :class="message.message_type">
+        <span
+          class="message-type"
+          :class="message.message_type"
+        >
           {{ getMessageTypeLabel(message.message_type) }}
         </span>
         <span class="message-time">
@@ -26,8 +32,8 @@
         </span>
         <button 
           class="copy-btn"
-          @click.stop="onCopy"
           title="コピー"
+          @click.stop="onCopy"
         >
           📋
         </button>
@@ -39,7 +45,10 @@
         {{ truncateMessage(message.message) }}
       </div>
       
-      <div v-if="isLongMessage" class="expand-toggle">
+      <div
+        v-if="isLongMessage"
+        class="expand-toggle"
+      >
         <button 
           class="expand-btn"
           @click.stop="toggleExpanded"
@@ -59,8 +68,13 @@
     </div>
     
     <!-- エラーメッセージの場合の詳細表示 -->
-    <div v-if="message.message_type === 'error'" class="error-details">
-      <div class="error-badge">⚠️ エラー</div>
+    <div
+      v-if="message.message_type === 'error'"
+      class="error-details"
+    >
+      <div class="error-badge">
+        ⚠️ エラー
+      </div>
     </div>
   </div>
 </template>

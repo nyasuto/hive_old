@@ -33,7 +33,10 @@
     </line>
     
     <!-- メッセージタイプラベル -->
-    <g v-if="showLabel" class="message-label">
+    <g
+      v-if="showLabel"
+      class="message-label"
+    >
       <rect
         :x="labelPosition.x - labelWidth / 2"
         :y="labelPosition.y - 8"

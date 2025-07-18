@@ -1,7 +1,9 @@
 <template>
   <div class="communication-flow">
     <div class="flow-header">
-      <h2 class="flow-title">📡 Communication Flow</h2>
+      <h2 class="flow-title">
+        📡 Communication Flow
+      </h2>
       
       <div class="flow-controls">
         <button 
@@ -24,10 +26,18 @@
           class="speed-select"
           @change="updateAnimationSpeed"
         >
-          <option value="0.5">0.5x</option>
-          <option value="1">1x</option>
-          <option value="2">2x</option>
-          <option value="5">5x</option>
+          <option value="0.5">
+            0.5x
+          </option>
+          <option value="1">
+            1x
+          </option>
+          <option value="2">
+            2x
+          </option>
+          <option value="5">
+            5x
+          </option>
         </select>
         
         <button 
@@ -51,11 +61,26 @@
       >
         <!-- 背景グリッド -->
         <defs>
-          <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.3"/>
+          <pattern
+            id="grid"
+            width="50"
+            height="50"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 50 0 L 0 0 0 50"
+              fill="none"
+              stroke="#e2e8f0"
+              stroke-width="1"
+              opacity="0.3"
+            />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        <rect
+          width="100%"
+          height="100%"
+          fill="url(#grid)"
+        />
         
         <!-- ワーカーノード -->
         <WorkerNode
@@ -245,8 +270,9 @@ const onWorkerClick = (worker: Worker) => {
   highlightedWorker.value = highlightedWorker.value === worker.name ? '' : worker.name
 }
 
-const onWorkerHover = (_workerName: string) => {
+const onWorkerHover = (workerName: string) => {
   // ホバー時の処理（必要に応じて実装）
+  console.log('Worker hovered:', workerName)
 }
 
 // レスポンシブ対応
