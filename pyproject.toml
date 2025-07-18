@@ -56,12 +56,13 @@ Homepage = "https://github.com/nyasuto/hive"
 Repository = "https://github.com/nyasuto/hive.git"
 Issues = "https://github.com/nyasuto/hive/issues"
 
-[project.scripts]
-hive = "hive.cli:main"
+# Legacy CLI entry point removed - use scripts/hive_cli.py directly
+# [project.scripts]
+# hive = "hive.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["hive*", "queen*", "workers*", "comb*", "tools*"]
+include = ["scripts*", "workers*", "tools*", "web*", "config*", "templates*"]
 
 [tool.ruff]
 target-version = "py312"
@@ -119,12 +120,7 @@ module = [
 ]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = [
-    "hive.tmux_integration",
-    "hive.cli_core",
-]
-warn_unused_ignores = false
+# Legacy hive module overrides removed
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -134,15 +130,7 @@ disallow_untyped_decorators = false
 module = "examples.*"
 ignore_errors = true
 
-[[tool.mypy.overrides]]
-module = [
-    "hive.agents.*",
-    "tests.agents.*",
-    "agents.distributed.*",
-    "hive.agents_distributed.*",
-    "examples.poc.*",
-]
-ignore_errors = true
+# Legacy agents module overrides removed
 
 # Exploration phase: More lenient type checking
 [[tool.mypy.overrides]]
@@ -168,7 +156,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["hive", "queen", "workers", "comb", "tools"]
+source = ["scripts", "workers", "tools", "web"]
 omit = [
     "tests/*",
     "examples/*",

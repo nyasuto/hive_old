@@ -133,7 +133,7 @@ make quality          # Auto-fix + check
 make pr-ready         # Full validation
 
 # Hive operations
-./scripts/start-hive.sh --size=small
-./scripts/check-comb.sh
-./scripts/collect-honey.sh
+./scripts/start-cozy-hive.sh
+python3 scripts/hive_cli.py status
+python3 scripts/hive_watch.py --monitor
 ```

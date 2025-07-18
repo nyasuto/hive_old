@@ -249,22 +249,23 @@ check_python_environment() {
         
         cd "$PROJECT_ROOT"
         
-        if python3 -c "import comb" 2>/dev/null; then
-            check_ok "comb module: Available"
+        # Legacy modules removed - test current architecture modules
+        if python3 -c "import sys; sys.path.insert(0, 'scripts'); import hive_cli" 2>/dev/null; then
+            check_ok "hive_cli module: Available"
         else
-            check_error "comb module: Import failed"
+            check_error "hive_cli module: Import failed"
         fi
         
-        if python3 -c "import queen" 2>/dev/null; then
-            check_ok "queen module: Available"
+        if python3 -c "import sys; sys.path.insert(0, 'scripts'); import worker_communication" 2>/dev/null; then
+            check_ok "worker_communication module: Available"
         else
-            check_error "queen module: Import failed"
+            check_error "worker_communication module: Import failed"
         fi
         
-        if python3 -c "from comb import CombAPI; api = CombAPI('test')" 2>/dev/null; then
-            check_ok "CombAPI: Functional"
+        if python3 -c "import sys; sys.path.insert(0, 'scripts'); import hive_watch" 2>/dev/null; then
+            check_ok "hive_watch module: Available"
         else
-            check_error "CombAPI: Initialization failed"
+            check_error "hive_watch module: Import failed"
         fi
         
     else
@@ -331,7 +332,7 @@ check_directory_structure() {
     cd "$PROJECT_ROOT"
     
     # Core directories
-    local core_dirs=("comb" "queen" "workers" "scripts" "tests" "docs")
+    local core_dirs=("workers" "scripts" "tests" "docs" "config" "templates" "web")
     
     for dir in "${core_dirs[@]}"; do
         if [[ -d "$dir" ]]; then
@@ -342,7 +343,7 @@ check_directory_structure() {
     done
     
     # Hive runtime directories
-    local hive_dirs=(".hive" ".hive/comb" ".hive/nectar" ".hive/honey" ".hive/logs")
+    local hive_dirs=(".hive" ".hive/logs" ".hive/worker_data")
     
     echo
     check_info "Hive runtime directories:"
@@ -478,52 +479,26 @@ run_integration_test() {
     
     check_info "Running basic integration test..."
     
-    # Test CombAPI functionality
+    # Test current architecture functionality
     INTEGRATION_TEST_RESULT=$(python3 << 'EOF'
 import sys
-import tempfile
 import os
-from pathlib import Path
 
 try:
-    # Change to temp directory to avoid conflicts
-    temp_dir = Path(tempfile.mkdtemp())
-    original_cwd = os.getcwd()
-    os.chdir(temp_dir)
+    # Add scripts directory to path
+    scripts_dir = os.path.join(os.getcwd(), 'scripts')
+    sys.path.insert(0, scripts_dir)
     
-    # Add project root to path
-    sys.path.insert(0, original_cwd)
+    import hive_cli
+    import worker_communication
+    import hive_watch
     
-    from comb import CombAPI
-    
-    # Test basic API creation
-    api = CombAPI("integration_test")
-    
-    # Test message sending
-    success = api.send_message(
-        to_worker="test_target",
-        content={"test": "integration_check"},
-        message_type="request"
-    )
-    
-    if success:
-        print("✅ CombAPI integration: SUCCESS")
-    else:
-        print("❌ CombAPI integration: FAILED - message sending failed")
-        sys.exit(1)
-    
-    # Test message receiving
-    messages = api.receive_messages()
-    print(f"✅ Message system: Functional (can receive messages)")
-    
-    # Test task management
-    task_id = api.start_task("Integration Test Task", task_type="test")
-    if task_id:
-        print("✅ Task management: Functional")
-        api.complete_task("completed")
-    else:
-        print("❌ Task management: FAILED")
-        sys.exit(1)
+    # Test basic module initialization
+    cli = hive_cli.HiveCLI()
+    print("✅ Current architecture integration: SUCCESS")
+    print("✅ hive_cli module: Functional")
+    print("✅ worker_communication module: Available")
+    print("✅ hive_watch module: Available")
     
     # Cleanup
     os.chdir(original_cwd)
@@ -587,7 +562,7 @@ EOF
     echo "🚀 Next Steps:"
     echo "1. Install any missing dependencies shown above"
     echo "2. Run: ./scripts/start-small-hive.sh"
-    echo "3. Test with: ./scripts/check-comb.sh"
+    echo "3. Test with: python3 scripts/hive_cli.py status"
     echo "4. Check documentation: docs/setup-guide.md"
     echo
     
@@ -596,7 +571,7 @@ EOF
     echo "  make quality                 # Run quality checks"
     echo "  make test                    # Run test suite"
     echo "  ./scripts/start-small-hive.sh  # Start Hive"
-    echo "  ./scripts/check-comb.sh        # Test communication"
+    echo "  python3 scripts/hive_cli.py status    # Test current system"
     echo
     
     echo -e "${PURPLE}🍯 Happy coding with Hive!${NC}"
