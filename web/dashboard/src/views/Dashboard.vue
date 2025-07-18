@@ -1,13 +1,28 @@
 <template>
   <div class="dashboard">
-    <!-- 接続状態ヘッダー -->
-    <DashboardHeader
+    <!-- 統一ヘッダー -->
+    <UnifiedHeader
       :connection-status="connectionStatus"
-      :active-workers="dashboardStore.activeWorkers.length"
-      :total-workers="dashboardStore.totalWorkers"
       @refresh="handleRefresh"
       @toggle-debug="toggleDebugMode"
-    />
+    >
+      <template #center>
+        <div class="workers-summary">
+          <div class="summary-item">
+            <span class="summary-label">総ワーカー:</span>
+            <span class="summary-value">{{ dashboardStore.totalWorkers }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">アクティブ:</span>
+            <span class="summary-value active">{{ dashboardStore.activeWorkers.length }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">稼働時間:</span>
+            <span class="summary-value">{{ uptime }}</span>
+          </div>
+        </div>
+      </template>
+    </UnifiedHeader>
     
     <!-- メインダッシュボード -->
     <div class="dashboard-container">
@@ -122,7 +137,7 @@
 import { ref, computed, watch } from 'vue'
 import { useWebSocket } from '@/composables'
 import { useDashboardStore } from '@/stores'
-import DashboardHeader from '@/components/DashboardHeader.vue'
+import UnifiedHeader from '@/components/UnifiedHeader.vue'
 import WorkersSidebar from '@/components/WorkersSidebar.vue'
 import CommunicationFlow from '@/components/CommunicationFlow.vue'
 import CommunicationsPanel from '@/components/CommunicationsPanel.vue'
@@ -147,6 +162,23 @@ const {
 
 const dashboardStore = useDashboardStore()
 const debugMode = ref(false)
+const startTime = ref(Date.now())
+
+// 稼働時間計算
+const uptime = computed(() => {
+  const uptimeMs = Date.now() - startTime.value
+  const hours = Math.floor(uptimeMs / (1000 * 60 * 60))
+  const minutes = Math.floor((uptimeMs % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((uptimeMs % (1000 * 60)) / 1000)
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds}s`
+  } else {
+    return `${seconds}s`
+  }
+})
 
 // WebSocketデータをストアに同期
 watch(data, (newData) => {
@@ -193,6 +225,35 @@ if (window.location.search.includes('debug=true')) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Workers Summary Styles */
+.workers-summary {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.125rem;
+}
+
+.summary-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.summary-value.active {
+  color: #059669;
 }
 
 .dashboard-container {
