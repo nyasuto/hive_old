@@ -48,6 +48,12 @@ class HiveCLI:
         HiveWatchCommunicator = _get_hive_watch_communicator()
         self.communicator = HiveWatchCommunicator(session_name)
         self.cli_version = "1.0.0-alpha"
+        
+        # Worker名一覧を初期化
+        self.known_workers = {
+            "queen", "developer", "tester", "analyzer", 
+            "documenter", "reviewer", "beekeeper"
+        }
 
     async def send_message(
         self,
@@ -65,16 +71,20 @@ class HiveCLI:
         # 送信前処理
         task_id = str(uuid4())[:8]
 
-        # 監視ログ記録
+        # 実際の送信者を特定してログ記録
+        actual_source, actual_target = self._parse_worker_communication(message)
+        
         self.communicator.logger.log_message(
-            source="hive_cli",
-            target=worker,
+            source=actual_source or "hive_cli",
+            target=actual_target or worker,
             message=f"CLI_MESSAGE: {message}",
             message_type=message_type,
             additional_info={
                 "task_id": task_id,
                 "wait_for_response": wait_for_response,
                 "cli_version": self.cli_version,
+                "original_source": "hive_cli",
+                "original_target": worker,
             },
         )
 
@@ -93,30 +103,84 @@ class HiveCLI:
             else:
                 raise ValueError(f"Unknown message type: {message_type}")
 
-            # 成功ログ
+            # 成功ログ（実際の送信者を記録）
+            actual_source, actual_target = self._parse_worker_communication(message)
+            
             self.communicator.logger.log_message(
-                source=worker,
-                target="hive_cli",
+                source=actual_target or worker,
+                target=actual_source or "hive_cli",
                 message="CLI_RESPONSE: Success",
                 message_type="response",
                 additional_info={
                     "task_id": task_id,
                     "processing_time": result.get("processing_time", 0),
+                    "original_source": worker,
+                    "original_target": "hive_cli",
                 },
             )
 
             return result
 
         except Exception as e:
-            # エラーログ
+            # エラーログ（実際の送信者を記録）
+            actual_source, actual_target = self._parse_worker_communication(message)
+            
             self.communicator.logger.log_message(
-                source=worker,
-                target="hive_cli",
+                source=actual_target or worker,
+                target=actual_source or "hive_cli",
                 message=f"CLI_ERROR: {str(e)}",
                 message_type="error",
-                additional_info={"task_id": task_id, "error": str(e)},
+                additional_info={
+                    "task_id": task_id, 
+                    "error": str(e),
+                    "original_source": worker,
+                    "original_target": "hive_cli",
+                },
             )
             raise
+
+    def _parse_worker_communication(self, message: str) -> tuple[str | None, str | None]:
+        """
+        メッセージ内容から実際のWorker間通信を特定
+        
+        Returns:
+            tuple[source, target]: 実際の送信者と宛先。特定できない場合はNone
+        """
+        # TASK: パターンを特定してWorker間通信を記録
+        # 例: "TASK:001:Issue #84のバグを修正してください"
+        if message.startswith("TASK:"):
+            # 通常はqueenからの指示と推定
+            return "queen", None
+        
+        # WORKER_RESULT: パターンを特定してWorkerからの結果を記録
+        # 例: "WORKER_RESULT:developer:TASK_001:[修正完了...]"
+        if message.startswith("WORKER_RESULT:"):
+            parts = message.split(":", 3)
+            if len(parts) >= 3:
+                worker_name = parts[1]
+                if worker_name in self.known_workers:
+                    return worker_name, "queen"  # 通常はqueenに報告
+        
+        # COLLABORATION: パターンを特定してWorker間の協力を記録
+        # 例: "COLLABORATE:001:Testerと連携して..."
+        if message.startswith("COLLABORATE:"):
+            return "queen", None  # 通常はqueenからの協力指示
+        
+        # QUEEN_FINAL_REPORT: パターンを特定してQueenからの最終報告を記録
+        if message.startswith("QUEEN_FINAL_REPORT:"):
+            return "queen", "beekeeper"
+        
+        # APPROVAL: パターンを特定してWorkerからの承認を記録
+        # 例: "APPROVAL:reviewer:TASK_002:..."
+        if message.startswith("APPROVAL:"):
+            parts = message.split(":", 3)
+            if len(parts) >= 3:
+                worker_name = parts[1]
+                if worker_name in self.known_workers:
+                    return worker_name, "queen"  # 通常はqueenに報告
+        
+        # 特定できない場合はNoneを返す
+        return None, None
 
     async def _send_direct_message(
         self, worker: str, message: str, task_id: str
