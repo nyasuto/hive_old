@@ -25,6 +25,7 @@ from pydantic import BaseModel
 # プロジェクトルートをPythonパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
+from scripts.hive_cli import HiveCLI
 from scripts.hive_watch import HiveWatch
 from scripts.worker_communication import WorkerCommunicator
 
@@ -48,7 +49,27 @@ class CommunicationMessage(BaseModel):
     target: str
     message_type: str
     message: str
-    session_id: str | None = None
+
+
+class CommandRequest(BaseModel):
+    """コマンド実行リクエストモデル"""
+
+    worker: str
+    message: str
+    command_type: str = "direct"
+    wait_for_response: bool = True
+
+
+class CommandResponse(BaseModel):
+    """コマンド実行レスポンスモデル"""
+
+    success: bool
+    command_id: str
+    worker: str
+    message: str
+    response: str | None = None
+    error: str | None = None
+    timestamp: str
 
 
 class SessionInfo(BaseModel):
@@ -310,6 +331,7 @@ app.add_middleware(
 # WebSocket接続管理とデータ収集
 manager = ConnectionManager()
 collector = HiveDashboardCollector()
+hive_cli = HiveCLI()
 
 # 静的ファイル配信
 static_dir = Path(__file__).parent.parent / "static"
@@ -391,6 +413,54 @@ async def get_performance_metrics() -> dict[str, Any]:
     """パフォーマンス指標API"""
     data = await collector.collect_dashboard_data()
     return {"metrics": data.performance_metrics}
+
+
+@app.post("/api/command")
+async def execute_command(request: CommandRequest) -> CommandResponse:
+    """コマンド実行API"""
+    try:
+        command_id = f"cmd_{int(time.time() * 1000)}"
+        timestamp = datetime.now().isoformat()
+
+        # hive_cli経由でコマンド実行
+        result = await hive_cli.send_message(
+            worker=request.worker,
+            message=request.message,
+            message_type=request.command_type,
+            wait_for_response=request.wait_for_response,
+        )
+
+        success = result.get("success", False)
+        response_text = result.get("response", "")
+        error_text = result.get("error")
+
+        response = CommandResponse(
+            success=success,
+            command_id=command_id,
+            worker=request.worker,
+            message=request.message,
+            response=response_text if success else None,
+            error=error_text if not success else None,
+            timestamp=timestamp,
+        )
+
+        # WebSocket経由で即座にブロードキャスト
+        if manager.active_connections:
+            broadcast_data = {"type": "command_executed", "data": response.model_dump()}
+            await manager.broadcast(broadcast_data)
+
+        return response
+
+    except Exception as e:
+        error_response = CommandResponse(
+            success=False,
+            command_id=f"cmd_error_{int(time.time() * 1000)}",
+            worker=request.worker,
+            message=request.message,
+            error=str(e),
+            timestamp=datetime.now().isoformat(),
+        )
+        return error_response
 
 
 async def broadcast_dashboard_data() -> None:
