@@ -1,5 +1,12 @@
 session_name: cozy-hive
 workers:
+  beekeeper:
+    tmux_pane: "cozy-hive:beekeeper"
+    claude_command: "echo"  # beekeeperはecho方式（非Claude）
+    timeout: 10
+    description: "User request handling, message display console"
+    delivery_method: "echo"  # 特殊な配信方式を指定
+    
   queen:
     tmux_pane: "cozy-hive:queen"
     claude_command: "claude-code --role=queen"
