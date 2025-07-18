@@ -1,9 +1,48 @@
 <template>
   <div class="conversations-page">
-    <ConversationHeader 
-      @time-range-change="updateTimeRange"
-      @search="updateSearchQuery"
-    />
+    <UnifiedHeader
+      :show-connection-status="false"
+      :show-refresh="false"
+      :show-debug="false"
+    >
+      <template #center>
+        <div class="search-container">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="🔍 Search conversations..."
+            class="search-input"
+            @input="updateSearchQuery"
+          >
+        </div>
+      </template>
+      <template #controls>
+        <select
+          v-model="timeRange"
+          class="time-select"
+          @change="updateTimeRange"
+        >
+          <option value="1h">
+            📅 Last 1 hour
+          </option>
+          <option value="6h">
+            📅 Last 6 hours
+          </option>
+          <option value="24h">
+            📅 Last 24 hours
+          </option>
+          <option value="7d">
+            📅 Last 7 days
+          </option>
+          <option value="30d">
+            📅 Last 30 days
+          </option>
+          <option value="all">
+            📅 All time
+          </option>
+        </select>
+      </template>
+    </UnifiedHeader>
     
     <div class="conversations-layout">
       <ConversationSidebar 
@@ -26,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import ConversationHeader from '@/components/conversation/ConversationHeader.vue'
+import UnifiedHeader from '@/components/UnifiedHeader.vue'
 import ConversationSidebar from '@/components/conversation/ConversationSidebar.vue'
 import ConversationThread from '@/components/conversation/ConversationThread.vue'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -59,6 +98,8 @@ const workers = ref<Worker[]>([])
 const messages = ref<Message[]>([])
 const loading = ref(false)
 const selectedWorkers = ref<string[]>([])
+const timeRange = ref('1h')
+const searchQuery = ref('')
 const filters = ref<ConversationFilters>({
   workers: [],
   messageTypes: [],
@@ -146,12 +187,12 @@ const updateFilters = (newFilters: Partial<ConversationFilters>) => {
   filters.value = { ...filters.value, ...newFilters }
 }
 
-const updateTimeRange = (timeRange: string) => {
-  filters.value = { ...filters.value, timeRange }
+const updateTimeRange = () => {
+  filters.value = { ...filters.value, timeRange: timeRange.value }
 }
 
-const updateSearchQuery = (searchQuery: string) => {
-  filters.value = { ...filters.value, searchQuery }
+const updateSearchQuery = () => {
+  filters.value = { ...filters.value, searchQuery: searchQuery.value }
 }
 
 const loadMoreMessages = async () => {
@@ -249,6 +290,51 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+/* Header Controls Styles */
+.search-container {
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.time-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-select:hover {
+  border-color: #9ca3af;
+}
+
+.time-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .conversations-layout {
