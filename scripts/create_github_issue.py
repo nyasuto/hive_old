@@ -46,7 +46,8 @@ class HiveGitHubIssueCreator:
         """設定ファイルを読み込み"""
         try:
             with open(self.config_path, encoding="utf-8") as f:
-                return yaml.safe_load(f)
+                config = yaml.safe_load(f)
+                return config if config is not None else {}
         except FileNotFoundError:
             self.logger.error(f"設定ファイルが見つかりません: {self.config_path}")
             sys.exit(1)
@@ -54,7 +55,7 @@ class HiveGitHubIssueCreator:
             self.logger.error(f"設定ファイルの読み込みエラー: {e}")
             sys.exit(1)
 
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         """ログ設定"""
         log_config = self.config.get("execution", {}).get("logging", {})
         log_level = getattr(logging, log_config.get("level", "INFO"))
@@ -77,7 +78,7 @@ class HiveGitHubIssueCreator:
 
         self.logger = logging.getLogger(__name__)
 
-    def _check_gh_cli(self):
+    def _check_gh_cli(self) -> None:
         """GitHub CLI存在確認"""
         try:
             result = subprocess.run(

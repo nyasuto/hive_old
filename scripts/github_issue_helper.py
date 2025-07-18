@@ -15,7 +15,7 @@ from create_github_issue import HiveGitHubIssueCreator
 class HiveGitHubHelper:
     """Queen Worker向けGitHub Issue作成ヘルパー"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初期化"""
         self.creator = HiveGitHubIssueCreator()
         self.logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ class HiveGitHubHelper:
         summary: str,
         details: str = "",
         actions: str = "",
-        workers: list[str] = None,
-        additional_data: dict[str, Any] = None,
+        workers: list[str] | None = None,
+        additional_data: dict[str, Any] | None = None,
     ) -> str | None:
         """
         Hiveセッションから直接GitHub Issue作成
@@ -222,7 +222,7 @@ class HiveGitHubHelper:
         summary: str,
         details: str = "",
         actions: str = "",
-        workers: list[str] = None,
+        workers: list[str] | None = None,
     ) -> None:
         """
         Issue作成のプレビュー表示
@@ -283,7 +283,7 @@ def create_issue_from_queen_worker(
     summary: str,
     details: str = "",
     actions: str = "",
-    workers: list[str] = None,
+    workers: list[str] | None = None,
 ) -> str | None:
     """
     Queen WorkerからGitHub Issue作成（簡易関数）
