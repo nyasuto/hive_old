@@ -86,6 +86,13 @@ python3 scripts/hive_cli.py send [target_worker] "[message]"
 python3 scripts/hive_cli.py send queen "TEST_RESULT:tester:[task_id]:テスト完了。成功率95%、失敗箇所: [詳細]"
 ```
 
+### 重要なテスト結果の場合はGitHub Issue作成も推奨
+重要なバグや品質問題が発見された場合、以下のヘルパー関数を使用してGitHub Issue作成を提案してください：
+```bash
+# テスト結果をGitHub Issueとして作成する例
+python3 scripts/create_github_issue.py --title "[TEST] [テスト対象] テスト結果" --summary "[テストの概要と結果]" --details "[詳細なテスト結果とバグ報告]" --actions "[推奨修正アクション]" --workers "tester" --session-id "[session_id]"
+```
+
 ### 開発チームとの連携
 ```bash
 # Developerにバグ報告
@@ -154,9 +161,7 @@ hive remind-me     # 現在のタスクと役割を確認
 ### タスク完了時の報告
 タスクが完了したら、以下のコマンドでQueenに結果を送信してください：
 ```bash
-tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]' Enter
-sleep 1
-tmux send-keys -t cozy-hive:queen Enter
+python3 scripts/hive_cli.py send queen 'WORKER_RESULT:tester:[task_id]:[あなたのテスト結果]'
 ```
 
 その後、`[TASK_COMPLETED]`と出力してください。

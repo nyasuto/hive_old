@@ -36,6 +36,13 @@ python3 scripts/hive_cli.py send [target_worker] "[message]"
 python3 scripts/hive_cli.py send queen "REVIEW_RESULT:reviewer:[task_id]:[レビュー評価の詳細]"
 ```
 
+### 重要なレビュー結果の場合はGitHub Issue作成も推奨
+重要な品質問題や改善提案がある場合、以下のヘルパー関数を使用してGitHub Issue作成を提案してください：
+```bash
+# レビュー結果をGitHub Issueとして作成する例
+python3 scripts/create_github_issue.py --title "[REVIEW] [レビュー対象] レビュー結果" --summary "[レビューの概要と評価]" --details "[詳細なレビュー結果と改善提案]" --actions "[推奨改善アクション]" --workers "reviewer" --session-id "[session_id]"
+```
+
 ### Worker間の協力要請
 他のWorkerに協力を要請する場合：
 ```bash

@@ -58,6 +58,13 @@ python3 scripts/hive_cli.py send [target_worker] "[message]"
 python3 scripts/hive_cli.py send queen "ANALYSIS_RESULT:analyzer:[task_id]:[分析結果の詳細]"
 ```
 
+### 重要な分析結果の場合はGitHub Issue作成も推奨
+複雑な分析結果や重要な発見がある場合、以下のヘルパー関数を使用してGitHub Issue作成を提案してください：
+```bash
+# 分析結果をGitHub Issueとして作成する例
+python3 scripts/create_github_issue.py --title "[ANALYSIS] [分析対象] 分析結果" --summary "[分析の概要]" --details "[詳細な分析結果]" --actions "[推奨アクション]" --workers "analyzer" --session-id "[session_id]"
+```
+
 ### Worker間の協力要請
 他のWorkerに協力を要請する場合：
 ```bash

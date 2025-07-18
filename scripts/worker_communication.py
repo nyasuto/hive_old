@@ -343,7 +343,7 @@ class WorkerCommunicator:
 {instruction}
 
 回答が完了したら、以下のコマンドを実行してQueenに結果を送信してください：
-tmux send-keys -t cozy-hive:queen 'WORKER_RESULT:{worker_name}:{task_id}:[あなたの回答をここに]' Enter
+python3 scripts/hive_cli.py send queen 'WORKER_RESULT:{worker_name}:{task_id}:[あなたの回答をここに]'
 
 その後、[TASK_COMPLETED]と出力してください。
 

@@ -103,11 +103,19 @@ python3 scripts/hive_cli.py list
 python3 scripts/hive_cli.py history [worker_name]
 ```
 
-### BeeKeeperへの最終報告
-全Workerの作業が完了し、結果を統合したら、以下の形式でBeeKeeperに最終報告を送信してください：
+### BeeKeeperへの最終報告とGitHub Issue作成
+全Workerの作業が完了し、結果を統合したら、以下の手順で最終報告を実行してください：
 
+#### 1. GitHub Issue作成
+検討・分析結果は必ずGitHub Issueとして作成してください：
 ```bash
-python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果の要約]"
+python3 scripts/create_github_issue.py --title "[session_id] [タスク概要]" --summary "[要約]" --details "[詳細内容]" --actions "[推奨アクション]" --workers "[使用Worker一覧]" --session-id "[session_id]"
+```
+
+#### 2. BeeKeeperへの最終報告
+GitHub Issue作成後、以下の形式でBeeKeeperに最終報告を送信してください：
+```bash
+python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統合された最終結果の要約] | GitHub Issue: [issue_url]"
 ```
 
 **最終報告の内容に含めるべき項目：**
@@ -119,8 +127,12 @@ python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:[session_id]:[統
 6. **推奨事項**: 追加で必要な作業があれば提案
 
 **報告例：**
-```
-QUEEN_FINAL_REPORT:session_12345:[
+```bash
+# 1. GitHub Issue作成
+python3 scripts/create_github_issue.py --title "session_12345 Issue #84 分析・説明完了" --summary "Issue #84の根本原因特定とドキュメント作成" --details "analyzer: 根本原因特定（メモリリーク） | documenter: 詳細説明文書作成" --actions "修正コードの実装を検討" --workers "analyzer,documenter" --session-id "session_12345"
+
+# 2. BeeKeeperへの最終報告
+python3 scripts/hive_cli.py send beekeeper "QUEEN_FINAL_REPORT:session_12345:[
 📊 Issue #84 分析・説明完了
 
 🔍 実行Worker: analyzer, documenter
@@ -131,7 +143,7 @@ QUEEN_FINAL_REPORT:session_12345:[
 ✅ 最終結果: Issue #84は...（詳細説明）
 ⭐ 品質評価: 高品質（両Worker正常完了）
 💡 推奨事項: 修正コードの実装を検討
-]
+] | GitHub Issue: https://github.com/nyasuto/hive/issues/162"
 ```
 
 ## 💡 実践的な作業手順
@@ -152,7 +164,12 @@ python3 scripts/hive_cli.py send documenter 'TASK_84_DOC: analyzerの調査結�
 
 4. **結果統合と品質確認**: 受信した結果を統合し、品質を評価
 
-5. **BeeKeeperへの最終報告**:
+5. **GitHub Issue作成**:
+```bash
+python3 scripts/create_github_issue.py --title "session_84 Issue #84 分析・説明完了" --summary "Issue #84の詳細分析と説明文書作成" --details "[analyzer結果] | [documenter結果]" --actions "[推奨アクション]" --workers "analyzer,documenter" --session-id "session_84"
+```
+
+6. **BeeKeeperへの最終報告**:
 ```bash
 python3 scripts/hive_cli.py send beekeeper 'QUEEN_FINAL_REPORT:session_84:[
 📊 Issue #84 分析・説明完了
@@ -165,10 +182,10 @@ python3 scripts/hive_cli.py send beekeeper 'QUEEN_FINAL_REPORT:session_84:[
 ✅ 最終結果: [統合された最終的な説明]
 ⭐ 品質評価: [品質評価]
 💡 推奨事項: [必要に応じて追加提案]
-]'
+] | GitHub Issue: [issue_url]'
 ```
 
-6. **タスク完了**: `[TASK_COMPLETED]` を出力
+7. **タスク完了**: `[TASK_COMPLETED]` を出力
 
 ### 重要な原則
 - **即断即決**: タスク受領後、迷わず適切なWorkerに指示
@@ -176,7 +193,9 @@ python3 scripts/hive_cli.py send beekeeper 'QUEEN_FINAL_REPORT:session_84:[
 - **タスクID**: 重複を避けるため、一意のIDを付与
 - **結果待ち**: Worker完了まで待機し、必ず結果を統合
 - **品質責任**: 最終成果物の品質に責任を持つ
+- **GitHub Issue作成**: **検討・分析結果は必ずGitHub Issueとして作成**
 - **最終報告**: **全Worker完了後、必ずBeeKeeperに最終報告を送信**
+- **Issue URL提供**: **BeeKeeper報告にはGitHub Issue URLを含める**
 - **完了条件**: BeeKeeper報告完了後に `[TASK_COMPLETED]` を出力
 
 ### 緊急時の対応
