@@ -12,11 +12,11 @@ from pathlib import Path
 # プロジェクトのルートディレクトリをPATHに追加
 sys.path.insert(0, str(Path(__file__).parent))
 
-from github_issue_pr_integration import HiveGitHubIntegration
-from queen_github_integration import QueenGitHubIntegration
+from .github_issue_pr_integration import HiveGitHubIntegration
+from .queen_github_integration import QueenGitHubIntegration
 
 
-def test_template_loading() -> None:
+def test_template_loading() -> bool:
     """テンプレート読み込みテスト"""
     print("=== テンプレート読み込みテスト ===")
 
@@ -38,7 +38,7 @@ def test_template_loading() -> None:
         return False
 
 
-def test_data_formatting() -> None:
+def test_data_formatting() -> bool:
     """データフォーマット機能テスト"""
     print("\n=== データフォーマット機能テスト ===")
 
@@ -73,7 +73,7 @@ def test_data_formatting() -> None:
         return False
 
 
-def test_session_management() -> None:
+def test_session_management() -> bool:
     """セッション管理機能テスト"""
     print("\n=== セッション管理機能テスト ===")
 
@@ -98,7 +98,7 @@ def test_session_management() -> None:
         return False
 
 
-def test_report_generation() -> None:
+def test_report_generation() -> bool:
     """レポート生成機能テスト"""
     print("\n=== レポート生成機能テスト ===")
 
@@ -121,7 +121,7 @@ def test_report_generation() -> None:
         return False
 
 
-def test_integration_workflow() -> None:
+def test_integration_workflow() -> bool:
     """統合ワークフロー機能テスト（プレビューモード）"""
     print("\n=== 統合ワークフロー機能テスト ===")
 
@@ -149,12 +149,12 @@ def test_integration_workflow() -> None:
         return False
 
 
-def test_helper_functions() -> None:
+def test_helper_functions() -> bool:
     """ヘルパー関数テスト"""
     print("\n=== ヘルパー関数テスト ===")
 
     try:
-        from queen_github_integration import (
+        from .queen_github_integration import (
             queen_get_session_status,
             queen_list_active_sessions,
         )
@@ -174,7 +174,7 @@ def test_helper_functions() -> None:
         return False
 
 
-def run_all_tests() -> None:
+def run_all_tests() -> bool:
     """全テスト実行"""
     print("🐝 GitHub Issue-PR統合機能テスト開始")
     print("=" * 50)

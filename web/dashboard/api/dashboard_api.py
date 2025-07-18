@@ -227,7 +227,6 @@ class HiveDashboardCollector:
                             message=log_entry["message"][:100] + "..."
                             if len(log_entry["message"]) > 100
                             else log_entry["message"],
-                            session_id=log_entry.get("session_id"),
                         )
                         messages.append(message)
                     except json.JSONDecodeError:
@@ -447,7 +446,7 @@ async def execute_command(request: CommandRequest) -> CommandResponse:
         # WebSocket経由で即座にブロードキャスト
         if manager.active_connections:
             broadcast_data = {"type": "command_executed", "data": response.model_dump()}
-            await manager.broadcast(broadcast_data)
+            await manager.broadcast(broadcast_data)  # type: ignore
 
         return response
 

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from create_github_issue import HiveGitHubIssueCreator
+from .create_github_issue import HiveGitHubIssueCreator
 
 
 class HiveGitHubHelper:
