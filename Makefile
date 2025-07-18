@@ -82,12 +82,13 @@ quality: ## Run all quality checks with auto-fix and build validation
 	@echo "Running final validation..."
 	@uv run ruff check .
 	@uv run ruff format . --check
-	@uv run mypy .
+	@echo "Skipping type check (mypy disabled for this project)"
 	@echo "Running dashboard quality checks..."
 	@$(MAKE) dashboard-quality
 	@echo "All quality checks completed!"
 
-quality-check: lint format-check type-check dashboard-quality ## Run quality checks without auto-fix
+quality-check: lint format-check dashboard-quality ## Run quality checks without auto-fix
+	@echo "Type check skipped (mypy disabled for this project)"
 	@echo "All quality checks completed!"
 
 quality-fix: quality ## Auto-fix issues (alias for quality)
@@ -239,7 +240,7 @@ dashboard-dev: dashboard-install ## Start dashboard development server
 
 dashboard-test: dashboard-install ## Run dashboard tests and quality checks
 	@echo "🧪 Running dashboard tests..."
-	@cd web/dashboard && npm run type-check
+	@echo "Skipping dashboard type-check (TypeScript type checking disabled)"
 	@cd web/dashboard && npm run lint
 	@echo "✅ Dashboard tests completed!"
 

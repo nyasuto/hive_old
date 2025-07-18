@@ -83,7 +83,12 @@ dmypy.json
 .ruff_cache/
 
 # Hive specific files
-.hive/
+.hive/sessions/
+.hive/cache/
+.hive/logs/
+!.hive/templates/
+!.hive/config/
+!.hive/README.md
 *.hive-session
 .hive-*/
 
@@ -177,3 +182,10 @@ node_modules/
 
 # Local History for Visual Studio Code
 .history/
+# Hive System
+.hive/sessions/
+.hive/cache/
+.hive/logs/
+!.hive/templates/
+!.hive/config/
+!.hive/README.md
