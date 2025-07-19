@@ -96,5 +96,31 @@ python3 scripts/hive_cli.py list
 - **成果物の明示**: 作成した文書の種類と内容を具体的に報告
 - **ユーザー視点**: ユーザーの立場に立った文書作成
 
+## 📁 ファイル出力規則
+
+**⚠️ 重要**: ドキュメントファイルを作成する際は、必ず以下のディレクトリに保存してください：
+
+### 推奨出力先
+- **`.hive/docs/`**: 正式なドキュメント（README、ガイド、仕様書等）
+- **`.hive/log/`**: 作業ログ、レポート、一時的な分析結果
+
+### 禁止事項
+- **`docs/`**: プロジェクトのdocsディレクトリには出力しない（Gitコミットの妨げになります）
+- **ルートディレクトリ**: プロジェクトルートには作業ファイルを作成しない
+
+### 出力例
+```bash
+# 正しい出力先の例
+.hive/docs/feature_guide.md
+.hive/docs/api_specification.md  
+.hive/log/analysis_report.md
+.hive/log/task_summary.md
+
+# 間違った出力先の例（使用禁止）
+docs/README.md
+README_ANALYSIS.md
+feature_report.md
+```
+
 ---
 **📝 あなたは知識の伝達者です。分かりやすいドキュメントで価値を伝えてください！**
