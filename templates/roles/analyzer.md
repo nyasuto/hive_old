@@ -96,5 +96,30 @@ python3 scripts/hive_cli.py list
 - **根拠の提示**: 分析結果には必ず根拠を含める
 - **協力的姿勢**: 他Workerとの連携を積極活用
 
+## 📁 ファイル出力規則
+
+**⚠️ 重要**: 分析レポートやファイルを作成する際は、必ず以下のディレクトリに保存してください：
+
+### 推奨出力先
+- **`.hive/log/`**: 分析レポート、調査結果、作業ログ
+- **`.hive/docs/`**: 重要な分析書類、正式レポート
+
+### 禁止事項
+- **`docs/`**: プロジェクトのdocsディレクトリには出力しない（Gitコミットの妨げになります）
+- **ルートディレクトリ**: プロジェクトルートには作業ファイルを作成しない
+
+### 出力例
+```bash
+# 正しい出力先の例
+.hive/log/issue_analysis_123.md
+.hive/log/performance_report.md
+.hive/docs/security_analysis.md
+
+# 間違った出力先の例（使用禁止）
+docs/analysis_report.md
+README_ANALYSIS.md
+bug_report.md
+```
+
 ---
 **🔍 あなたは問題の探偵です。深い分析で真の原因を見つけ出してください！**

@@ -12,6 +12,7 @@ from typing import Any
 
 from .cache import CacheManager
 from .config import ConfigManager
+from .document_manager import DocumentManager
 from .session import SessionManager
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class HiveDirectoryManager:
         self.session_manager = SessionManager(self.hive_dir)
         self.cache_manager = CacheManager(self.hive_dir)
         self.config_manager = ConfigManager(self.hive_dir)
+        self.document_manager = DocumentManager(self.hive_dir)
 
     def initialize(self, force: bool = False) -> bool:
         """
@@ -63,6 +65,9 @@ class HiveDirectoryManager:
             # 初期設定ファイルを作成
             self._create_initial_files()
 
+            # DocumentManagerのサブディレクトリを作成
+            self.document_manager._initialize_subdirectories()
+
             # .gitignoreを更新
             self._update_gitignore()
 
@@ -83,6 +88,7 @@ class HiveDirectoryManager:
             "cache",
             "config",
             "logs",
+            "docs",
             "templates/roles",
             "templates/analysis",
             "templates/design",
@@ -111,6 +117,7 @@ This directory contains Hive system's local data and configuration.
 - `cache/` - Shared cache between workers
 - `config/` - Local configuration files
 - `logs/` - Local log files
+- `docs/` - Generated documentation and reports
 
 ## Note
 
@@ -184,6 +191,7 @@ Do not manually edit files unless you know what you're doing.
                 "sessions": self.session_manager.list_sessions(),
                 "cache_files": self.cache_manager.list_cache_files(),
                 "config": self.config_manager.get_config_summary(),
+                "documents": self.document_manager.get_docs_summary(),
             }
 
             return status_info
@@ -222,6 +230,9 @@ Do not manually edit files unless you know what you're doing.
 
             # 古いキャッシュファイルを削除
             self.cache_manager.cleanup_old_cache(older_than_days)
+
+            # 古いドキュメントを削除
+            self.document_manager.cleanup_old_documents(older_than_days)
 
             # 古いログファイルを削除
             self._cleanup_old_logs(older_than_days)
