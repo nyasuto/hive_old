@@ -9,17 +9,19 @@ TASK:TEMPLATE_004 UI表示機能実装
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-try:
+if TYPE_CHECKING:
     from template_detector import TemplateMatch, TemplateType
-except ImportError:
-    # If template_detector module is not found during type checking
-    from typing import Any
-    TemplateMatch = Any
-    TemplateType = Any
+else:
+    try:
+        from template_detector import TemplateMatch, TemplateType
+    except ImportError:
+        # If template_detector module is not found during type checking
+        TemplateMatch = Any
+        TemplateType = Any
 
 
 @dataclass

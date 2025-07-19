@@ -142,6 +142,10 @@ module = [
     "scripts.hive_watch",
     "scripts.hive_directory",
     "hive.hive_directory.*",
+    "scripts.template_ui",
+    "scripts.template_detector",
+    "scripts.template_validator",
+    "scripts.template_guide",
 ]
 ignore_errors = true
 
