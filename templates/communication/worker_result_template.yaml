@@ -1,0 +1,51 @@
+# Worker Result Template Configuration
+# テンプレートパターン: WORKER_RESULT:[WORKER]:[TASK_ID]:[RESULT]
+
+name: "worker_result_template"
+pattern: "WORKER_RESULT:(\\w+):([A-Z0-9_]+):(.+)"
+description: "WorkerからQueenへの作業結果報告テンプレート"
+
+ui_display:
+  icon: "📋"
+  title: "WORKER RESULT TEMPLATE"
+  format: |
+    📋 WORKER RESULT TEMPLATE
+    ┌─ Worker: {worker_name}
+    ├─ Task ID: {task_id}
+    ├─ Result: {result_content}
+    └─ Pattern: WORKER_RESULT:[WORKER]:[TASK_ID]:[RESULT]
+
+groups:
+  - name: "worker_name"
+    index: 0
+    description: "作業を実行したWorker名"
+    validation: "^(queen|developer|tester|analyzer|documenter|reviewer|beekeeper)$"
+  
+  - name: "task_id"
+    index: 1
+    description: "対応するタスクID"
+    validation: "^[A-Z0-9_]+$"
+    
+  - name: "result_content"
+    index: 2
+    description: "作業結果の詳細内容"
+    validation: "^.+$"
+
+examples:
+  - message: "WORKER_RESULT:developer:TEMPLATE_002:Hive CLIシステム調査完了。詳細分析を実施しました。"
+    expected_groups:
+      worker_name: "developer"
+      task_id: "TEMPLATE_002"
+      result_content: "Hive CLIシステム調査完了。詳細分析を実施しました。"
+      
+  - message: "WORKER_RESULT:tester:TEST_001:テストケース作成完了、全テスト合格。"
+    expected_groups:
+      worker_name: "tester"
+      task_id: "TEST_001"
+      result_content: "テストケース作成完了、全テスト合格。"
+
+metadata:
+  source_worker: "any"
+  target_worker: "queen"
+  communication_type: "result_report"
+  priority: "medium"

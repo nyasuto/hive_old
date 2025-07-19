@@ -1,0 +1,43 @@
+# Queen Final Report Template Configuration
+# テンプレートパターン: QUEEN_FINAL_REPORT:[SESSION_ID]:[REPORT]
+
+name: "queen_report_template"
+pattern: "QUEEN_FINAL_REPORT:([A-Z0-9_]+):(.+)"
+description: "QueenからBeekeeperへの最終報告テンプレート"
+
+ui_display:
+  icon: "👑"
+  title: "QUEEN FINAL REPORT"
+  format: |
+    👑 QUEEN FINAL REPORT
+    ┌─ Session ID: {session_id}
+    ├─ Report: {report_content}
+    └─ Pattern: QUEEN_FINAL_REPORT:[SESSION_ID]:[REPORT]
+
+groups:
+  - name: "session_id"
+    index: 0
+    description: "セッション識別子"
+    validation: "^[A-Z0-9_]+$"
+    
+  - name: "report_content"
+    index: 1
+    description: "最終報告内容"
+    validation: "^.+$"
+
+examples:
+  - message: "QUEEN_FINAL_REPORT:session_84:Issue #84の分析・説明完了"
+    expected_groups:
+      session_id: "session_84"
+      report_content: "Issue #84の分析・説明完了"
+      
+  - message: "QUEEN_FINAL_REPORT:template_impl:テンプレート機能実装完了、テスト済み"
+    expected_groups:
+      session_id: "template_impl"
+      report_content: "テンプレート機能実装完了、テスト済み"
+
+metadata:
+  source_worker: "queen"
+  target_worker: "beekeeper"
+  communication_type: "final_report"
+  priority: "high"

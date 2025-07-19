@@ -1,0 +1,43 @@
+# Task Template Configuration
+# テンプレートパターン: TASK:[TASK_ID]:[INSTRUCTION]
+
+name: "task_template"
+pattern: "TASK:([A-Z0-9_]+):(.+)"
+description: "QueenからWorkerへのタスク指示テンプレート"
+
+ui_display:
+  icon: "🎯"
+  title: "TASK TEMPLATE DETECTED"
+  format: |
+    🎯 TASK TEMPLATE DETECTED
+    ┌─ Task ID: {task_id}
+    ├─ Instruction: {instruction}
+    └─ Pattern: TASK:[ID]:[INSTRUCTION]
+
+groups:
+  - name: "task_id"
+    index: 0
+    description: "一意のタスクID"
+    validation: "^[A-Z0-9_]+$"
+  
+  - name: "instruction" 
+    index: 1
+    description: "実行すべき指示内容"
+    validation: "^.+$"
+
+examples:
+  - message: "TASK:TEMPLATE_002:テンプレート機能のプロトタイプ実装を開始してください。"
+    expected_groups:
+      task_id: "TEMPLATE_002"
+      instruction: "テンプレート機能のプロトタイプ実装を開始してください。"
+      
+  - message: "TASK:BUG_FIX_001:Issue #84のバグを修正してください。"
+    expected_groups:
+      task_id: "BUG_FIX_001" 
+      instruction: "Issue #84のバグを修正してください。"
+
+metadata:
+  source_worker: "queen"
+  target_worker: "any"
+  communication_type: "instruction"
+  priority: "high"
