@@ -396,6 +396,133 @@ class HiveCLI:
                 worker = task_info["worker_name"]
                 print(f"   ⏱️  {task_id} ({elapsed}s) → {worker}")
 
+    async def handle_template_command(self, args) -> None:
+        """テンプレートコマンドのハンドリング"""
+        try:
+            # 動的にテンプレート関連モジュールをimport
+            template_detector_spec = importlib.util.spec_from_file_location(
+                "template_detector", Path(__file__).parent / "template_detector.py"
+            )
+            if template_detector_spec is None or template_detector_spec.loader is None:
+                raise ImportError("Failed to load template_detector module")
+            template_detector_module = importlib.util.module_from_spec(
+                template_detector_spec
+            )
+            template_detector_spec.loader.exec_module(template_detector_module)
+
+            template_ui_spec = importlib.util.spec_from_file_location(
+                "template_ui", Path(__file__).parent / "template_ui.py"
+            )
+            if template_ui_spec is None or template_ui_spec.loader is None:
+                raise ImportError("Failed to load template_ui module")
+            template_ui_module = importlib.util.module_from_spec(template_ui_spec)
+            template_ui_spec.loader.exec_module(template_ui_module)
+
+            detector = template_detector_module.TemplateDetector()
+            ui_manager = template_ui_module.TemplateUIManager()
+
+            if args.template_command == "detect":
+                # テンプレート検知（エラー分析付き）
+                message = args.message
+                if args.all:
+                    matches = detector.detect_all(message)
+                    error = None
+                else:
+                    match, error = detector.detect_with_error_analysis(message)
+                    matches = [match] if match else []
+
+                # 結果表示
+                display_result = ui_manager.display_template_result(message, matches)
+                print(display_result)
+
+                # エラー分析結果表示
+                if error:
+                    print("\n🔍 Error Analysis:")
+                    print(f"   Error Type: {error.error_type}")
+                    if error.suggestions:
+                        print("   💡 Suggestions:")
+                        for suggestion in error.suggestions[:3]:
+                            print(f"      • {suggestion}")
+                    if error.fix_examples:
+                        print("   🛠️  Fix Examples:")
+                        for example in error.fix_examples[:2]:
+                            print(f"      • {example}")
+                    if error.partial_matches:
+                        print(
+                            f"   🎯 Partial Matches: {', '.join(error.partial_matches)}"
+                        )
+
+                # 統計情報も表示
+                stats = detector.get_statistics()
+                print(
+                    f"\n📊 Detection Stats: {stats['total_template_matches']}/{stats['total_messages_processed']} matches"
+                )
+
+            elif args.template_command == "show":
+                # テンプレート設定表示
+                templates_dir = Path("templates")
+                if args.type:
+                    if args.type == "quick":
+                        template_file = (
+                            templates_dir / "instructions" / "quick_templates.md"
+                        )
+                    elif args.type == "detailed":
+                        template_file = (
+                            templates_dir / "instructions" / "detailed_templates.md"
+                        )
+                    else:
+                        template_file = (
+                            templates_dir / "instructions" / f"{args.type}_templates.md"
+                        )
+
+                    if template_file.exists():
+                        with open(template_file, encoding="utf-8") as f:
+                            content = f.read()
+                        print(content)
+                    else:
+                        print(f"❌ Template file not found: {template_file}")
+                else:
+                    # 利用可能なテンプレート一覧を表示
+                    print("📋 Available Templates:")
+                    print("=" * 40)
+                    instructions_dir = templates_dir / "instructions"
+                    if instructions_dir.exists():
+                        for template_file in instructions_dir.glob("*.md"):
+                            if template_file.name != "README.md":
+                                print(f"  📄 {template_file.stem}")
+                    print(
+                        "\n💡 Usage: python3 scripts/hive_cli.py template show --type [quick|detailed]"
+                    )
+
+            elif args.template_command == "send":
+                # テンプレート形式での送信
+                message = args.message
+                worker = args.worker
+
+                if args.ui:
+                    # UI表示付きで送信
+                    matches = detector.detect_all(message)
+                    display_result = ui_manager.display_template_result(
+                        message, matches
+                    )
+                    print("🎨 Template Analysis:")
+                    print(display_result)
+                    print("\n📤 Sending message...")
+
+                # 実際のメッセージ送信
+                result = await self.send_message(worker, message, "direct", True)
+                print("✅ Template message sent successfully")
+                if result.get("result", {}).get("content"):
+                    print(f"📝 Response: {result['result']['content']}")
+
+            else:
+                print("❌ Unknown template subcommand")
+                print("💡 Available commands: detect, show, send")
+
+        except Exception as e:
+            print(f"❌ Template command error: {e}")
+            raise
+
 
 async def main() -> None:
     """メイン実行関数"""
@@ -428,6 +555,65 @@ async def main() -> None:
     monitor_parser = subparsers.add_parser("monitor", help="リアルタイム監視開始")
     monitor_parser.add_argument(
         "--interval", type=float, default=2.0, help="監視間隔（秒）"
+    )
+
+    # template コマンド
+    template_parser = subparsers.add_parser(
+        "template", help="テンプレート検知・表示機能"
+    )
+    template_subparsers = template_parser.add_subparsers(
+        dest="template_command", help="テンプレートサブコマンド"
+    )
+
+    # template detect
+    detect_parser = template_subparsers.add_parser(
+        "detect", help="メッセージからテンプレートを検知"
+    )
+    detect_parser.add_argument("message", help="検知対象のメッセージ")
+    detect_parser.add_argument(
+        "--all", action="store_true", help="全ての可能なテンプレートを検知"
+    )
+
+    # template show
+    show_parser = template_subparsers.add_parser("show", help="テンプレート設定表示")
+    show_parser.add_argument("--type", help="表示するテンプレートタイプ")
+
+    # template send
+    send_template_parser = template_subparsers.add_parser(
+        "send", help="テンプレート形式でメッセージ送信"
+    )
+    send_template_parser.add_argument("worker", help="送信先Worker名")
+    send_template_parser.add_argument("message", help="送信するメッセージ")
+    send_template_parser.add_argument(
+        "--ui", action="store_true", help="UI表示付きで送信"
+    )
+
+    # template guide
+    guide_parser = template_subparsers.add_parser(
+        "guide", help="対話式テンプレート作成ガイド"
+    )
+    guide_parser.add_argument(
+        "--mode",
+        choices=["quick", "detailed", "builder"],
+        default="quick",
+        help="ガイドモード",
+    )
+
+    # template tutorial
+    template_subparsers.add_parser("tutorial", help="テンプレートチュートリアル")
+
+    # template validate
+    validate_parser = template_subparsers.add_parser(
+        "validate", help="テンプレートバリデーション"
+    )
+    validate_parser.add_argument(
+        "target", help="バリデーション対象（メッセージまたは設定ディレクトリ）"
+    )
+    validate_parser.add_argument(
+        "--type",
+        choices=["message", "config"],
+        default="message",
+        help="バリデーションタイプ",
     )
 
     args = parser.parse_args()
@@ -483,6 +669,9 @@ async def main() -> None:
 
             hive_watch = hive_watch_module.HiveWatch(args.session)
             await hive_watch.start_monitoring(args.interval)
+
+        elif args.command == "template":
+            await cli.handle_template_command(args)
 
     except WorkerCommunicationError as e:
         print(f"❌ Communication error: {e}")
