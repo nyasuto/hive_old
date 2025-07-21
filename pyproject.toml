@@ -132,20 +132,35 @@ ignore_errors = true
 
 # Legacy agents module overrides removed
 
-# Exploration phase: More lenient type checking
+# Phase 1: Gradual type checking enablement
 [[tool.mypy.overrides]]
 module = [
     "*.poc.*",
     "*.experimental.*",
     "*.draft.*",
-    "scripts.hive_cli",
-    "scripts.hive_watch",
-    "scripts.hive_directory",
-    "hive.hive_directory.*",
     "scripts.template_ui",
-    "scripts.template_detector",
+    "scripts.template_detector", 
     "scripts.template_validator",
     "scripts.template_guide",
+]
+ignore_errors = true
+
+# Phase 1: Enable type checking for core modules (gradual approach)
+[[tool.mypy.overrides]]
+module = [
+    "scripts.hive_cli",
+    "scripts.hive_watch", 
+    "scripts.hive_directory",
+]
+ignore_errors = false
+disallow_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
+
+# Keep hive_directory modules with lenient checking for now
+[[tool.mypy.overrides]]
+module = [
+    "hive.hive_directory.*",
 ]
 ignore_errors = true
 
