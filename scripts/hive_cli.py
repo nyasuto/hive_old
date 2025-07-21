@@ -396,7 +396,7 @@ class HiveCLI:
                 worker = task_info["worker_name"]
                 print(f"   ⏱️  {task_id} ({elapsed}s) → {worker}")
 
-    async def handle_template_command(self, args) -> None:
+    async def handle_template_command(self, args: Any) -> None:
         """テンプレートコマンドのハンドリング"""
         try:
             # 動的にテンプレート関連モジュールをimport
