@@ -193,3 +193,5 @@ node_modules/
 !.hive/templates/
 !.hive/config/
 !.hive/README.md
+
+.swarm
