@@ -7,9 +7,6 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    labels:
-      - "dependencies"
-      - "github-actions"
     
   # Python依存関係の更新（pyproject.toml）
   - package-ecosystem: "pip"
@@ -18,9 +15,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    labels:
-      - "dependencies"
-      - "python"
+
     # 開発依存関係も含める
     allow:
       - dependency-type: "all"
@@ -32,12 +27,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    labels:
-      - "dependencies"
-      - "npm"
-      - "dashboard"
     # 開発依存関係も含める
     allow:
       - dependency-type: "all"
-    # セキュリティアップデートは即座に
-    open-pull-requests-limit: 10
+   
