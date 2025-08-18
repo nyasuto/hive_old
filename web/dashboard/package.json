@@ -17,7 +17,7 @@
     "pinia": "^3.0.3"
   },
   "devDependencies": {
-    "@types/node": "^24.2.1",
+    "@types/node": "^24.3.0",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.39.1",
     "@vitejs/plugin-vue": "^6.0.1",
